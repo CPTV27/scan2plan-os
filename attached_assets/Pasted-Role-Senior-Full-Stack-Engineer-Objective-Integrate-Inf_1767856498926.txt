@@ -1,0 +1,104 @@
+Role: Senior Full-Stack Engineer Objective: Integrate "Influencer Outreach" and "BOMA/ESG" strategies into the Marketing Module and HubSpot Sync.
+
+1. DATA: UPDATE PERSONAS & SEED (server/data/seedMarketing.ts)
+
+Action:
+
+Add BP8 (The Influencer) to the Persona list.
+
+Add the BOMA 2024 and ESG hooks to the Evidence Vault.
+
+Code:
+
+TypeScript
+
+import { db } from '../db';
+import { personas, evidenceVault } from '@shared/schema';
+import { eq } from 'drizzle-orm';
+
+// 1. UPDATE PERSONAS (Add BP8)
+export const PERSONA_SEED = [
+  // ... keep existing BP1-BP7 ...
+  {
+    code: "BP8",
+    name: "The Influencer / Tech Leader",
+    painPoints: ["Content fatigue", "Finding novel tech", "Audience engagement"],
+    preferredTags: ["vdc", "reality-capture", "proptech"],
+    scriptTemplate: "Hey {{firstName}}, huge fan of your work on {{hook}}. We just automated a 'Variance Cop' that catches 10% drift instantly. Thought your audience might like the raw data?"
+  }
+];
+
+// 2. UPDATE EVIDENCE VAULT (Add BOMA/ESG/Tech Hooks)
+export const EVIDENCE_SEED = [
+  // ... keep existing hooks ...
+
+  // NEW: BOMA 2024 (Target: BP6 Developer/Asset Manager)
+  {
+    personaCode: "BP6",
+    hookContent: "BOMA 2024 Update: Unenclosed amenities (balconies) are now rentable. We found 5% more leasable space using LiDAR.",
+    ewsScore: 5,
+    sourceUrl: "https://www.boma.org/BOMA/Standards"
+  },
+
+  // NEW: LEED v5 / ESG (Target: BP5 Architect)
+  {
+    personaCode: "BP5",
+    hookContent: "LEED v5 Compliance: Reusing structure cuts embodied carbon by 50%. Our LoA 40 scan proves structural capacity for the LCA credits.",
+    ewsScore: 5,
+    sourceUrl: "https://www.usgbc.org/leed/v5"
+  },
+
+  // NEW: Tech Insider (Target: BP8 Influencer)
+  {
+    personaCode: "BP8",
+    hookContent: "Automated QA logic. We analyzed 1M sqft of scan data and found a 68% failure rate in standard as-builts.",
+    ewsScore: 5,
+    sourceUrl: "https://scan2plan.io/research" 
+  }
+];
+
+export async function seedMarketingData() {
+  console.log('🌱 Seeding Advanced Growth Strategies...');
+
+  for (const p of PERSONA_SEED) {
+    await db.insert(personas).values(p).onConflictDoNothing();
+  }
+
+  for (const e of EVIDENCE_SEED) {
+    const existing = await db.query.evidenceVault.findFirst({ where: eq(evidenceVault.hookContent, e.hookContent)});
+    if (!existing) {
+      await db.insert(evidenceVault).values(e);
+    }
+  }
+  console.log('✅ BOMA, ESG, and Influencer Logic Loaded.');
+}
+2. SERVICE: HUBSPOT MAPPING (server/services/hubspot.ts)
+
+Action: Ensure the sync logic passes the persona_code clearly so you can segment lists in HubSpot (e.g., "Create List: BP8 Influencers").
+
+Logic: Existing code already handles s2p_persona_code. No changes needed, but verify your HubSpot properties exist.
+
+3. UI: LEAD GEN FORM UPDATE
+
+Action: The "Quick Classify" dropdown in your dashboard will now automatically show "BP8 - The Influencer" due to the database update.
+
+How this works in the real world:
+Scenario A (The Asset Manager):
+
+You Add Lead: "John Doe (Commercial Real Estate)."
+
+You Select: BP6 (Developer).
+
+The System: Detects the "BOMA 2024" hook has the highest score (5/5).
+
+The Email: "John, how much is bad survey data costing your pro forma? BOMA 2024 Update: Unenclosed amenities are now rentable. We found 5% more leasable space using LiDAR..."
+
+Scenario B (The Influencer):
+
+You Add Lead: "Lana Gochenauer (VDC Tech)."
+
+You Select: BP8 (The Influencer).
+
+The System: Pulls the "Tech Insider" hook.
+
+The DM/Email: "Hey Lana, huge fan of your work on Automated QA logic. We just automated a 'Variance Cop' that catches 10% drift... Thought your audience might like the raw data?"

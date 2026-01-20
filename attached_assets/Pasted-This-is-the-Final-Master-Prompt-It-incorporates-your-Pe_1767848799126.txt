@@ -1,0 +1,175 @@
+This is the **Final Master Prompt**. It incorporates your Persona Seed Data, the Owner ID fix, and the Batch Sync Endpoint.
+
+It also adds the **Manual Setup Warning** at the top so you don't forget to configure HubSpot before expecting the code to work.
+
+**Copy and paste this entire block into Replit.**
+
+---
+
+**Role:** Senior Full-Stack Engineer & CRM Architect
+**Objective:** Build the "Growth Engine" module: HubSpot Integration, Engagement Tracking, and Persona Logic.
+
+**PRE-REQUISITES (MANUAL CONFIGURATION)**
+
+* **HubSpot:** Create these custom properties in HubSpot CRM:
+* `s2p_persona_code` (Single-line text)
+* `s2p_case_study_url` (Single-line text)
+* `s2p_outreach_script` (Multi-line text)
+* `s2p_lead_id` (Number)
+
+
+* **Env:** Ensure `HUBSPOT_ACCESS_TOKEN` is set in Secrets.
+
+**1. DATABASE: SCHEMA UPDATES (`shared/schema.ts`)**
+
+* **Action:** Add/Modify tables to support the Growth Engine.
+* **Code Structure:**
+```typescript
+// 1. New Table: Personas
+export const personas = pgTable("personas", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(), // "BP1", "BP5"
+  name: text("name").notNull(),
+  painPoints: text("pain_points").array(),
+  preferredTags: text("preferred_tags").array(),
+  scriptTemplate: text("script_template"), // Template with {{variables}}
+});
+
+// 2. New Table: Sync Logs
+export const hubspotSyncLogs = pgTable("hubspot_sync_logs", {
+  id: serial("id").primaryKey(),
+  leadId: integer("lead_id").references(() => leads.id),
+  hubspotContactId: text("hubspot_contact_id"),
+  syncStatus: text("sync_status"), // "pending", "synced", "failed"
+  errorMessage: text("error_message"),
+  lastSyncAt: timestamp("last_sync_at").defaultNow(),
+});
+
+// 3. New Table: Engagement Tracking
+export const trackingEvents = pgTable("tracking_events", {
+  id: serial("id").primaryKey(),
+  leadId: integer("lead_id").references(() => leads.id),
+  eventType: text("event_type"), // "case_study_click"
+  assetUrl: text("asset_url"),
+  clickedAt: timestamp("clicked_at").defaultNow(),
+  referrer: text("referrer"),
+});
+
+// 4. New Table: Notifications
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  type: text("type"), // "lead_click", "sync_failure"
+  leadId: integer("lead_id").references(() => leads.id),
+  message: text("message"),
+  read: boolean("read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// 5. MODIFIED TABLE: LEADS
+// Add these columns to the existing 'leads' table:
+// ownerId: integer("owner_id").references(() => users.id)
+// persona_code: text
+// hubspot_id: text
+// lead_score: integer (default 0)
+
+```
+
+
+
+**2. DATA: SEED PERSONAS (`server/data/seedMarketing.ts`)**
+
+* **Action:** Seed the `personas` table with this EXACT data:
+```typescript
+export const PERSONA_SEED = [
+  {
+    code: "BP1",
+    name: "The Engineer",
+    painPoints: ["Accuracy drift", "Field verification", "Coordination time"],
+    preferredTags: ["mep", "industrial", "coordination"],
+    scriptTemplate: "{{firstName}}, your team is losing hours on field verification. {{client}} cut coordination time by {{heroStat}}. Worth 15 min?"
+  },
+  {
+    code: "BP2",
+    name: "The GC",
+    painPoints: ["Schedule risk", "RFI volume", "Trade coordination"],
+    preferredTags: ["commercial", "renovation", "coordination"],
+    scriptTemplate: "{{firstName}}, RFIs killing your schedule? {{client}} reduced clash-related RFIs by {{heroStat}}. Quick call?"
+  },
+  {
+    code: "BP3",
+    name: "The Owner's Rep",
+    painPoints: ["Budget variance", "Change orders", "Accountability"],
+    preferredTags: ["commercial", "historic", "documentation"],
+    scriptTemplate: "{{firstName}}, change orders eating your contingency? See how {{client}} locked scope with verified as-builts."
+  },
+  {
+    code: "BP4",
+    name: "The Facilities Manager",
+    painPoints: ["Asset documentation", "Emergency response", "Space planning"],
+    preferredTags: ["industrial", "education", "healthcare"],
+    scriptTemplate: "{{firstName}}, still hunting for drawings during emergencies? {{client}} built a single source of truth. Here's how."
+  },
+  {
+    code: "BP5",
+    name: "The Architect",
+    painPoints: ["As-built accuracy", "Design intent", "Historic preservation"],
+    preferredTags: ["historic", "residential", "renovation"],
+    scriptTemplate: "{{firstName}}, as-builts lying to you again? {{caseStudyTitle}} solved this for {{client}}. PDF attached."
+  },
+  {
+    code: "BP6",
+    name: "The Developer",
+    painPoints: ["Due diligence speed", "Acquisition risk", "Repositioning cost"],
+    preferredTags: ["commercial", "industrial", "documentation"],
+    scriptTemplate: "{{firstName}}, how much is bad survey data costing your pro forma? {{client}} de-risked their acquisition in {{heroStat}}."
+  },
+  {
+    code: "BP7",
+    name: "The Surveyor",
+    painPoints: ["Turnaround time", "Interior access", "Deliverable format"],
+    preferredTags: ["industrial", "commercial", "mep"],
+    scriptTemplate: "{{firstName}}, subbing out interior scans? We white-label for firms like yours. {{heroStat}} turnaround, your deliverable format."
+  }
+];
+
+```
+
+
+
+**3. SERVICE: HUBSPOT SYNC ENGINE (`server/services/hubspot.ts`)**
+
+* **Dependencies:** `@hubspot/api-client`, `bottleneck`.
+* **Function:** `syncLead(lead, persona)`
+1. **Asset Selection:** Call `rankCaseStudies(persona.code)` to get the PDF URL.
+2. **Tracking Link:** Wrap the PDF URL: `https://[APP_URL]/api/track?leadId=${lead.id}&dest=${pdfUrl}`.
+3. **HubSpot Upsert:** Search Contact by Email. If exists, Update. If not, Create.
+4. **Properties:** Map `s2p_persona_code`, `s2p_case_study_url` (wrapped), `s2p_outreach_script`, `s2p_lead_id`.
+
+
+* **Rate Limiting:** Use `bottleneck` to limit to 10 requests/second.
+
+**4. API: ROUTES & WEBHOOKS (`server/routes.ts`)**
+
+* **Endpoint:** `GET /api/track`
+* **Logic:** Dedupe click (24h window). If unique -> Increment Lead Score + Notify Owner. -> Redirect to `dest`.
+
+
+* **Endpoint:** `POST /api/leads/batch-sync`
+* **Body:** `{ leadIds: number[] }`
+* **Logic:** Queue leads into the HubSpot Service. Return `{ synced: [], failed: [] }`.
+
+
+* **Endpoint:** `POST /api/webhooks/hubspot/deal`
+* **Logic:** When Deal Stage = `closed_won`, update S2P Lead Status to `Closed Won`.
+
+
+
+**5. UI: LEAD GEN DASHBOARD & NOTIFICATIONS**
+
+* **LeadGen:** Add "Quick Classify" dropdown (BP1-BP7). Add "Batch Sync" button.
+* **Notifications:** Add Header Bell Icon. Poll the `notifications` table.
+
+---
+
+**Run this prompt to finalize your Growth Engine.**

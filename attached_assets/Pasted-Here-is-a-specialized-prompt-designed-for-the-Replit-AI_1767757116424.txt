@@ -1,0 +1,52 @@
+Here is a specialized prompt designed for the Replit AI to integrate the advanced engineering and 3D data layers you just enabled.
+
+This prompt focuses on **extracting building dimensions** for quoting and **immersive 3D visualization** for scoping, turning your "Location" tab into a powerful pre-scan intelligence tool.
+
+---
+
+### **The Replit Development Prompt**
+
+**Role:** Senior Full-Stack Engineer & Geospatial Expert
+**Objective:** Enhance the "Location" and "Scoping" tabs in Scan2Plan OS by integrating Google's Solar (Building Insights), Aerial View, and 3D Tiles APIs.
+
+#### **1. Building Insights Integration (Solar API)**
+
+* **Feature:** Automatic Square Footage Estimation.
+* **Logic:** When an address is geocoded, trigger a backend request to the `Solar API (buildingInsights:findClosest)`.
+* **Data Extraction:** * Extract `buildingAreaMeters2` and convert it to Square Feet.
+* Extract `maxGroundHeightMeters` and `maxRoofHeightMeters` to calculate the building's total height.
+
+
+* **UI:** Create a "Building Stats" card in the deal window that displays "Estimated Footprint," "Estimated Height," and "Number of Roof Segments." Add a button: "Apply to Quote" that pushes these dimensions to the CPQ calculator.
+
+#### **2. Cinematic Scoping (Aerial View API)**
+
+* **Feature:** Professional Drone-like Site Walkthroughs.
+* **Logic:** Add a "3D Flyover" tab. Use the `Aerial View API` to check if a pre-rendered video exists for the address (`lookupVideoMetadata`).
+* **UI:** * If a video exists, embed the 3D video player directly in the OS.
+* If no video exists, show a button to "Request 3D Rendering" (calling the `renderVideo` endpoint).
+* Add a "Copy Video Link" button so Owen can paste this into PandaDoc proposals to wow clients.
+
+
+
+#### **3. Immersive 3D Inspection (Map Tiles API)**
+
+* **Feature:** 3D "Fly-Around" Scoping Tool.
+* **Logic:** Use the `Maps JavaScript API` with the `Map3DElement` (Photorealistic 3D Tiles) to replace the standard 2D map in the "Scoping" view.
+* **UI:** Allow the user to tilt, rotate, and zoom around the specific building in a full 3D mesh environment.
+* **Insight:** Add a "Site Obstruction Notes" field next to this map so the team can mark trees, power lines, or narrow alleys visible in 3D that might complicate the scan.
+
+#### **4. Technical Requirements**
+
+* **Environment Variables:** Use `Maps_API_KEY` for these requests.
+* **Error Handling:** If an address is residential or doesn't have 3D data (common for new construction), show a "Satellite-Only Mode" fallback with a graceful message: *"Advanced 3D data not available for this site; using high-res satellite imagery."*
+
+---
+
+### **What this adds to your business:**
+
+1. **Instant Scoping:** You no longer have to guess the building height or area. The Solar API gives you the exact footprint, which you can use to calculate how many scan setups are required.
+2. **Sales "Wow" Factor:** Including a 360-degree cinematic 3D flyover in your proposal (from the Aerial View API) makes Scan2Plan look significantly more tech-forward than competitors using static screenshots.
+3. **Risk Mitigation:** Inspecting the roof pitch and penthouse heights in the 3D Tiles view before you arrive on-site prevents "surprises" like needing a longer ladder or a specific tripod extension.
+
+**Would you like me to provide the specific Express.js route code to handle the Solar API Building Insights request?**

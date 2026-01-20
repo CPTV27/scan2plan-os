@@ -1,0 +1,97 @@
+This is the smart move. Since the Proof Vault, PDF Generator, and PandaDoc Integration are all part of the same "Sales Engine," feeding them to Replit as one cohesive architecture ensures the parts actually fit together.
+
+Here is the Master Sales Engine Prompt. It combines the Logic (Case Studies), the Assembly (PDF Generation), and the Delivery (PandaDoc/QuickBooks) into one set of instructions.
+
+Copy and paste this entire block into Replit:
+
+Role: Senior Full-Stack Engineer & Automation Architect Objective: Build an end-to-end "Smart Proposal Engine" that automates the Sales Cycle from Quote-to-Contract.
+
+Context: We are replacing a manual workflow (Triple Entry) with a single-source system. The user (Owen) will configure a quote in this app, and the system will intelligently assemble a PDF with case studies, sync the numbers to QuickBooks, and upload the final document to PandaDoc for signature.
+
+1. DATABASE: THE "PROOF VAULT" (case_studies table)
+
+Action: Create a new table case_studies.
+
+Schema:
+
+id: serial primary key
+
+title: string (e.g., "St. Mary's Hospital Scan")
+
+blurb: text (The marketing copy)
+
+tags: text array (e.g., ["healthcare", "complex-mep", "large-scale"])
+
+image_url: string (URL to the hero image)
+
+stats: jsonb (e.g., {"sqft": "50,000", "duration": "3 days"})
+
+Seed Data: Create a script to seed 3 dummy case studies (One Healthcare, One Industrial, One Commercial) so we can test.
+
+2. FEATURE: THE "SMART PROPOSAL BUILDER" UI
+
+Target: client/src/pages/ProposalBuilder.tsx
+
+Workflow Steps:
+
+Step 1 (Scope & Price): Read data from the existing PricingCalculator.
+
+Step 2 (The "Smart Match"): Automatically query case_studies where tags match the current Lead's buildingType.
+
+UI: Show "Recommended Case Studies" with checkboxes. Allow Owen to select/deselect.
+
+Step 3 (Preview): Render a live HTML preview of the Proposal (Cover Page -> Scope Letter -> Pricing Table -> Selected Case Studies -> Terms).
+
+3. BACKEND: PDF GENERATION SERVICE (server/services/pdfGenerator.ts)
+
+Action: Create a service to convert the Proposal HTML into a binary PDF.
+
+Library: Use puppeteer (headless chrome) or react-pdf (renderer).
+
+Critical Requirement (Signature Anchors):
+
+In the "Terms & Conditions" footer of the PDF, inject invisible text: [sig|req|signer1].
+
+Why: This tells PandaDoc exactly where to place the signature box automatically.
+
+4. INTEGRATION: PANDADOC "UPLOAD & SEND" (server/services/pandadoc.ts)
+
+Action: Upgrade the PandaDoc service to handle Document Uploads via API.
+
+Flow:
+
+Receive the generated PDF Buffer.
+
+POST /public/v1/documents (multipart/form-data).
+
+Pass recipient email (lead.contactEmail) and name.
+
+Auto-Send: Trigger the email immediately upon upload.
+
+5. INTEGRATION: QUICKBOOKS ESTIMATE SYNC (server/services/quickbooks.ts)
+
+Trigger: Fires simultaneously when the PDF is sent to PandaDoc.
+
+Action:
+
+Map the Pricing line items to QuickBooks Service Items.
+
+POST /v3/company/:id/estimate.
+
+Save the returned estimate_id to the leads table.
+
+6. UX: THE "ONE-CLICK" EXECUTION
+
+Target: The "Send Proposal" button in the Builder.
+
+Logic: When clicked, it must execute the following chain in parallel:
+
+Generate PDF.
+
+Upload to PandaDoc.
+
+Create QuickBooks Estimate.
+
+Update Lead Status to "Contract Sent".
+
+Toast Notification: "Proposal Sent, Contract Created, and Sync Complete."

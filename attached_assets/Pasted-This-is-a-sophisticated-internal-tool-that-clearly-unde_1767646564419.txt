@@ -1,0 +1,36 @@
+This is a sophisticated internal tool that clearly understands the specific friction points of the Scan-to-BIM industry. The architecture (React/Express/TypeScript with Drizzle) is modern and scalable, and the integration with Airtable and CPQ indicates a high level of business process automation.
+
+Based on the technical review provided, here is my strategic assessment and prioritized recommendations to "optimize" this for your business growth:
+
+### 1. High-Impact Quick Wins (Optimization)
+
+* **Weighted Pipeline Revenue:** This is crucial for business planning. By adding a `probability` field to your Sales Pipeline (e.g., Lead = 10%, Scoped = 50%, Contract Sent = 90%), you can generate a **Forecasted Revenue** chart. This tells you not just what is in the pipe, but what you can actually bank on.
+* **Normalized Dropdowns:** To prevent data "rot," replace free-text string fields for "Building Type" or "LoD" with fixed enums (LoD 200, 300, 350, etc.). This makes your end-of-year data analysis (e.g., "Which LoD is our most profitable?") actually possible.
+
+### 2. Operational Efficiency (The "Scan-to-Plan" Workflow)
+
+* **Mobile Responsiveness for Field Techs:** This is your biggest bottleneck for data integrity. If technicians can’t check their "Production Tracker" or upload a site photo/incident report directly from their phone while on-site, they will wait until they are back at a desk—or worse, forget.
+* *Solution:* Prioritize a "Field View" that simplifies the sidebar and focuses purely on the current day's site assignments.
+
+
+* **SLA Tracking on Kanban:** In a business where "speed is the best ability," knowing a project has been stuck in the "Modeling" phase for 5 days longer than average is vital. Adding a "Days in Stage" counter to your Kanban cards will highlight bottlenecks automatically.
+
+### 3. AI & Data Strategy
+
+* **Meeting Scoping AI Robustness:** Since you are using AI to parse project scopes, the "JSON extraction failure" mentioned is a risk to your sales speed.
+* *Solution:* Implement a "Review & Edit" UI that appears when the AI isn't 100% confident, allowing your team to verify the SQFT or LoD before it syncs to the DB.
+
+
+* **Two-Way Sync:** If Airtable is your "source of truth" for some users and this App is for others, the lack of conflict resolution will eventually lead to overwritten data. Establishing a clear **Master/Slave** relationship between the app and Airtable is a technical priority.
+
+---
+
+### My Recommendation for Next Steps
+
+If you'd like to move forward with these improvements, I can help with the following:
+
+1. **Code Implementation:** I can write the TypeScript/Drizzle logic for the **Weighted Pipeline Revenue** roll-ups.
+2. **UI/UX Refinement:** I can provide the CSS/Tailwind code to make your Sidebar and Kanban boards **Mobile Responsive**.
+3. **Validation Logic:** I can help you write the Zod schemas to **normalize your data inputs** for Building Type and Scope.
+
+**Which of these would you like me to tackle first?**

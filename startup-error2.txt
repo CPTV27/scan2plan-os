@@ -1,0 +1,17 @@
+﻿8:57:37 PM [express] WARN: [AIClient] OpenAI API key not configured
+8:57:40 PM [express] Γ£à Environment configuration validated successfully
+[Migrations] Schema columns ensured successfully
+8:57:40 PM [express] INFO: Sequence scheduler started
+8:57:42 PM [express] Seeding Marketing Engine...
+8:57:43 PM [express] Marketing Engine Seeded.
+Seeding buyer personas...
+  Updated persona: BP-OWNER - The Owner/Developer
+  Updated persona: BP-ARCH - The Architect
+  Updated persona: BP-ENG - The Engineer
+  Updated persona: BP-PM - The Project Manager / CM
+  Updated persona: BP-FAC - The Facilities Manager
+  Updated persona: BP-PROC - The Procurement Leader
+  Updated persona: BP-PROPTECH - The PropTech Innovator
+  Updated persona: BP-INST - The Institutional Owner
+Buyer personas seeded successfully.
+8:57:43 PM [express] serving on http://127.0.0.1:5000

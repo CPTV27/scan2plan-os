@@ -1,0 +1,68 @@
+Prompt for CRM Agent:
+
+I need your help integrating with our CPQ (Configure-Price-Quote) Calculator system. The CPQ is a separate Replit application that generates detailed pricing quotes for Scan-to-BIM services.
+## Current Problem
+The proposal preview is missing key data fields and has formatting issues. Here's what needs fixing:
+### Missing Fields:
+- Client name (showing "Dear Valued Client" instead of actual name)
+- Quote number and date
+- Project address
+- Payment terms
+- Account/site contact info
+- Separate scan vs modeling cost breakdown
+### Formatting Issues:
+- Disciplines showing inconsistent capitalization ("structure, Architecture, mepf" should be "Architecture, Structure, MEPF")
+- Area names duplicating project name instead of being distinct
+- "Price Adjustment" label is unclear - needs better description
+## Proposed Solution
+Let's set up an API endpoint that the CPQ system can call to sync quote data. The CPQ will POST complete quote data when a quote is finalized.
+### Data Structure the CPQ Can Provide:
+```json
+{
+  "quoteNumber": "Q-2026-0051",
+  "quoteDate": "2026-01-10",
+  "projectName": "Test Project - Brooklyn",
+  "projectAddress": "123 Main St, Brooklyn, NY",
+  "clientName": "Sarah Mitchell",
+  "clientCompany": "Mitchell Development LLC",
+  "clientEmail": "sarah@example.com",
+  "clientPhone": "555-123-4567",
+  "accountContact": { "name": "", "email": "", "phone": "" },
+  "siteContact": { "name": "", "email": "", "phone": "" },
+  "areas": [
+    {
+      "name": "Main Building",
+      "buildingType": "Residential - Single Family",
+      "squareFeet": 30000,
+      "scope": "Full Building",
+      "lod": 300,
+      "disciplines": ["Architecture", "Structure", "MEPF"],
+      "pricing": {
+        "architecture": 7995,
+        "structure": 5525,
+        "mepf": 8288
+      }
+    }
+  ],
+  "travel": {
+    "type": "mileage",
+    "distance": 115,
+    "rate": 3.00,
+    "total": 345
+  },
+  "riskPremiums": [
+    { "type": "occupied", "appliesTo": "Architecture", "amount": 2235 }
+  ],
+  "additionalServices": [],
+  "subtotal": 31308,
+  "adjustments": 8794,
+  "totalPrice": 40088,
+  "paymentTerms": "Net 30",
+  "depositRequired": "50%",
+  "validDays": 30
+}
+What I Need From You:
+Create a POST endpoint /api/cpq/sync-quote that accepts this data structure
+Update your proposal template to use all these fields
+Tell me what URL/auth method to use so I can configure the CPQ to POST here
+Can you show me your current proposal generation code so we can align on the data mapping?

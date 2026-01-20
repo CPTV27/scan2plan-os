@@ -1,0 +1,69 @@
+Role: Senior Cloud Architect & Migration Engineer Objective: Implement a "Hybrid Storage Strategy" to support our 30TB legacy Google Drive archive while enabling the new Google Cloud Storage (GCS) infrastructure for active projects.
+
+1. DATABASE MIGRATION STRATEGY (shared/schema.ts)
+
+Action: Modify the projects table to handle dual storage backends.
+
+New Columns:
+
+storage_mode: text (Enum: 'legacy_drive', 'hybrid_gcs', 'gcs_native'). Default to 'legacy_drive'.
+
+gcs_bucket: text (Nullable).
+
+gcs_path: text (Nullable).
+
+Logic:
+
+Legacy Projects: storage_mode = 'legacy_drive', driveFolderUrl is populated, gcs_path is null.
+
+New Projects: storage_mode = 'hybrid_gcs', gcs_path is set for heavy data, driveFolderUrl is set for lightweight docs.
+
+2. THE "SMART LINK" ROUTER (DealWorkspace.tsx)
+
+Action: Upgrade the "Open Project Folder" button to be context-aware.
+
+Logic:
+
+If storage_mode === 'legacy_drive': Open the driveFolderUrl (Status Quo).
+
+If storage_mode === 'hybrid_gcs':
+
+Primary Click: Open GCS Browser (or s2p-active bucket viewer).
+
+Secondary Action (Dropdown): "Open Docs Folder (Drive)" vs "Open Scan Data (GCS)".
+
+3. BACKEND FACTORY PATTERN (server/services/storageFactory.ts)
+
+Action: Create a storage orchestrator that handles the "Closed Won" trigger.
+
+New Logic:
+
+Step 1: Create standard Google Drive Folder (we still need this for Docs/PandaDoc/PDFs).
+
+Step 2: SIMULTANEOUSLY initialize the GCS Bucket structure (creating .keep objects for "01_Field_Capture").
+
+Step 3: Save the project with storage_mode = 'hybrid_gcs'.
+
+4. MIGRATION UTILITY ROUTE
+
+Action: Create a protected Admin route: POST /api/projects/:id/migrate-to-gcs
+
+Goal: Allow us to manually "upgrade" a legacy project later.
+
+Logic:
+
+Generate the standard UPID path in the GCS bucket.
+
+Update the database record to hybrid_gcs.
+
+Return the new GCS path so we can run an rclone copy command in the background.
+
+Visualizing the Transition
+Why this is safer:
+No Downtime: Your old projects work exactly as they do today. Agata won't notice a difference on "Closed" jobs.
+
+Future Proof: New jobs immediately get the speed of GCS.
+
+Lazy Migration: You don't have to move 30TB tonight. You can move active projects one by one using the "Migration Utility" route whenever you need to reopen an old file.
+
+Shall we execute this hybrid setup?

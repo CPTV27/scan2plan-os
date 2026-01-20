@@ -1,0 +1,84 @@
+Role: Content Strategist & Database Engineer Objective: Populate the ProposalBuilder with the specific "Gold Standard" boilerplate text extracted from the client's legacy PDF proposals.
+
+1. CREATE CONTENT REPOSITORY (server/data/proposalContent.ts)
+
+Action: Create a static data file to house the standard text blocks.
+
+Structure: Export constant objects for Marketing, Scope, Terms, and Standards.
+
+2. INJECT MARKETING BOILERPLATE (The "Why Us")
+
+Code:
+
+TypeScript
+
+export const MARKETING_COPY = {
+  aboutUs: "We began in 2018 with a simple goal of helping firms focus on design. We're an on-demand LiDAR to BIM/CAD team that can model any building in weeks. We've scanned over 1,000 buildings (~10M sqft).",
+  theDifference: [
+    {
+      title: "Terrestrial LiDAR Only",
+      body: "While others use Drones or iPhone LiDAR, we work exclusively with the Trimble X7 on every project to guarantee millimeter accuracy from 0\" to 1/8\".",
+    },
+    {
+      title: "No AI in the Model",
+      body: "We take a 100% manual approach. For detailed MEP/Structural work, we rely on human experts, not algorithms, to ensure perfect interpretation.",
+    },
+    {
+      title: "Rigorous QC",
+      body: "Our dedicated QC team double and triple checks every deliverable. This adds a few days to delivery but saves you weeks of headaches.",
+    }
+  ]
+};
+3. INJECT SCOPE SNIPPETS (Dynamic)
+
+Code:
+
+TypeScript
+
+export const SCOPE_TEMPLATES = {
+  standard_scan: "A scanning technician will capture the [EXTERIOR/INTERIOR] LiDAR point cloud. Data will be registered, cleaned, and reviewed for QA.",
+  lod_300_model: "Revit Model (LoD 300). Accurate geometry for coordination. All elements modeled in the 'Existing' phase. Facade geometry joined. Changes in material noted.",
+  lod_350_model: "Revit Model (LoD 350). Precise geometry suitable for construction documentation. Includes detailed connections, exposed MEPF, and structural framing.",
+  cad_package: "Pristine CAD drawings converted from Revit. Includes Floor Plans, Exterior Elevations, Roof Plan, and up to 4 Interior Sections."
+};
+4. INJECT PAYMENT TERMS (The Rules)
+
+Code:
+
+TypeScript
+
+export const PAYMENT_TERMS = {
+  deposit: "50% of the estimated cost is due upon engagement.",
+  final: "The outstanding balance is due upon delivery, determined by the actual square footage scanned (BOMA Gross Area Standard).",
+  methods: ["ACH (Preferred)", "Check (Mailed to 188 1st St, Troy, NY)"]
+};
+5. INJECT BIM STANDARDS MATRIX (The Checklist)
+
+Action: Create a JSON structure for the detailed matrix found in the PDFs.
+
+Code:
+
+TypeScript
+
+export const BIM_MATRIX = {
+  exterior_arch: {
+    walls: { lod200: true, lod300: true, lod350: true, notes: "Default Revit wall profile" },
+    storefront: { lod200: true, lod300: true, lod350: true, notes: "Mullions included" },
+    roof: { lod200: "Default", lod300: "Sloped at drain", lod350: "In-situ depressions" }
+  },
+  mep: {
+    ducts: { lod200: false, lod300: true, lod350: true, notes: "Size > 8\"" },
+    pipes: { lod200: false, lod300: "Size > 2\"", lod350: "Size > 1\"", notes: "Hangers included in 350" }
+  }
+};
+6. UI UPDATE: PROPOSAL BUILDER
+
+Target: client/src/pages/ProposalBuilder.tsx
+
+Action: Update the sidebar to pull from MARKETING_COPY and SCOPE_TEMPLATES.
+
+Logic:
+
+If Owen selects "LoD 300", automatically insert the lod_300_model text block into the Scope section.
+
+Always append PAYMENT_TERMS to the footer.

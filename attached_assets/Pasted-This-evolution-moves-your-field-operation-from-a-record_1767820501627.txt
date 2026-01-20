@@ -1,0 +1,50 @@
+This evolution moves your field operation from a "recording tool" to a "Mission Support System." By embedding your internal Knowledge Base (KB) and connecting it to Google Chat, you ensure the technician never feels stranded and never has to wait for a return phone call to solve a technical issue.
+
+Here is the blueprint for the Scan Tech "Genius Bar" integration.
+
+1. The Field Hub Knowledge Assistant
+Instead of the tech digging through PDFs on a job site, we use RAG (Retrieval-Augmented Generation).
+
+The Tech Experience: Within the Field Hub app, there is a "Support Chat" button.
+
+The Intelligence: When the tech asks, "How do I recalibrate the Leica RTC360 for high-glare surfaces?", the AI pulls the exact paragraph from your equipment manual and explains it in simple steps.
+
+Job Context: Because the AI has access to the Universal Project ID, it also knows the specific scope. If the tech asks, "What's the LOD for this room?", it checks your database and says, "This room is LOD 350, ensure you capture the overhead MEP."
+
+2. The Google Chat "Escalation" Bot
+This solves the Agata-Kurt bottleneck. If the AI can't answer the question, it moves to the human layer.
+
+The Logic: If the AI confidence score is low, or the tech types "I need a person," the bot triggers a Google Chat Webhook.
+
+The Action: It creates a message in the project's Google Chat Space: "⚠️ TECH ALERT: [Tech Name] is at [Project ID] and has a question the AI couldn't solve: [Question Transcript]."
+
+Human Response: You or Kurt can reply directly in Google Chat, and the bot pushes your answer back into the technician’s mobile app.
+
+The "Mission Support & KB" Master Prompt
+Copy and paste this into Replit to build the infrastructure:
+
+Role: AI Solutions Architect & Google Cloud Specialist Objective: Build an AI Knowledge Base and Google Chat Escalation system for Scan2Plan OS.
+
+1. Knowledge Base (Vector Store):
+
+Create a folder in the project called /knowledge_base.
+
+Implement a script to ingest PDFs (Equipment Manuals, BOMA standards, SOPs) into a Vector Database (like Pinecone or pgvector in our PostgreSQL).
+
+Connect this to GPT-4o to allow "Chat with your Manuals" functionality in the mobile field app.
+
+2. Context-Aware Support:
+
+Ensure the Support Chat has access to the current project_id and scoping_notes so it can answer project-specific questions alongside technical manual questions.
+
+3. Google Chat Bot Escalation:
+
+Set up a Google Chat Bot via the Google Chat API.
+
+Escalation Logic: If a tech requests human help, send a POST request to the project's Google Chat Space with a deep link to the tech's current session.
+
+Bi-Directional Sync: Implement a webhook listener so that any message posted in the Google Chat Space by an admin is instantly displayed in the technician's app.
+
+4. UI Requirement:
+
+Add a "Mission Support" tab to the Field Hub. It should look like a clean messaging interface with a "Call Manager" emergency button at the bottom.

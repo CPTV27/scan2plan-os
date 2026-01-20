@@ -1,0 +1,555 @@
+# Replit Agent Implementation Prompt: AI Feature Suite
+
+## 🎯 Objective
+
+Implement 6 AI-powered features into the existing Scan2Plan_OS application to enhance sales intelligence, automate proposal generation, and improve project scoping accuracy.
+
+## 📋 Project Context
+
+**Application**: Scan2Plan_OS - A comprehensive CRM/ERP for a laser scanning and BIM services company
+
+**Current Architecture**:
+- **Backend**: Node.js/Express with TypeScript
+- **Frontend**: React with Wouter routing, Radix UI components
+- **Database**: PostgreSQL with Drizzle ORM
+- **AI**: Already using OpenAI (gpt-4o-mini) for PDF extraction in routes.ts
+- **Key Files**:
+  - [server/routes.ts](file:///Users/chasethis/Scan2Plan_OS/server/routes.ts) - Main API routes (7,532 lines - needs modularization)
+  - [shared/schema.ts](file:///Users/chasethis/Scan2Plan_OS/shared/schema.ts) - Database schema with Drizzle ORM
+  - [client/src/App.tsx](file:///Users/chasethis/Scan2Plan_OS/client/src/App.tsx) - React app with routing
+  - [.env](file:///Users/chasethis/Scan2Plan_OS/.env) - Environment variables (OpenAI already configured)
+
+**Existing AI Integration**:
+The app already has OpenAI configured at lines 52-56 in [server/routes.ts](file:///Users/chasethis/Scan2Plan_OS/server/routes.ts):
+```typescript
+const openai = new OpenAI({
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+});
+```
+
+## 🚀 Features to Implement
+
+### Feature 1: Intelligent Project Scoping Assistant
+**Priority**: HIGHEST  
+**Location**: Enhance existing CPQ Calculator
+
+**Requirements**:
+1. Add AI analysis to the CPQ workflow that suggests:
+   - Building type based on description/address
+   - Estimated square footage
+   - Recommended LOD level with justification
+   - Required disciplines
+   - Risk factors
+   - Timeline estimate
+2. Support both text descriptions and photo uploads
+3. Save AI suggestions to the lead record for tracking
+4. Allow users to accept/modify/reject suggestions
+
+**API Endpoint**:
+- `POST /api/cpq/analyze-project` - Analyzes project details and returns suggestions
+- Input: `{ description: string, address?: string, photos?: string[] }`
+- Output: `{ suggestions: ScoppingSuggestions, confidence: number }`
+
+**Database**:
+Add to `leads` table in schema.ts:
+```typescript
+aiScopingSuggestions: jsonb("ai_scoping_suggestions"), // Store AI recommendations
+aiScopingAccepted: boolean("ai_scoping_accepted").default(false),
+aiScopingModified: jsonb("ai_scoping_modified"), // Track what user changed
+```
+
+---
+
+### Feature 2: Enhanced Document Extraction (RFP Processor)
+**Priority**: HIGH  
+**Location**: Extend existing PDF extraction
+
+**Requirements**:
+1. Expand current PDF extraction (lines 59-172 in routes.ts) to handle:
+   - RFPs (Request for Proposals)
+   - Construction drawings
+   - Project specifications
+   - SOWs (Statements of Work)
+2. Extract comprehensive project details including:
+   - All contact information
+   - Timeline requirements
+   - Deliverable requirements
+   - Insurance/bonding requirements
+   - Special conditions
+   - Budget constraints
+3. Flag unusual or high-risk requirements automatically
+4. Auto-create leads from uploaded RFPs with pre-filled data
+
+**API Endpoint**:
+- `POST /api/documents/analyze` - Analyze any project document
+- Input: File upload + document type
+- Output: Structured project data + risk flags
+
+**Database**:
+Add to `leads` table:
+```typescript
+sourceDocument: jsonb("source_document"), // Original document metadata
+extractedRequirements: jsonb("extracted_requirements"), // AI-extracted data
+riskFlags: jsonb("risk_flags"), // Unusual requirements flagged by AI
+```
+
+---
+
+### Feature 3: Predictive Deal Intelligence
+**Priority**: HIGH  
+**Location**: Lead/Deal detail pages
+
+**Requirements**:
+1. Analyze leads and provide:
+   - Win probability (0-100%) based on historical data
+   - Recommended next actions (prioritized list)
+   - Risk factors that could kill the deal
+   - Optimal pricing strategy suggestions
+   - Similar won deals and closure patterns
+   - Expected timeline to close
+2. Update predictions as deal progresses
+3. Learn from historical won/lost deals
+4. Display in a dedicated "AI Intelligence" card on deal workspace
+
+**API Endpoint**:
+- `GET /api/leads/:id/intelligence` - Get AI predictions for a lead
+- Output: `{ winProbability: number, nextActions: string[], risks: Risk[], pricing: PricingStrategy, similarDeals: Deal[], timeline: string }`
+
+**Database**:
+Add to `leads` table:
+```typescript
+aiIntelligence: jsonb("ai_intelligence"), // Latest AI predictions
+aiIntelligenceUpdatedAt: timestamp("ai_intelligence_updated_at"),
+```
+
+Add new table for tracking prediction accuracy:
+```typescript
+const dealPredictions = pgTable("deal_predictions", {
+  id: serial("id").primaryKey(),
+  leadId: integer("lead_id").references(() => leads.id),
+  predictedProbability: integer("predicted_probability"),
+  predictedOutcome: text("predicted_outcome"), // "won" | "lost"
+  actualOutcome: text("actual_outcome"),
+  predictionDate: timestamp("prediction_date").defaultNow(),
+  outcomeDate: timestamp("outcome_date"),
+});
+```
+
+---
+
+### Feature 4: Natural Language CPQ Interface
+**Priority**: MEDIUM  
+**Location**: New chat interface in CPQ Calculator
+
+**Requirements**:
+1. Create conversational interface for quote creation
+2. Users can describe projects naturally: "We need to scan a 50,000 sqft warehouse in Brooklyn for renovation"
+3. AI asks clarifying questions to gather all required CPQ fields
+4. When sufficient info gathered, auto-populate CPQ form or create quote directly
+5. Support back-and-forth conversation with context retention
+6. Integrate with existing CPQ schema and validation
+
+**API Endpoints**:
+- `POST /api/cpq/chat` - Send message, get AI response
+- `POST /api/cpq/chat/create-quote` - Convert conversation to quote
+- Input: `{ message: string, conversationHistory: Message[], leadId?: number }`
+- Output: `{ response: string, quote?: Quote, readyToCreate: boolean }`
+
+**Database**:
+Add new table for conversations:
+```typescript
+const cpqConversations = pgTable("cpq_conversations", {
+  id: serial("id").primaryKey(),
+  leadId: integer("lead_id").references(() => leads.id),
+  userId: text("user_id"),
+  messages: jsonb("messages"), // Array of {role, content, timestamp}
+  extractedData: jsonb("extracted_data"), // CPQ fields gathered so far
+  quoteId: integer("quote_id"), // If quote was created
+  createdAt: timestamp("created_at").defaultNow(),
+});
+```
+
+**Frontend**:
+Add chat component to CPQ Calculator with message history, typing indicators, and quote preview.
+
+---
+
+### Feature 5: AI-Powered Proposal Generator
+**Priority**: HIGH  
+**Location**: Deal Workspace / Proposal Builder
+
+**Requirements**:
+1. Generate customized proposals based on:
+   - Lead/project details
+   - Selected buyer persona (already in schema)
+   - Similar won projects (for social proof)
+   - Template preference (technical vs executive)
+2. Include sections:
+   - Executive summary (persona-tailored)
+   - Scope of work
+   - Deliverables
+   - Timeline
+   - Pricing
+   - Case studies (from similar projects)
+   - Team qualifications
+   - Risk mitigation
+3. Allow editing before sending
+4. Track which AI-generated proposals convert best
+
+**API Endpoint**:
+- `POST /api/proposals/generate` - Generate proposal content
+- Input: `{ leadId: number, template: 'technical' | 'executive' | 'standard', sections?: string[] }`
+- Output: `{ proposal: ProposalContent, metadata: GenerationMetadata }`
+
+**Database**:
+Add to `leads` table:
+```typescript
+aiGeneratedProposal: jsonb("ai_generated_proposal"), // Latest AI proposal
+proposalGeneratedAt: timestamp("proposal_generated_at"),
+proposalTemplate: text("proposal_template"), // Which template was used
+proposalConverted: boolean("proposal_converted").default(false), // Did it win?
+```
+
+**Frontend**:
+Add "Generate with AI" button to ProposalBuilder page with template selector and section customization.
+
+---
+
+### Feature 6: Smart Project Matching & Case Study Selector
+**Priority**: MEDIUM  
+**Location**: Multiple - Proposals, Deal Intelligence, Email templates
+
+**Requirements**:
+1. Semantic search for similar past projects based on:
+   - Building type
+   - Square footage
+   - Scope/disciplines
+   - Geographic location
+   - Industry/sector
+2. Automatically suggest relevant case studies for proposals
+3. Find comparable projects for pricing benchmarks
+4. Surface lessons learned from similar projects
+5. Use embeddings + vector similarity for matching
+
+**API Endpoints**:
+- `GET /api/projects/similar/:leadId` - Find similar projects
+- `GET /api/case-studies/recommend/:leadId` - Recommend case studies
+- Input: Lead ID or project criteria
+- Output: Ranked list of similar projects with similarity scores
+
+**Technical**:
+- Use OpenAI embeddings API (text-embedding-3-small)
+- Store embeddings in PostgreSQL with pgvector extension
+- OR use simple JSON similarity matching initially
+
+**Database**:
+Add to schema:
+```typescript
+const projectEmbeddings = pgTable("project_embeddings", {
+  id: serial("id").primaryKey(),
+  leadId: integer("lead_id").references(() => leads.id),
+  embedding: text("embedding"), // JSON array of floats
+  projectSummary: text("project_summary"), // Text used for embedding
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+```
+
+---
+
+## 🏗️ Implementation Guidelines
+
+### 1. **Modularize Code**
+Do NOT add all code to [server/routes.ts](file:///Users/chasethis/Scan2Plan_OS/server/routes.ts). Create proper service layer:
+
+```
+server/
+  services/
+    ai/
+      scopingAssistant.ts       # Feature 1
+      documentIntelligence.ts   # Feature 2  
+      dealIntelligence.ts       # Feature 3
+      naturalLanguageCPQ.ts     # Feature 4
+      proposalGenerator.ts      # Feature 5
+      projectMatcher.ts         # Feature 6
+      aiClient.ts               # Shared AI utilities
+  routes/
+    cpq.ts                      # CPQ-specific routes
+    ai.ts                       # AI feature routes
+    proposals.ts                # Proposal routes
+```
+
+### 2. **Shared AI Client**
+Create a unified AI client for all features:
+
+```typescript
+// server/services/ai/aiClient.ts
+import OpenAI from "openai";
+
+export class AIClient {
+  private openai: OpenAI;
+  
+  constructor() {
+    this.openai = new OpenAI({
+      apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+    });
+  }
+  
+  async chat(params: {
+    messages: Array<{ role: string; content: any }>;
+    model?: string;
+    temperature?: number;
+    responseFormat?: 'json_object' | 'text';
+  }) {
+    const response = await this.openai.chat.completions.create({
+      model: params.model || 'gpt-4o',
+      messages: params.messages,
+      temperature: params.temperature ?? 0.3,
+      ...(params.responseFormat === 'json_object' && {
+        response_format: { type: 'json_object' }
+      })
+    });
+    
+    return response.choices[0].message.content;
+  }
+  
+  async embed(text: string): Promise<number[]> {
+    const response = await this.openai.embeddings.create({
+      model: 'text-embedding-3-small',
+      input: text,
+    });
+    
+    return response.data[0].embedding;
+  }
+}
+
+export const aiClient = new AIClient();
+```
+
+### 3. **Error Handling**
+All AI calls should have proper error handling:
+
+```typescript
+try {
+  const result = await aiClient.chat({...});
+  return result;
+} catch (error: any) {
+  if (error.status === 429) {
+    // Rate limit - retry with backoff
+    log('AI rate limit hit, retrying...', 'ai');
+  } else {
+    log(`AI error: ${error.message}`, 'error');
+  }
+  // Return graceful fallback
+  return { error: 'AI analysis unavailable', fallback: true };
+}
+```
+
+### 4. **Database Migrations**
+Generate Drizzle migrations for schema changes:
+
+```bash
+npm run db:generate  # Generate migration from schema changes
+npm run db:push      # Apply migration
+```
+
+### 5. **Frontend Integration**
+Add React Query hooks for AI features:
+
+```typescript
+// client/src/hooks/useAI.ts
+export const useScopingAssistant = (projectData: ProjectInput) => {
+  return useQuery(
+    ['scoping-assistant', projectData],
+    () => fetch('/api/cpq/analyze-project', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(projectData)
+    }).then(r => r.json()),
+    {
+      enabled: !!projectData.description,
+      staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    }
+  );
+};
+```
+
+### 6. **UI Components**
+Create reusable AI components:
+
+```typescript
+// client/src/components/ai/AISuggestionCard.tsx
+export const AISuggestionCard = ({ 
+  title, 
+  suggestions, 
+  onAccept, 
+  onReject 
+}: AISuggestionProps) => {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-purple-500" />
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          {suggestions.map((suggestion, i) => (
+            <div key={i} className="flex items-start justify-between">
+              <div>
+                <p className="font-medium">{suggestion.field}</p>
+                <p className="text-sm text-muted-foreground">
+                  {suggestion.value}
+                </p>
+                {suggestion.reasoning && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {suggestion.reasoning}
+                  </p>
+                )}
+              </div>
+              <Badge variant="secondary">{suggestion.confidence}%</Badge>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+      <CardFooter className="gap-2">
+        <Button onClick={onAccept} variant="default">
+          <Check className="h-4 w-4 mr-2" />
+          Accept All
+        </Button>
+        <Button onClick={onReject} variant="outline">
+          Dismiss
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+};
+```
+
+---
+
+## 📝 Implementation Order
+
+### Phase 1: Foundation (Week 1)
+1. Create AI service layer structure
+2. Implement shared AIClient
+3. Add database schema updates
+4. Generate and apply migrations
+
+### Phase 2: Core Features (Week 2)
+5. **Feature 1**: Intelligent Scoping Assistant
+6. **Feature 2**: Enhanced Document Extraction
+
+### Phase 3: Intelligence (Week 3)
+7. **Feature 3**: Predictive Deal Intelligence
+8. **Feature 5**: AI Proposal Generator
+
+### Phase 4: Advanced (Week 4)
+9. **Feature 4**: Natural Language CPQ
+10. **Feature 6**: Smart Project Matching
+
+---
+
+## 🧪 Testing Requirements
+
+For each feature, test:
+1. Happy path with valid inputs
+2. Error handling (AI failures, rate limits)
+3. Edge cases (missing data, unusual inputs)
+4. Performance (response times under 3 seconds)
+5. UI responsiveness and loading states
+
+---
+
+## 📊 Success Metrics
+
+Track these in the database:
+- AI feature usage counts
+- User acceptance rates for AI suggestions
+- Time saved (before/after measurements)
+- Proposal win rates (AI-generated vs manual)
+- User satisfaction (optional feedback collection)
+
+Add analytics table:
+```typescript
+const aiAnalytics = pgTable("ai_analytics", {
+  id: serial("id").primaryKey(),
+  feature: text("feature").notNull(), // 'scoping' | 'document' | 'intelligence' | 'proposal' | 'nlp_cpq' | 'matching'
+  userId: text("user_id"),
+  leadId: integer("lead_id"),
+  action: text("action"), // 'generated' | 'accepted' | 'rejected' | 'modified'
+  timeTaken: integer("time_taken_ms"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+```
+
+---
+
+## 🔑 Environment Variables
+
+Ensure these exist in [.env](file:///Users/chasethis/Scan2Plan_OS/.env):
+```bash
+# Already configured
+AI_INTEGRATIONS_OPENAI_API_KEY="..."
+AI_INTEGRATIONS_OPENAI_BASE_URL="..."
+
+# Add if needed
+AI_MAX_RETRIES=3
+AI_REQUEST_TIMEOUT=30000
+AI_DEFAULT_MODEL="gpt-4o"
+AI_EMBEDDINGS_MODEL="text-embedding-3-small"
+```
+
+---
+
+## ⚠️ Important Notes
+
+1. **DO NOT** add thousands of lines to [server/routes.ts](file:///Users/chasethis/Scan2Plan_OS/server/routes.ts) - modularize!
+2. **DO** reuse existing OpenAI client configuration
+3. **DO** add proper TypeScript types for all AI responses
+4. **DO** handle AI failures gracefully with fallbacks
+5. **DO** add loading states in UI for AI operations
+6. **DO** cache AI results where appropriate
+7. **DON'T** expose raw AI responses - validate and sanitize
+8. **DO** log AI usage for cost tracking and debugging
+
+---
+
+## 🎨 UI/UX Guidelines
+
+- Use **Sparkles icon** (`lucide-react`) to indicate AI features
+- Show **loading spinners** during AI processing
+- Display **confidence scores** when showing suggestions
+- Allow **easy acceptance/rejection** of AI recommendations
+- Provide **explanations** for AI decisions (transparency)
+- Use **purple/gradient accents** for AI-related UI elements
+- Show **"AI-Powered"** badges on relevant features
+
+---
+
+## 📚 Reference Files
+
+**Key files to understand before starting**:
+- [server/routes.ts](file:///Users/chasethis/Scan2Plan_OS/server/routes.ts) lines 52-172 - Existing OpenAI PDF extraction
+- [shared/schema.ts](file:///Users/chasethis/Scan2Plan_OS/shared/schema.ts) - Complete database schema
+- [client/src/pages/DealWorkspace.tsx](file:///Users/chasethis/Scan2Plan_OS/client/src/pages/DealWorkspace.tsx) - Where to add deal intelligence
+- [client/src/features/cpq/Calculator.tsx](file:///Users/chasethis/Scan2Plan_OS/client/src/features/cpq/Calculator.tsx) - CPQ interface
+- [client/src/pages/ProposalBuilder.tsx](file:///Users/chasethis/Scan2Plan_OS/client/src/pages/ProposalBuilder.tsx) - Proposal interface
+
+**Existing patterns to follow**:
+- Authentication: Use `isAuthenticated` middleware
+- Role-based access: Use `requireRole("ceo", "sales")`
+- Data validation: Use Zod schemas
+- API responses: Consistent JSON format with error handling
+- Database queries: Use Drizzle ORM patterns from storage.ts
+
+---
+
+## 🚀 Ready to Build!
+
+You have all the context needed. Start with Phase 1 (foundation), then implement features incrementally. Test each feature before moving to the next. Use the existing codebase patterns and maintain code quality throughout.
+
+Good luck! 🎯

@@ -1,0 +1,53 @@
+To implement the high-velocity "toll booth" model you’ve described, the Replit prompt needs to focus on **Revenue Protection** and **Operational Clarity**.
+
+By replacing "BOMA Variance" with **Square Foot Audit** and centering the logic on the Agata-Kurt alignment, you are building a system that treats every project like a transaction that must meet specific criteria before the next "gate" opens.
+
+---
+
+### **The "Scan Tech Revenue Engine" Prompt**
+
+**Role:** Senior Full-Stack Developer & Business Logic Architect
+
+**Objective:** Refactor Scan2Plan OS to enforce financial "Hard Gates" and establish a single source of truth for accounting and production.
+
+#### **1. The "Square Foot Audit" Logic**
+
+* **Feature:** Implement an automated revenue detection system.
+* **Logic:** Compare `estimated_sqft` (from CPQ) with `actual_scanned_sqft` (input by Kurt after the scan).
+* **Trigger:** If `actual_scanned_sqft` > `estimated_sqft` * 1.10 (10% threshold):
+* Immediately flag the project with a status: **"⚠️ SQUARE FOOT AUDIT REQUIRED"**.
+* Block the transition to "Modeling" until a "Billing Adjustment" checkbox is marked by Sales or Accounting.
+
+
+* **Notification:** Send an automated internal alert to Agata (Accounting) notifying her of the billable overage.
+
+#### **2. Financial "Hard Gates" Implementation**
+
+* **The Retainer Gate:** In the Production Kanban, disable the "Scanning" column for any project where `retainer_paid` is false. Display a lock icon with the text: *"Awaiting Retainer Confirmation."*
+* **The Delivery Gate:** Prevent any project from moving to "Delivered" if the associated Lead has an `invoice_status` of "Unpaid." The "Complete" button should remain disabled with a prompt: *"Unpaid Invoice - Check with Accounting."*
+
+#### **3. Single Source of Truth (Agata-Kurt Alignment)**
+
+* **Universal Project ID:** Automatically generate a Unique ID for every new project following the format: `[ClientCode]-[ProjectCode]-[YYYYMMDD]`.
+* **Nomenclature Enforcement:** This ID must be the primary key in the `projects` table and appear at the top of every dashboard, email, and export.
+* **PDF Estimate Button:** Add a "Generate Professional Estimate" button to the CPQ view. It must export a branded PDF containing the **Universal Project ID**, the validated address from Google Geocoding, and the standard Welor County legal jurisdiction clause.
+
+#### **4. Personified Communication (Persona Database)**
+
+* **Persona Field:** Add a mandatory `buyer_persona` field to the Leads table (BP1-Engineer, BP2-Executive, BP5-Architect, etc.).
+* **Template Logic:** Create a "Communication Center" that auto-selects email templates based on the persona.
+* *Visionary (ROI/Speed)*: Focus on turnaround time and efficiency.
+* *Guardian (Precision/QA)*: Focus on the Square Foot Audit accuracy and LOD standards.
+
+
+* **Evidence Vault:** Integrate the **Google Custom Search API**. For every lead, pull the top 3 news snippets about their company into a "Research" tab to allow for "high-signal" personalized hooks in outreach.
+
+---
+
+### **Why this works for your $2.2M goal:**
+
+1. **Stop Revenue Leaks:** By calling it a **Square Foot Audit** and hard-coding the 10% alert, you ensure you never "accidentally" scan extra space for free.
+2. **Professional Speed:** The **PDF Export** ensures you hit your 1-week response guarantee every time, looking like a $10M company while doing it.
+3. **Conflict Resolution:** The **Universal ID** means Agata and Kurt stop arguing about "The Macy's Job" vs. "The Crystal Mall Job"—they both look at Job `MACY-CRYST-20260106`.
+
+**Would you like me to generate the specific database schema updates for the `Universal Project ID` and the `Square Foot Audit` audit logs?**

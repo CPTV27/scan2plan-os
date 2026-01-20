@@ -1,0 +1,142 @@
+# CPQ Architecture Cleanup Task
+
+## Context
+
+We previously had an external CPQ pricing API at `https://scan2plan-cpq.replit.app` that calculated pricing server-side. We've since moved ALL pricing logic client-side to `client/src/features/cpq/pricing.ts`. The external service is deprecated and no longer called.
+
+The codebase has already been cleaned up (no `CPQ_BASE_URL` or external fetch calls remain), but the documentation still describes the old architecture.
+
+## Tasks
+
+### 1. DELETE Outdated Documentation
+
+Delete these files entirely—they describe infrastructure that no longer exists:
+
+```
+docs/CPQ_PRICING_API.md          # Describes deprecated external API
+docs/CPQ_COMPARISON_REPORT.md    # One-time analysis report, no longer relevant
+docs/CPQ_PRICING_REPAIR_REPORT.md # One-time repair report, no longer relevant  
+docs/CPQ_CRM_ALIGNMENT_REPORT.md  # One-time alignment report, no longer relevant
+```
+
+### 2. UPDATE CPQ Integration Guide
+
+The file `__CPQ_Integration_Guide.md` in the project root contains incorrect architecture information. Update it to reflect the current client-side pricing architecture:
+
+**Remove/Update these sections:**
+- Section 2 "Architecture Diagram" - Remove the "EXTERNAL CPQ SERVICE" box and all proxy flow descriptions
+- Section 3 "Data Flow" - The flow should show pricing calculated in `pricing.ts`, not proxied to external service
+- Remove all references to:
+  - `https://scan2plan-cpq.replit.app`
+  - `CPQ_BASE_URL` environment variable
+  - "Post-proxy margin normalization"
+  - External CPQ proxy calls
+
+**Correct architecture to document:**
+1. Frontend calls `calculatePricing()` from `client/src/features/cpq/pricing.ts`
+2. Pricing result displayed to user with margin target slider
+3. User saves quote via `POST /api/cpq-quotes` (persists to database)
+4. No external service involved
+
+### 3. UPDATE Environment Variables
+
+In `.env.example`, the `CPQ_API_KEY` comment says "(if applicable)" but we're no longer using an external CPQ service. Either:
+- Remove it entirely, OR
+- Update comment to clarify it's for the CRM API key used by external integrations calling INTO our system (not outbound calls)
+
+Check if `CPQ_API_KEY` is actually used anywhere. If not, remove from `.env.example`.
+
+### 4. UPDATE/REVIEW Integrity Auditor Doc
+
+Review `docs/CPQ_INTEGRITY_AUDITOR_INTEGRATION.md`:
+- Verify the API endpoints listed actually exist in `server/routes/cpq.ts`
+- The integrity audit logic is now client-side in `pricing.ts` (margin warnings/blocks)
+- Update to reflect that integrity checks happen during `calculatePricing()`, not via separate audit endpoint
+
+### 5. Clean Up Test Job Docs (Optional)
+
+These docs may still be useful for testing:
+- `docs/CRM_TEST_JOBS.md`
+- `docs/CRM_TEST_JOBS_COMPLEX.md`  
+- `docs/CRM_TEST_JOBS_REAL_ADDRESSES.md`
+
+Review them quickly—if they reference the external CPQ API, update them. If they're just test data scenarios, leave them.
+
+### 6. UPDATE SYSTEM_ARCHITECTURE_EXPORT.md
+
+The file `__SYSTEM_ARCHITECTURE_EXPORT.md` in project root has extensive documentation about the "orphaned sales_engine module" that supposedly contains 120+ files. 
+
+**This module doesn't exist in the codebase.** Either:
+- It was already cleaned up, OR
+- It only existed on the Replit server
+
+Update this doc to:
+- Remove the "sales_engine" cleanup recommendations (already done)
+- Remove "ORPHANED FILES" counts that reference non-existent directories
+- Update the "SUMMARY" section to reflect current state
+
+### 7. VERIFY Playwright Tests
+
+The file `tests/cpq-calculator.spec.ts` has failing tests due to stale UI selectors. Either:
+- Update the selectors to match current UI, OR
+- Mark tests as `test.skip()` with TODO comment if the CPQ Calculator UI has been significantly refactored
+
+## Summary of Files to Modify
+
+| Action | File |
+|--------|------|
+| DELETE | `docs/CPQ_PRICING_API.md` |
+| DELETE | `docs/CPQ_COMPARISON_REPORT.md` |
+| DELETE | `docs/CPQ_PRICING_REPAIR_REPORT.md` |
+| DELETE | `docs/CPQ_CRM_ALIGNMENT_REPORT.md` |
+| UPDATE | `__CPQ_Integration_Guide.md` |
+| UPDATE | `__SYSTEM_ARCHITECTURE_EXPORT.md` |
+| UPDATE | `.env.example` |
+| REVIEW | `docs/CPQ_INTEGRITY_AUDITOR_INTEGRATION.md` |
+| REVIEW | `tests/cpq-calculator.spec.ts` |
+
+## Verification
+
+After cleanup, confirm:
+1. No documentation references `scan2plan-cpq.replit.app`
+2. No documentation describes "external CPQ proxy" pattern
+3. Architecture docs correctly show client-side pricing in `pricing.ts`
+4. No unused environment variables in `.env.example`
+
+## Current Correct Architecture (For Reference)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    FRONTEND (React)                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│   DealWorkspace.tsx                                         │
+│   └─ Margin slider (35%-60%)                                │
+│   └─ Calls calculatePricing() on change                     │
+│                                                              │
+│   pricing.ts (CLIENT-SIDE PRICING ENGINE)                   │
+│   └─ calculatePricing(): Main entry point                   │
+│   └─ All building types, LOD multipliers, travel rates      │
+│   └─ Risk premiums (Arch only)                              │
+│   └─ Margin target formula: clientPrice = cost/(1-margin)   │
+│   └─ FY26 guardrails: 40% floor, 45% target                 │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              │ POST /api/cpq-quotes
+                              │ (Save quote to database)
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    BACKEND (Express)                         │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│   server/routes/cpq.ts                                      │
+│   └─ POST /api/cpq-quotes - Create quote                    │
+│   └─ GET /api/cpq-quotes/:id - Read quote                   │
+│   └─ PATCH /api/cpq-quotes/:id - Update quote               │
+│   └─ Quote versioning, PandaDoc integration                 │
+│                                                              │
+│   NO external CPQ calls - pricing is 100% client-side       │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```

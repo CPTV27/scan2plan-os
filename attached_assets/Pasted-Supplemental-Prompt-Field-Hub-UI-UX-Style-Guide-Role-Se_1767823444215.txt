@@ -1,0 +1,45 @@
+Supplemental Prompt: Field Hub UI/UX Style Guide
+Role: Senior Product Designer (UI/UX) Objective: Define a high-contrast, "Tactile-First" design system for the mobile Field Hub to ensure usability in field conditions.
+
+1. Visual Architecture (Theme & Color)
+Base Theme: Force Dark Mode as the default. Use Slate-950 (#020617) for the background to reduce battery drain and screen glare.
+
+Primary Action Color: Use a high-visibility Electric Blue (#3b82f6) for active buttons (e.g., "Start Travel").
+
+Success/Safety Color: Use Emerald Green (#10b981) for completed checklist items and the "Mission Complete" status.
+
+Warning Color: Use Amber/Orange (#f59e0b) for manual overrides or "Square Foot Audit" alerts.
+
+2. Tactile Elements (Touch Targets)
+Button Sizing: Every action button must be at least 56px in height. This ensures easy tapping even if the technician is wearing gloves or has "field hands."
+
+Interactive Feedback: Implement a slight haptic-like visual change (scale down by 2% on tap) and a loading spinner for any button that triggers a server action (like timestamping).
+
+Card Styling: Use Slate-900 for cards with a subtle Slate-800 border to create depth. Add a 12px border radius for a modern, app-like feel.
+
+3. Typography & Readability
+Font: Use Inter or Roboto for high legibility.
+
+Hierarchy: * UPID & Address: Must be bold and at least 18px.
+
+Checklist Labels: Must be at least 16px with generous line-height (1.5) to prevent accidental double-taps.
+
+Contrast: Ensure all text passes WCAG AAA contrast ratios for outdoor readability.
+
+4. Layout & Navigation
+Safe Zones: Ensure all critical buttons (Start/Stop) are within the "Thumb Zone" (the bottom 40% of the screen).
+
+Bottom Navigation: Implement a fixed-position bottom bar with Blur/Glassmorphism effect (backdrop-filter: blur(10px)) containing:
+
+Missions (Home)
+
+KB Support (Chat)
+
+Photos/Uploads (Media)
+
+Settings/Profile
+
+5. Empty States & Loading
+Skeleton Screens: Use skeleton loaders for the "Mission Hub" content to prevent layout shifts while the job data is fetching.
+
+Offline Indicator: If the tech loses signal, display a subtle "Offline - Data will sync later" banner at the top of the screen.

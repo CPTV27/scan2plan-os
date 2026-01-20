@@ -1,0 +1,152 @@
+This is great. You have the DNA (Personas) and the Ammo (Evidence). Now we need to tell the Brain (The App) to load this into memory and start using it.
+
+Currently, this code is just sitting in a file. It needs to be:
+
+Seeded (Inserted into the Database).
+
+Integrated (The Script Generator needs to know how to pull from the Vault).
+
+Copy and paste this prompt into Replit. It will wire everything up so your "Batch Sync" button actually pulls these specific hooks.
+
+Role: Senior Backend Engineer Objective: Finalize the Growth Engine by seeding the new Marketing Data and updating the Script Generator to prioritize "Evidence Vault" hooks.
+
+1. UPDATE: SEEDING LOGIC (server/data/seedMarketing.ts)
+
+Action: Replace the entire file with the code below. This combines the user's provided data with the logic to insert it into the DB.
+
+Code:
+
+TypeScript
+
+import { db } from '../db';
+import { personas, evidenceVault } from '@shared/schema';
+import { eq } from 'drizzle-orm';
+
+export const PERSONA_SEED = [
+  {
+    code: "BP1",
+    name: "The Engineer",
+    painPoints: ["Accuracy drift", "Field verification", "Coordination time"],
+    preferredTags: ["mep", "industrial", "coordination"],
+    scriptTemplate: "{{firstName}}, your team is losing hours on field verification. {{hook}} Worth 15 min?"
+  },
+  {
+    code: "BP2",
+    name: "The GC",
+    painPoints: ["Schedule risk", "RFI volume", "Trade coordination"],
+    preferredTags: ["commercial", "renovation", "coordination"],
+    scriptTemplate: "{{firstName}}, RFIs killing your schedule? {{hook}} Quick call?"
+  },
+  {
+    code: "BP3",
+    name: "The Owner's Rep",
+    painPoints: ["Budget variance", "Change orders", "Accountability"],
+    preferredTags: ["commercial", "historic", "documentation"],
+    scriptTemplate: "{{firstName}}, change orders eating your contingency? {{hook}}"
+  },
+  {
+    code: "BP4",
+    name: "The Facilities Manager",
+    painPoints: ["Asset documentation", "Emergency response", "Space planning"],
+    preferredTags: ["industrial", "education", "healthcare"],
+    scriptTemplate: "{{firstName}}, still hunting for drawings during emergencies? {{hook}} Here's how."
+  },
+  {
+    code: "BP5",
+    name: "The Architect",
+    painPoints: ["As-built accuracy", "Design intent", "Historic preservation"],
+    preferredTags: ["historic", "residential", "renovation"],
+    scriptTemplate: "{{firstName}}, as-builts lying to you again? {{hook}} PDF attached."
+  },
+  {
+    code: "BP6",
+    name: "The Developer",
+    painPoints: ["Due diligence speed", "Acquisition risk", "Repositioning cost"],
+    preferredTags: ["commercial", "industrial", "documentation"],
+    scriptTemplate: "{{firstName}}, how much is bad survey data costing your pro forma? {{hook}}"
+  },
+  {
+    code: "BP7",
+    name: "The Surveyor",
+    painPoints: ["Turnaround time", "Interior access", "Deliverable format"],
+    preferredTags: ["industrial", "commercial", "mep"],
+    scriptTemplate: "{{firstName}}, subbing out interior scans? We white-label for firms like yours. {{hook}}"
+  }
+];
+
+export const EVIDENCE_SEED = [
+  { personaCode: "BP1", hookContent: "Maine Penthouse: Captured complex rooftop MEP without a single climb. Zero safety risk, 100% clash detection ready.", ewsScore: 5, sourceUrl: "https://a360.co/3wXjC4e" },
+  { personaCode: "BP2", hookContent: "Newark Terminal C: Scanned active high-security terminal with zero operational downtime. Schedule protected.", ewsScore: 5, sourceUrl: "" },
+  { personaCode: "BP6", hookContent: "Deep Forest Property: Captured treacherous ravine terrain via drone/remote sensing. No boots on the ground, full topographic certainty.", ewsScore: 4, sourceUrl: "https://a360.co/3wW4z4e" },
+  { personaCode: "BP5", hookContent: "Masonic Lodge (Troy): Modeled complex Pipe Organ and historic geometry to LOD 350. Preserved design intent where 2D drawings failed.", ewsScore: 5, sourceUrl: "https://a360.co/3wT5z4e" },
+  { personaCode: "BP3", hookContent: "Stony Brook IACS: Verified massive campus facade materials. Created a single source of truth for complex institutional maintenance.", ewsScore: 4, sourceUrl: "https://a360.co/3wV5z4e" },
+  { personaCode: "BP1", hookContent: "Fire House (1342 Central): Verified clearance tolerances for new fire apparatus. Guaranteed fit before construction.", ewsScore: 4, sourceUrl: "https://a360.co/3wY5z4e" }
+];
+
+export async function seedMarketingData() {
+  console.log('🌱 Seeding Marketing Engine...');
+
+  // 1. Seed Personas
+  for (const p of PERSONA_SEED) {
+    await db.insert(personas).values(p).onConflictDoNothing();
+  }
+
+  // 2. Seed Evidence Vault
+  for (const e of EVIDENCE_SEED) {
+    // Simple check to avoid duplicates based on content
+    const existing = await db.query.evidenceVault.findFirst({ where: eq(evidenceVault.hookContent, e.hookContent)});
+    if (!existing) {
+      await db.insert(evidenceVault).values(e);
+    }
+  }
+  console.log('✅ Marketing Engine Seeded.');
+}
+2. UPDATE: SCRIPT GENERATOR (server/lib/scriptGenerator.ts)
+
+Action: Update the logic to pull from evidence_vault instead of just using generic placeholders.
+
+Code:
+
+TypeScript
+
+import { db } from '../db';
+import { evidenceVault } from '@shared/schema';
+import { eq, desc } from 'drizzle-orm';
+
+export async function hydrateScript(
+  template: string,
+  lead: { firstName?: string },
+  personaCode: string,
+  trackingUrl: string
+): Promise<string> {
+
+  // 1. Find best Evidence Hook for this Persona (Highest EWS Score)
+  const evidence = await db.query.evidenceVault.findFirst({
+    where: eq(evidenceVault.personaCode, personaCode),
+    orderBy: [desc(evidenceVault.ewsScore)]
+  });
+
+  // 2. Fallback if no evidence found
+  const hookText = evidence 
+    ? `${evidence.hookContent} See proof here: ${evidence.sourceUrl || trackingUrl}` 
+    : `We helped a similar client cut coordination time by 20%. See how: ${trackingUrl}`;
+
+  // 3. Hydrate Template
+  // Note: We updated the template to use {{hook}} instead of generic {{client}} vars
+  return template
+    .replace(/\{\{firstName\}\}/g, lead.firstName || 'there')
+    .replace(/\{\{hook\}\}/g, hookText);
+}
+3. EXECUTION: SERVER STARTUP (server/index.ts)
+
+Action: Import and run seedMarketingData() before the server starts listening.
+
+Code:
+
+TypeScript
+
+// Add import at top
+import { seedMarketingData } from './data/seedMarketing';
+
+// Before app.listen...
+await seedMarketingData();

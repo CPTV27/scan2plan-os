@@ -1,0 +1,75 @@
+That is a perfect architectural fit for a CRM-style application like **Scan2Plan**. By tethering a specific PandaDoc document to a "Deal" ID in your database, you create a seamless workspace for your sales team.
+
+Here is how you can structure this integration within your Replit environment:
+
+---
+
+## 1. The "Deal-Document" Workflow
+
+Instead of a generic PandaDoc window, your application will handle the logic of "pairing" a Deal with a Document.
+
+1. **Check for Existing Doc:** When a user opens a Deal in Scan2Plan, your backend checks if a `pandadoc_document_id` is already saved for that Deal.
+2. **Auto-Creation:** If no ID exists, your app can automatically trigger the "Create Document from Template" API call using the Deal's data (Price, Client Name, Address).
+3. **Session Generation:** Your app requests an **Editor Session URL** for that specific ID.
+4. **The Iframe:** You render the iframe directly within the Deal's detail page.
+
+---
+
+## 2. Technical Implementation
+
+To make this work in Replit, your backend (Node.js/Python) will need to make two primary API calls.
+
+### Step A: Create the Document
+
+You'll want to pass `embed` settings to ensure the document is "frame-ready."
+
+```json
+// POST https://api.pandadoc.com/public/v1/documents
+{
+    "name": "Proposal for Deal #1234",
+    "template_uuid": "YOUR_TEMPLATE_ID",
+    "recipients": [ { "email": "client@example.com" } ],
+    "tokens": [ { "name": "Deal.Value", "value": "5000" } ],
+    "embed": { "enabled": true }
+}
+
+```
+
+### Step B: Generate the Editor Session
+
+Once the document is created, you fetch the URL that actually goes into the `src` of your iframe:
+
+```json
+// POST https://api.pandadoc.com/public/v1/documents/{id}/session
+{
+    "recipient": "sales-rep@scan2plan.com", 
+    "lifetime": 3600 
+}
+
+```
+
+---
+
+## 3. UI Placement in Scan2Plan
+
+Inside your Replit frontend, I suggest using a **Tabbed Interface** within the Deal section to keep the UI clean:
+
+* **Tab 1: Deal Details** (Project scope, site measurements, photos).
+* **Tab 2: Proposal (PandaDoc)** (The iframe lives here).
+* **Tab 3: Activity Log** (Internal notes).
+
+---
+
+## 4. Why this is better for Sales
+
+* **Context:** The salesperson doesn't have to copy-paste data. You can pre-fill the PandaDoc variables using the data already in your Replit database.
+* **Speed:** They can "Send" the proposal the moment they finish reviewing the measurements in Scan2Plan.
+* **Version Control:** You ensure that the proposal for "Deal A" is always the one seen on "Deal A's" page.
+
+---
+
+### Potential Roadblock: Replit's Webview
+
+Because Replit previews often run in their own frames, you might run into **"Nested Iframe"** issues during development. You may need to view your application in a separate tab (the "Open in New Tab" icon in Replit) to test the PandaDoc iframe effectively, as some security policies block triple-nested frames.
+
+**Would you like me to write the JavaScript function for your Replit frontend that handles the iframe resizing so the PandaDoc editor feels like a full-screen experience?**

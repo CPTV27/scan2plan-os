@@ -1,0 +1,54 @@
+Based on comparing the CRM Alignment Report with the CPQ implementation, I've identified several gaps where the CRM needs to be updated to match the CPQ:
+
+CRM Gaps to Fix
+1. Per-Discipline LoD (MAJOR GAP)
+CRM Has	CPQ Has
+Single lod field per area	disciplineLods object with LoD per discipline
+CRM should change to:
+
+"disciplineLods": {
+  "architecture": { "discipline": "architecture", "lod": "300" },
+  "structure": { "discipline": "structure", "lod": "200" },
+  "mepf": { "discipline": "mepf", "lod": "300" }
+}
+2. Missing Area Fields
+CRM is missing these CPQ area fields:
+
+Field	Type	Default	Purpose
+mixedInteriorLod	Select	"300"	LoD for interior when scope=mixed
+mixedExteriorLod	Select	"300"	LoD for exterior when scope=mixed
+numberOfRoofs	Number	0	Roof count for pricing
+facades	Array	[]	Dynamic list of facade definitions
+gradeAroundBuilding	Boolean	false	Include grade survey
+gradeLod	Select	"300"	LoD for grade survey
+includeCad	Boolean	false	CAD deliverable flag
+3. LoD Options Missing
+CRM Has	CPQ Has
+200, 300, 350	100, 200, 250, 300, 350, 400
+Add: 100, 250, 400
+
+4. Dispatch Location Casing
+CRM Uses	CPQ Uses
+WOODSTOCK, BROOKLYN, TROY, FLY_OUT	troy, woodstock, brooklyn
+CRM should use lowercase values, and note that CPQ doesn't have fly_out in the UI selector (but may accept it via API).
+
+5. Risk Factors Mismatch
+CRM Has	CPQ Has
+hazardous, noPower, occupied, security, historic, height	hazardous, noPower, occupied
+CRM has extra risks (security, historic, height) that CPQ doesn't recognize. Either:
+
+Remove them from CRM, OR
+Add them to CPQ (you said don't change CPQ, so remove from CRM)
+6. Building Type Mismatch
+CRM and CPQ have different building type labels/IDs. CRM should match CPQ's list exactly:
+
+CPQ ID	CPQ Label
+1	Commercial - Simple
+2	Residential - Standard
+3	Residential - Luxury
+4	Commercial / Office
+...	(full list in CPQ spec)
+7. Remove kind Field
+CRM has a kind field (standard/landscape). CPQ doesn't use this - it infers from buildingType (14-15 = landscape).
+
+Would you like me to create a detailed specification document listing exactly what the CRM team needs to change?

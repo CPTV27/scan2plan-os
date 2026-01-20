@@ -1,0 +1,94 @@
+Yes—this should be a system-wide design pattern. Let me give Replit a comprehensive prompt that establishes the principle and applies it everywhere:
+
+**Prompt for Replit:**
+
+```
+Implement a "Deliberate Affirmation" pattern across the entire application for data quality. This ensures we can distinguish between "skipped" and "not applicable."
+
+## Core Principle
+Any optional field that could legitimately be empty should have an explicit "N/A" or "None" affirmation option. Confidence/completeness scores only credit fields that are either:
+- Filled with actual data, OR
+- Explicitly marked as "not applicable"
+
+## Apply to these areas:
+
+### 1. Lead Form (LeadForm.tsx, DealWorkspace.tsx)
+Add affirmation options for:
+- `contactPhone`: "No phone available" checkbox
+- `billingContact` fields: "Same as project contact" checkbox (auto-fills from project contact)
+- `referrerCompanyName`/`referrerContactName`: Only show if source is referral; otherwise auto-affirmed
+- `proofLinks`: "No supporting documents" checkbox
+- `notes`: Don't require affirmation (truly optional freeform)
+
+### 2. CPQ Quote Builder
+- `risks`: "No risk factors apply" ✓ (already discussed)
+- `services`: "No additional services needed" ✓
+- `cpqScopingData.actScanning`: "No ACT scanning required"
+- `cpqScopingData.customTemplate`: "Using standard template"
+- `cpqScopingData.insuranceRequirements`: "Standard insurance acceptable"
+
+### 3. Site Readiness Questionnaire
+- Each question should have a "Not applicable to this site" option where logical
+- Track which questions were answered vs affirmed-N/A vs skipped
+
+### 4. Project Form (Production Tracker)
+- `assignedTechId`: "Unassigned - scheduling pending"
+- `scanDate`: "Not yet scheduled"
+- `vendorCostActual`: "No vendor costs" (for in-house jobs)
+
+## Implementation Pattern
+
+Create a reusable component or hook:
+
+```tsx
+// Reusable affirmation field wrapper
+interface AffirmableFieldProps {
+  fieldId: string;
+  label: string;
+  affirmationLabel: string; // e.g., "No risk factors apply"
+  isAffirmed: boolean;
+  onAffirmationChange: (affirmed: boolean) => void;
+  children: React.ReactNode; // The actual input(s)
+  disabled?: boolean;
+}
+
+// State shape for any form
+interface FieldAffirmations {
+  [fieldId: string]: boolean; // true = explicitly marked N/A
+}
+```
+
+## Confidence Score Formula
+
+```typescript
+const calculateConfidence = (data, affirmations) => {
+  let earned = 0, total = 0;
+  
+  for (const [field, weight] of Object.entries(FIELD_WEIGHTS)) {
+    total += weight;
+    
+    const hasValue = data[field] && data[field] !== "";
+    const isAffirmed = affirmations[field] === true;
+    
+    if (hasValue || isAffirmed) {
+      earned += weight;
+    }
+  }
+  
+  return Math.round((earned / total) * 100);
+};
+```
+
+## Visual Design
+- Affirmation checkboxes: subtle, muted style (text-muted-foreground, smaller font)
+- Position: below or inline with the field they affirm
+- When checked: field inputs become disabled/grayed
+- Hungry field state (amber glow) should clear when affirmed OR filled
+
+## Database Storage
+Add a `fieldAffirmations` JSONB column to relevant tables (leads, cpq_quotes, projects) to persist which fields were explicitly marked N/A. This creates an audit trail.
+
+Start with the Lead Form and CPQ Quote Builder as priority, then extend to other forms.
+```
+
+This turns "data completeness" from a checkbox exercise into actual decision-making. Want me to also draft the schema migration for the `fieldAffirmations` column?

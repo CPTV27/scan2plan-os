@@ -1,0 +1,34 @@
+3. The Replit PromptCopy and paste this into Replit.This prompt tells the Agent: "Ignore the implementation details in the docs. Here is the pure data. Seed the database with these objectives, hooks, and logic rules."Role: Senior Product Manager & Database ArchitectContext: We are migrating from a manual "Spreadsheet/Doc" strategy to a custom "Scan2Plan OS."Objective: Ingest the CEO's strategic intent (Metrics, Marketing Hooks, and Business Rules) into our Postgres database, ignoring his legacy instructions about Airtable/PandaDoc.1. DATABASE SEED: MARKETING HOOKS (server/data/seedMarketing.ts)Action: Update the EVIDENCE_SEED with the specific high-value messaging found in the CEO's "Brand Standards" document. Map them to our existing Personas.Content to Inject:TypeScript// ... inside EVIDENCE_SEED array ...
+
+// TARGET: ARCHITECTS (BP5) - Strategy: "Design Freedom"
+{
+  personaCode: "BP5",
+  hookContent: "Design Freedom: We guarantee the canvas so you can design uninterrupted. More hours on design; zero hours re-measuring.",
+  ewsScore: 5,
+  sourceUrl: "https://scan2plan.io/castle-lod-explainer", // Placeholder for "P20 Castle"
+  usageCount: 0
+},
+// TARGET: GCs (BP2) - Strategy: "BIM Without Blame"
+{
+  personaCode: "BP2",
+  hookContent: "BIM Without the Blame: Clash-checked, tolerance-verified models. We own the accuracy risk so you don't buy the rework.",
+  ewsScore: 5,
+  sourceUrl: "https://scan2plan.io/assurance-packet", // Placeholder for "P14 Assurance"
+  usageCount: 0
+},
+// TARGET: OWNERS / ENTERPRISE (BP3/BP6) - Strategy: "Standardize Certainty"
+{
+  personaCode: "BP6",
+  hookContent: "Portfolio Standardization: One vendor, one standard, guaranteed outcomes. Price-match guarantee at equal spec.",
+  ewsScore: 5,
+  sourceUrl: "https://scan2plan.io/program-offer", // Placeholder for "P15 Program"
+  usageCount: 0
+}
+2. CONFIG: FINANCIAL TARGETS (server/services/analytics.ts or similar)Action: Create a CONSTANTS file or update the Goal Tracking logic to reflect the FY26 targets found in the "Hockey Stick" forecast.Logic:TypeScriptexport const FY26_GOALS = {
+  REVENUE_TARGET: 2200000, // $2.2M
+  MARGIN_FLOOR: 0.40,      // 40% GM Gate
+  MARGIN_STRETCH: 0.45,    // 45% GM Target
+  TIER_A_FLOOR: 50000,     // 50k sqft defines "Tier A"
+  SLA_MOBILIZATION: 7,     // 7 Days
+};
+3. LOGIC: THE "GM HARD GATE" (server/services/cpq.ts)Action: Ensure the CPQ/Pricing module references the CEO's "P1 Pricing" rule.Logic:If Calculated_Margin < FY26_GOALS.MARGIN_FLOORThen Block_Proposal_Generation (Throw Error: "Margin below 40% Governance Gate").4. LOGIC: RESOURCE CAPACITY (server/services/scheduling.ts)Action: Implement the "Two Ledger" capacity rule from the "Governance" doc.Logic:If Project_Size >= 50000 (Tier A) -> Resource = "Outsourced_NavVis" (Infinite Capacity / Variable Cost).If Project_Size < 50000 (Tier B/C) -> Resource = "Internal_Trimble" (Capped Capacity: 40 scan-days/month).Task: Execute these updates. Seed the marketing hooks first so the "Marketing" tab looks populated with the CEO's new messaging immediately.Why this works:Marketing: You populate the empty "Evidence Vault" screenshot with the exact copy the CEO wrote ("Design Freedom"). He will see his words in your app and trust it immediately.Financials: You bake the $2.2M target into the code, making the dashboard "Real."Governance: You turn his "Weekly Manual Review" into a Code Constraint (The 40% Margin Gate), which is far more effective than a meeting.

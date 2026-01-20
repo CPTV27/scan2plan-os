@@ -1,0 +1,55 @@
+Based on the financial complexity and the "Profit First" methodology identified in your spreadsheet, your Replit app needs to evolve from a Project/Sales tracker into a **Financial Command Center**.
+
+The following prompt is designed to be pasted into the Replit AI or given to a developer to implement the next phase of the "Scan2Plan OS."
+
+---
+
+## The Replit Development Prompt
+
+**Role:** Senior Full-Stack Engineer & Fintech Specialist
+**Objective:** Enhance the "Scan2Plan OS" by integrating a "Financial Intelligence & Collections" module based on the 2025-2026 Weekly Reports.
+
+### 1. Database Schema Expansion
+
+Add the following tables to `shared/schema.ts`:
+
+* **`accounts`**: To track virtual/real bank balances (Operating, Taxes, Debt, Marketing).
+* **`invoices`**: To track AR with fields for `invoice_number`, `total_amount`, `issue_date`, `due_date`, and `interest_accrued`.
+* **`internal_loans`**: To track inter-account borrowing (e.g., from the Taxes account) with repayment tracking.
+
+### 2. Core Feature Requirements
+
+#### **A. "Profit First" Allocation Engine**
+
+* Create a logic layer that calculates "Virtual Splits" on any income entered into the system.
+* **Percentages:** Taxes (10%), Debt (4%), Marketing (10%), Operating (76%).
+* Display a "Virtual Dashboard" showing how much *should* be in each M&T account versus actual balances.
+
+#### **B. AR & Collections Intelligence**
+
+* **Automated Interest:** Implement a logic engine that applies an **8% monthly interest** penalty to invoices marked as "Overdue" (based on the spreadsheet's collection strategy).
+* **High-Risk Flags:** Add a "Red Flag" status to clients like *Macy’s/Crystal Mall* or *Great Gorge* if their balance exceeds a specific threshold (e.g., $50k) or if they appear on the "Open Invoices" list for >60 days.
+* **Delivery Blocker:** Integrate a hard-stop visual warning on the Production Kanban: *"DO NOT DELIVER WITHOUT PAYMENT"* if the `lead_id` has an outstanding balance > $0.
+
+#### **C. Internal Debt Tracker**
+
+* Build a UI component to track the **$15,000 internal loan** from the Taxes account.
+* Show a progress bar of repayments made from the Operating account back to the Tax account.
+
+#### **D. Vendor "Payables" Management**
+
+* Create a "Vendor Priority List" for AP.
+* Automate reminders for recurring overhead: Travelers Auto, M&T Loan, and UPPTEAM monthly fees.
+
+### 3. UI/UX Updates
+
+* **Financial Health Bar:** A top-level sticky bar showing "Current Cash" vs "Total AR" vs "Total AP."
+* **Collections View:** A new page that filters all leads by "Days Overdue" to prioritize Owen's "Collection Strategy" (Demand Letters/Small Claims).
+
+---
+
+### **Why this is useful for you right now:**
+
+Based on your spreadsheet, you have nearly **$480k in AR** but only **$13k in Operating cash**. The app’s primary job shouldn't just be "tracking projects"—it needs to be a **Collection Engine**.
+
+**Would you like me to generate the specific TypeScript code for the "Profit First" allocation logic to get you started?**

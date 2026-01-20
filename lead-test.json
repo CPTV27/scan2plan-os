@@ -1,0 +1,17 @@
+{
+    "clientName": "Acme Test Corp",
+    "projectName": "Test Project 2026",
+    "projectAddress": "123 Test St, Troy, NY 12180",
+    "value": 15000,
+    "probability": 50,
+    "dealStage": "Leads",
+    "source": "cold_outreach",
+    "discipline": "Architecture",
+    "buildingType": "Commercial / Office",
+    "firmSize": "1-10",
+    "abmTier": "None",
+    "cpqAreas": [],
+    "cpqRisks": [],
+    "missingInfo": [],
+    "projectStatus": {}
+}

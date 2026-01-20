@@ -1,0 +1,77 @@
+GPT-4o Vision is the correct tool here. It looks at the page exactly like a human does, sees which boxes are checked, and reads the table rows perfectly regardless of how the text layer is formatted.
+
+Here is the "Visual Extraction" Prompt to switch your pipeline to a Vision-First approach.
+
+The "Vision Pipeline" Prompt
+Copy and paste this into Replit or Claude Code:
+
+Role: AI Integration Engineer Objective: Replace the fragile regex PDF parser with a Vision-Based Extraction Service using GPT-4o. Context: We process PandaDoc proposals (PDFs). We need to extract the Client Info, Project Address, and the exact Line Items (including checking visually marked checkboxes) to populate our CRM.
+
+1. Architecture Change
+
+Old Way: pdf-parse (Text-based, brittle).
+
+New Way: pdf-img-convert → OpenAI GPT-4o (Visual, robust).
+
+Action: Install pdf-img-convert and openai (if not present).
+
+2. The Vision Service (server/lib/proposal-vision.ts) Create a function extractProposalData(pdfBuffer: Buffer) that performs these steps:
+
+Step A: Rasterize: Convert the first 5 pages of the PDF into images (PNG arrays). Note: The pricing table is usually on page 3 or 4.
+
+Step B: The "Eyes" (GPT-4o Payload): Send these images to OpenAI with the following strict System Instruction:
+
+"You are a Data Entry Clerk. Analyze these proposal images.
+
+Identify the Client: Look for 'PROPOSAL FOR' or the 'ADDRESS' block.
+
+Identify the Project: Look for the specific address being scanned.
+
+Extract the Table: Find the pricing table.
+
+CRITICAL: Only extract rows that appear to be 'Selected' or 'Included'. If there are checkboxes, look for the 'X' or checkmark. If it's a standard list, extract all line items with a price.
+
+Capture: Product Name, Description, Quantity, Rate, and Amount.
+
+Return ONLY JSON. Do not add markdown fencing."
+
+Step C: Schema Validation: Ensure the output matches this Zod schema:
+
+TypeScript
+
+const ProposalSchema = z.object({
+  client: z.object({
+    name: z.string(),
+    company: z.string().optional(),
+    email: z.string().optional()
+  }),
+  project: z.object({
+    address: z.string(),
+    date: z.string()
+  }),
+  lineItems: z.array(z.object({
+    sku: z.string().optional(),
+    title: z.string(), // e.g., "LoD 300 + MEPF"
+    description: z.string(),
+    qty: z.number(),
+    rate: z.number(),
+    total: z.number()
+  })),
+  grandTotal: z.number()
+});
+3. Implementation Details
+
+Rate Limiting: Ensure we don't send 50 pages. Limit to the first 5 (where the data lives).
+
+Image Quality: Convert at scale: 1.5 or 2.0 to ensure text is crisp for the AI.
+
+API Key: Use process.env.OPENAI_API_KEY.
+
+4. Test Script (script/test-vision.ts) Create a script that reads S2P Proposal - 133 W 52nd St_LoD 350_Tier-A.pdf from the local folder and logs the extracted JSON to the console.
+
+Execute this plan.
+
+Why this is better for your specific PDFs:
+Checkboxes: Your proposals have columns with checkboxes (e.g., "7.3.1 Plumbing pipe"). A text parser sees [ ] and [x] as garbage characters. GPT-4o sees "Oh, that box is checked, so I should include that line item."
+
+Multi-line Descriptions: In the PDF, the description "Basic Topography with approximate dimensions..." wraps to 2-3 lines. Regex hates this. Vision reads it as a single block of text naturally.

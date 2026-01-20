@@ -1,0 +1,41 @@
+﻿node.exe : D:\AntiGrav Scan2P
+lan\Scan2Plan-Sales-Productio
+n\server\db.ts:8
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (D:\Anti  
+  Grav Sca...\server\db.ts   
+ :8:String) [], RemoteExc    
+eption
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 
+  throw new Error(
+        ^
+
+
+Error: DATABASE_URL must be 
+set. Did you forget to 
+provision a database?
+    at <anonymous> 
+(D:\AntiGrav Scan2Plan\Scan2P
+lan-Sales-Production\server\d
+b.ts:8:9)
+    at ModuleJob.run (node:in
+ternal/modules/esm/module_job
+:345:25)
+    at async onImport.tracePr
+omise.__proto__ (node:interna
+l/modules/esm/loader:651:26)
+    at async asyncRunEntryPoi
+ntWithESMLoader (node:interna
+l/modules/run_main:117:5)
+
+Node.js v22.19.0

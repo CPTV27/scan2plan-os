@@ -1,0 +1,18 @@
+3-Stage QC Enforcement: Refactor the Production Tracker to implement "Hard Gates" between the Scanning, Registration, and Modeling stages. Transitioning a project from Registration to Modeling should require verified B-Validation (overlap alignment) and C-Validation (control point alignment) to ensure LoA 40 (0–1/8”) measured accuracy is met before production begins.
+• Intelligence Module Prompt Refresh: Update the system prompts for the 5 Intelligence Modules to move beyond basic enrichment toward high-stakes decision support:
+    ◦ Client Intel: Focus on revenue tiers and pricing strategy negotiation.
+    ◦ Property Intel: Prioritize MEP Complexity Scoring to accurately scope field time.
+    ◦ Competitor Intel: Identify service gaps and positioning opportunities in specific regions.
+    ◦ Regulatory Intel: Research local building codes (ADA, seismic, fire) that impact modeling scope.
+    ◦ Expansion Intel: Identify other properties owned by the client to shift toward asset-centric stewardship.
+2. Workflow Synchronization & Nomenclature
+• Standardized Unique Identifiers: Implement a utility to generate a universalProjectID using the format [Client Code] - [Project Code] - [Date]. This ID must serve as the primary key linking Agata’s accounting silo in QuickBooks with Kurt’s production data in the OS.
+• AR/AP Visibility & "Bad Payer" Tracking: Build a dedicated Accounting User view for Agata to update payment statuses. The OS should trigger automated email reminders for stale invoices at 15, 30, and 45-day intervals and implement a visual "Red Flag" system for clients in collection proceedings, as seen in the company's weekly reports.
+• Data Ingestion Pipeline: Ingest the last 12 months of proposals from PandaDoc and organize the 10,000 leads from Matt into cohorts by provenance (e.g., MEP engineers, luxury residential) to prevent data corruption and ensure high-quality CRM intelligence.
+3. Strategic ROI & Asset Intelligence (The "Measure of Excellence")
+• "Phantom Revenue" Calculator: Enhance the Evidence Vault with a tool that calculates the ROI of a BOMA 2024 Office Standard remeasurement. The math should demonstrate how converting previously "free" spaces (balconies, patios, rooftop terraces) into Rentable Area typically uncovers 2% to 5% more space, adding significant Net Asset Value (NAV).
+• The Savings Ratio Logic: Incorporate the Savings Ratio metric (calculated as Revitalization Advantage / Revitalization Costs) from the Marywilska study to prove that every unit of currency invested in adaptive reuse yields a 1.93 return in combined financial and environmental benefits.
+• BIM Core Long-Term Archival: Transition the OS toward the BIM Core concept by adding a "Representation Information" repository. This should store 23 specific content elements, including sensor logs, scanner calibration records, and software versioning, to ensure digital twins remain usable for 50–100 years regardless of software obsolescence.
+4. Immediate Bug Fixes & UX Tweaks
+• CPQ Display Limit: Debug the CPQ iframe logic that is currently limiting the display to six projects and making others invisible.
+• Address Formatting: Shift all address reformatting and georeferencing logic to the OS side to keep the CPQ strictly as a calculator.

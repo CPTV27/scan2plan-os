@@ -1,0 +1,219 @@
+This is the final touch that makes the software "sticky." If the manual lives in a Google Doc, nobody reads it. If the manual lives inside the app, people use it.
+
+We are going to build the S2P Academy: A built-in Help Center that teaches your team how to run the machine.
+
+We will do two things:
+
+The Academy Page: A dedicated route (/help) with role-based guides (Sales vs. Ops).
+
+Context Clues: Small "Question Mark" tooltips next to complex features (like the Persona Selector).
+
+Here is the plan to build the S2P Academy.
+
+Part 1: The Content (The Manual)
+We will structure the manual into three "Lanes" so Chase (Ops) doesn't have to read Matt's (Sales) instructions.
+
+Copy and paste this into Replit.
+
+Role: Senior Frontend Engineer Objective: Create a dedicated "Help Center" page with role-based documentation.
+
+1. COMPONENT: THE ACADEMY PAGE (client/src/pages/HelpCenter.tsx)
+
+Action: Create a new page with Tabs for each role.
+
+Code:
+
+TypeScript
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
+import { BookOpen, Shield, Target, Zap } from "lucide-react";
+
+export default function HelpCenter() {
+  return (
+    <div className="p-8 max-w-5xl mx-auto space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
+          <BookOpen className="h-8 w-8 text-blue-600" />
+          S2P Academy
+        </h1>
+        <p className="text-slate-500 mt-2">The official Operator's Manual for the Scan2Plan OS.</p>
+      </div>
+
+      <Tabs defaultValue="sales" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 mb-8">
+          <TabsTrigger value="sales">Growth & Sales (The Hunter)</TabsTrigger>
+          <TabsTrigger value="ops">Operations (The Shield)</TabsTrigger>
+          <TabsTrigger value="strategy">The "Overrun" Strategy</TabsTrigger>
+        </TabsList>
+
+        {/* --- SALES TRACK --- */}
+        <TabsContent value="sales" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>The Growth Engine Workflow</CardTitle>
+              <CardDescription>How to use the Persona System to drive referrals.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Accordion type="single" collapsible>
+                <AccordionItem value="item-1">
+                  <AccordionTrigger>Step 1: The Persona Selector (Crucial)</AccordionTrigger>
+                  <AccordionContent className="text-slate-600 space-y-2">
+                    <p>When you add a Lead, you MUST select a <strong>Buyer Persona (BP)</strong>. This isn't just a tag; it tells the system which script to write.</p>
+                    <ul className="list-disc pl-5">
+                      <li><strong>BP1 (Engineer):</strong> Triggers "Risk/Coordination" scripts.</li>
+                      <li><strong>BP5 (Architect):</strong> Triggers "Design Intent" scripts.</li>
+                      <li><strong>BP6 (Developer):</strong> Triggers "BOMA/Revenue" scripts.</li>
+                    </ul>
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="item-2">
+                  <AccordionTrigger>Step 2: Feeding the Evidence Vault</AccordionTrigger>
+                  <AccordionContent className="text-slate-600">
+                    <p>The "Scripts" are only as good as the data in the Vault. If you close a deal or find a great stat (e.g., "Saved $50k"), go to <strong>Marketing > Evidence Vault</strong> and add it. Give it a 5-star rating to ensure it gets used immediately.</p>
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="item-3">
+                  <AccordionTrigger>Step 3: The Content Queue</AccordionTrigger>
+                  <AccordionContent className="text-slate-600">
+                    <p>When Ops flags a >10% Variance, the "Truth Loop" will auto-generate a LinkedIn post for you. Check the <strong>Marketing > Content Queue</strong> tab daily for these "Stat Bombs."</p>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* --- OPS TRACK --- */}
+        <TabsContent value="ops" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>The Truth Loop & Delivery</CardTitle>
+              <CardDescription>How to execute the "Hard Gates" and Digital Twins.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Accordion type="single" collapsible>
+                <AccordionItem value="item-1">
+                  <AccordionTrigger>The Audit Gate (Variance Check)</AccordionTrigger>
+                  <AccordionContent className="text-slate-600">
+                    <p>Before modeling begins, you must enter the <strong>Actual SQFT</strong> from the scan data. If the Variance is >10%:</p>
+                    <ol className="list-decimal pl-5 mt-2">
+                      <li>The system will <strong>Lock Delivery</strong> (Red Status).</li>
+                      <li>A "Variance Alert" is sent to Sales (Marketing Opportunity).</li>
+                      <li>You must clear the alert with the Client before proceeding.</li>
+                    </ol>
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="item-2">
+                  <AccordionTrigger>Generating the Web Viewer (Potree)</AccordionTrigger>
+                  <AccordionContent className="text-slate-600">
+                    <p>To deliver a Digital Twin: Go to <strong>Project Detail > Deliverables</strong> and click "Generate Viewer."</p>
+                    <p className="text-sm mt-1 text-slate-500">Note: This takes 5-15 minutes. The link generated is public-safe and expires in 7 days (security policy).</p>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* --- STRATEGY TRACK --- */}
+        <TabsContent value="strategy" className="space-y-4">
+          <Card className="bg-blue-50 border-blue-200">
+            <CardHeader>
+              <CardTitle className="text-blue-900 flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                The "Overrun Shield" Positioning
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-blue-800 space-y-4">
+              <p>We do not sell "Laser Scanning." We sell <strong>Risk Mitigation.</strong></p>
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div className="bg-white p-4 rounded-lg shadow-sm">
+                  <h4 className="font-bold mb-2">The Old Way</h4>
+                  <p className="text-sm text-slate-600">"Here is your point cloud. Good luck."</p>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow-sm border-2 border-green-500">
+                  <h4 className="font-bold mb-2">The S2P Way</h4>
+                  <p className="text-sm text-slate-600">"We audited reality. You have a 12% variance. We fixed it before you poured concrete."</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+2. NAVIGATION: ADD THE LINK (client/src/components/Sidebar.tsx)
+
+Action: Add the "Academy" link to your main navigation sidebar so it's always visible.
+
+Code:
+
+TypeScript
+
+// Inside your sidebar links array...
+{ href: "/help", label: "S2P Academy", icon: BookOpen },
+3. ROUTING: REGISTER THE PAGE (client/src/App.tsx)
+
+Action: Add the route to your app router.
+
+Code:
+
+TypeScript
+
+import HelpCenter from "@/pages/HelpCenter";
+
+// Inside the Router switch...
+<Route path="/help" component={HelpCenter} />
+Part 2: The "Just-in-Time" Helpers (Tooltips)
+Now we add the "Help Instructions along the way." We'll create a reusable ContextHelp component and place it on the Persona Selector—the most critical part of your new workflow.
+
+1. COMPONENT: THE HELP TRIGGER (client/src/components/ContextHelp.tsx)
+
+Action: Create a small question mark icon that shows a hover card.
+
+Code:
+
+TypeScript
+
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import { HelpCircle } from "lucide-react";
+
+interface ContextHelpProps {
+  content: string;
+}
+
+export function ContextHelp({ content }: ContextHelpProps) {
+  return (
+    <HoverCard>
+      <HoverCardTrigger asChild>
+        <HelpCircle className="h-4 w-4 text-slate-400 hover:text-blue-600 cursor-help inline-block ml-2 align-middle" />
+      </HoverCardTrigger>
+      <HoverCardContent className="w-80 text-sm text-slate-600 bg-white border-slate-200 shadow-lg">
+        {content}
+      </HoverCardContent>
+    </HoverCard>
+  );
+}
+2. INTEGRATION: ADD TO LEAD FORM (client/src/components/LeadForm.tsx)
+
+Action: Place this help icon next to the "Persona" label.
+
+Code:
+
+TypeScript
+
+import { ContextHelp } from "./ContextHelp";
+
+// ... inside the label for Persona ...
+<Label>
+  Buyer Persona
+  <ContextHelp content="This selection controls the Automated Outreach Script. Choose 'Engineer' for technical hooks, or 'Developer' for financial/ROI hooks." />
+</Label>

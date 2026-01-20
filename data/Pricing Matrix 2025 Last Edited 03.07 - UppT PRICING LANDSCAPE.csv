@@ -1,0 +1,36 @@
+,,,,
+,Price Matrix for LANDSCAPE,,,
+,,,,
+,,,,
+1,Built Landscape,,,
+,"Landscape modified and manicured by human construction or activity, not limited to but including flower beds, shrubbery, trees in sidewalk boxes or on mowed land",,,
+,,,,
+,,,,
+,Discipline →,Architecture,,
+,Area ↓,LOD 200,LOD 300,LOD 350
+,up to 5 acres,$175.00,$200.00,$250.00
+,5-20,$125.00,$150.00,$200.00
+,20-50,$75.00,$100.00,$150.00
+,50+,$50.00,$75.00,$100.00
+,100+,$40.00,$55.00,$65.00
+,,,,
+,,,,
+2,Natural Landscape,,,
+,"Naturally occuring andscape largely unmaintained, including forrests, dense unmanicured vegetation, and waterways",,,
+,,,,
+,,,,
+,Discipline →,Architecture,,
+,Area ↓,LOD 200,LOD 300,LOD 350
+,up to 5 acres,$125.00,$150.00,$200.00
+,5-20,$75.00,$100.00,$150.00
+,20-50,$50.00,$75.00,$100.00
+,50+,$40.00,$55.00,$65.00
+,100+,$35.00,$50.00,$60.00
+,,,,
+,Note,,,
+,1. Inclusions,,,
+,,LOD 200,Basic topograph with approx dimentions of features and buildings,
+,,LOD 300,"Basic topography with added details like type, pattern and basic ground features",
+,,LOD 350,"Detailed topograph with land development features, finishes, rooftop, equipments, etc.",
+,,,,
+,2. The above mentioned unit rates would be applicable to compute the final cost subject to a minimum charge of $300,,,

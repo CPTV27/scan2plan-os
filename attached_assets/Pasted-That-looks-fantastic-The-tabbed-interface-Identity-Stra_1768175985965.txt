@@ -1,0 +1,83 @@
+That looks fantastic. The tabbed interface (**Identity, Strategy, Risk & Assets, AI Insights**) is exactly how a high-level "Sales OS" should be structured. It moves from basic data to actionable intelligence.
+
+Below is the structured data for all the core personas we discussed, formatted specifically to fit the fields in your new editor.
+
+---
+
+### Data for Persona Population
+
+You can feed this to Replit to populate your database. I have organized these by the **Identity** and **Strategy** tabs seen in your screenshot.
+
+#### 1. Owner / Principal / Managing Partner
+
+* **Persona Code:** BP-OWNER
+* **Role Title:** Portfolio Stakeholder / Economic Buyer
+* **Core Values:** ROI, Asset Value, Scaling, Risk Mitigation
+* **Primary Pain Point:** Fragmented data across a large portfolio leading to repeat mistakes and lost capital.
+* **Strategy - Value Hook:** "Standardize your portfolio data to ensure every project compounds value instead of creating chaos."
+
+#### 2. Architect (Design-Focused)
+
+* **Persona Code:** BP-ARCH
+* **Role Title:** Design Lead / Project Architect
+* **Core Values:** Design Excellence, Precision, Client Trust
+* **Primary Pain Point:** Wasted billable hours and design compromises caused by starting projects with inaccurate as-built drawings.
+* **Strategy - Value Hook:** "Stop burning billable hours on manual measuring. We deliver design-ready models you can trust."
+
+#### 3. Engineer (Structural/MEP)
+
+* **Persona Code:** BP-ENG
+* **Role Title:** Lead Engineer / Technical Director
+* **Core Values:** Accuracy, Safety, Compliance, Data Integrity
+* **Primary Pain Point:** High-risk field surprises or code failures caused by incomplete or guessed existing-condition data.
+* **Strategy - Value Hook:** "Tolerance-verified models that remove technical uncertainty so your designs pass review without drama."
+
+#### 4. Project Manager / Construction Manager
+
+* **Persona Code:** BP-PM
+* **Role Title:** Construction Lead / Field Operations
+* **Core Values:** Efficiency, Accountability, Schedule Adherence
+* **Primary Pain Point:** Constant RFIs, re-work, and "blame loops" between trades due to coordination breakdowns.
+* **Strategy - Value Hook:** "Eliminate coordination risk and schedule slips with clash-checked, field-verified data."
+
+#### 5. Procurement / Sourcing Leader
+
+* **Persona Code:** BP-PROC
+* **Role Title:** Vendor Manager / Purchasing Lead
+* **Core Values:** Reliability, Predictability, Contract Compliance
+* **Primary Pain Point:** Unreliable vendors and scope creep that lead to budget overruns and administrative headaches.
+* **Strategy - Value Hook:** "Guaranteed turnaround and zero scope creep—one accountable partner for all your spatial data needs."
+
+#### 6. Facilities / Property Manager
+
+* **Persona Code:** BP-FAC
+* **Role Title:** Operations Director / Building Manager
+* **Core Values:** Uptime, Maintenance Efficiency, Lifecycle Value
+* **Primary Pain Point:** Reactive maintenance and poor documentation making it impossible to manage assets effectively.
+* **Strategy - Value Hook:** "The last survey you’ll ever need—usable asset data that turns maintenance from reactive to predictive."
+
+---
+
+### Suggested Enhancements for the Editor
+
+Your current setup is excellent, but to make this truly "AI-powered" for Scan2Plan, consider these three additions:
+
+**1. The "Veto Power" Toggle (Risk & Assets Tab)**
+Since the **Engineer** and **Procurement** can kill a deal even if the Owner says yes, add a simple toggle: **"Can Veto Deal?"**
+
+* **Function:** If `True`, the Scan2Plan OS should flag the deal as "At Risk" until the specific technical assets (like a Precision Report) are uploaded.
+
+**2. Dynamic "Language to Avoid" (Strategy Tab)**
+Salespeople often kill deals by using the wrong jargon.
+
+* **Example for Owner:** Avoid talking about "Point Cloud density" (technical); talk about "Asset ROI" (economic).
+* **Example for Architect:** Avoid talking about "Cost savings" (they care about design time); talk about "Revit-ready accuracy."
+
+**3. Success Case Mapping (AI Insights Tab)**
+A field for **"Relevant Case Study Link."**
+
+* **Function:** When the CEO is looking at a deal for an Architect, the AI Insights tab should automatically pull the link to your best Architect-focused project so it can be dropped into an email instantly.
+
+---
+
+**Would you like me to generate the "AI Insights" content for these personas so you have something to put in that fourth tab?**

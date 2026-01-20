@@ -1,0 +1,287 @@
+This is the Final, Execution-Ready Master Prompt. It includes the Batch Sync implementation you just provided, the Persona Seed Data, and the full Tracking Logic.
+
+Copy and paste this entire block into Replit.
+
+Role: Senior Full-Stack Engineer & CRM Architect Objective: Build the complete "Growth Engine" (HubSpot Sync, Persona Logic, Engagement Tracking) with NO missing dependencies.
+
+PRE-REQUISITES (MANUAL CONFIGURATION)
+
+HubSpot: Create these custom properties in HubSpot CRM:
+
+s2p_persona_code (Single-line text)
+
+s2p_case_study_url (Single-line text)
+
+s2p_outreach_script (Multi-line text)
+
+s2p_lead_id (Number)
+
+Env: Ensure HUBSPOT_ACCESS_TOKEN and APP_URL are set in Secrets.
+
+1. DATABASE: SCHEMA UPDATES (shared/schema.ts)
+
+Action: Update leads and case_studies, and create new tables.
+
+Code:
+
+TypeScript
+
+// 1. UPDATE: case_studies (Add Metadata)
+// Add columns: clientName: text("client_name"), heroStat: text("hero_stat")
+
+// 2. NEW: Personas
+export const personas = pgTable("personas", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(), // "BP1", "BP5"
+  name: text("name").notNull(),
+  painPoints: text("pain_points").array(),
+  preferredTags: text("preferred_tags").array(),
+  scriptTemplate: text("script_template"),
+});
+
+// 3. NEW: Sync Logs
+export const hubspotSyncLogs = pgTable("hubspot_sync_logs", {
+  id: serial("id").primaryKey(),
+  leadId: integer("lead_id").references(() => leads.id),
+  hubspotContactId: text("hubspot_contact_id"),
+  syncStatus: text("sync_status"), // "pending", "synced", "failed"
+  errorMessage: text("error_message"),
+  lastSyncAt: timestamp("last_sync_at").defaultNow(),
+});
+
+// 4. NEW: Engagement Tracking
+export const trackingEvents = pgTable("tracking_events", {
+  id: serial("id").primaryKey(),
+  leadId: integer("lead_id").references(() => leads.id),
+  eventType: text("event_type"), // "case_study_click"
+  assetUrl: text("asset_url"),
+  clickedAt: timestamp("clicked_at").defaultNow(),
+  referrer: text("referrer"),
+});
+
+// 5. NEW: Notifications
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  type: text("type"), // "lead_click", "sync_failure"
+  leadId: integer("lead_id").references(() => leads.id),
+  message: text("message"),
+  read: boolean("read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// 6. UPDATE: leads (Add Growth Columns)
+// ownerId: integer("owner_id").references(() => users.id)
+// persona_code: text("persona_code")
+// hubspot_id: text("hubspot_id")
+// lead_score: integer("lead_score").default(0)
+2. DATA: SEED PERSONAS (server/data/seedMarketing.ts)
+
+Action: Create this file with the following EXACT data:
+
+TypeScript
+
+import { db } from '../db';
+import { personas } from '@shared/schema';
+
+export const PERSONA_SEED = [
+  {
+    code: "BP1",
+    name: "The Engineer",
+    painPoints: ["Accuracy drift", "Field verification", "Coordination time"],
+    preferredTags: ["mep", "industrial", "coordination"],
+    scriptTemplate: "{{firstName}}, your team is losing hours on field verification. {{client}} cut coordination time by {{heroStat}}. Worth 15 min?"
+  },
+  {
+    code: "BP2",
+    name: "The GC",
+    painPoints: ["Schedule risk", "RFI volume", "Trade coordination"],
+    preferredTags: ["commercial", "renovation", "coordination"],
+    scriptTemplate: "{{firstName}}, RFIs killing your schedule? {{client}} reduced clash-related RFIs by {{heroStat}}. Quick call?"
+  },
+  {
+    code: "BP3",
+    name: "The Owner's Rep",
+    painPoints: ["Budget variance", "Change orders", "Accountability"],
+    preferredTags: ["commercial", "historic", "documentation"],
+    scriptTemplate: "{{firstName}}, change orders eating your contingency? See how {{client}} locked scope with verified as-builts."
+  },
+  {
+    code: "BP4",
+    name: "The Facilities Manager",
+    painPoints: ["Asset documentation", "Emergency response", "Space planning"],
+    preferredTags: ["industrial", "education", "healthcare"],
+    scriptTemplate: "{{firstName}}, still hunting for drawings during emergencies? {{client}} built a single source of truth. Here's how."
+  },
+  {
+    code: "BP5",
+    name: "The Architect",
+    painPoints: ["As-built accuracy", "Design intent", "Historic preservation"],
+    preferredTags: ["historic", "residential", "renovation"],
+    scriptTemplate: "{{firstName}}, as-builts lying to you again? {{caseStudyTitle}} solved this for {{client}}. PDF attached."
+  },
+  {
+    code: "BP6",
+    name: "The Developer",
+    painPoints: ["Due diligence speed", "Acquisition risk", "Repositioning cost"],
+    preferredTags: ["commercial", "industrial", "documentation"],
+    scriptTemplate: "{{firstName}}, how much is bad survey data costing your pro forma? {{client}} de-risked their acquisition in {{heroStat}}."
+  },
+  {
+    code: "BP7",
+    name: "The Surveyor",
+    painPoints: ["Turnaround time", "Interior access", "Deliverable format"],
+    preferredTags: ["industrial", "commercial", "mep"],
+    scriptTemplate: "{{firstName}}, subbing out interior scans? We white-label for firms like yours. {{heroStat}} turnaround, your deliverable format."
+  }
+];
+
+export async function seedPersonas() {
+  for (const persona of PERSONA_SEED) {
+    await db.insert(personas).values(persona).onConflictDoNothing();
+  }
+}
+3. UTILITIES (server/lib/)
+
+caseStudyMatcher.ts:
+
+TypeScript
+
+import { db } from '../db';
+import { caseStudies, personas } from '@shared/schema';
+import { eq } from 'drizzle-orm';
+
+export async function rankCaseStudiesForPersona(personaCode: string) {
+  const persona = await db.query.personas.findFirst({ where: eq(personas.code, personaCode) });
+  if (!persona?.preferredTags?.length) return [];
+
+  const allCaseStudies = await db.query.caseStudies.findMany();
+  return allCaseStudies
+    .map(cs => ({ ...cs, score: (cs.tags || []).filter(t => persona.preferredTags?.includes(t)).length }))
+    .filter(cs => cs.score > 0)
+    .sort((a, b) => b.score - a.score);
+}
+scriptGenerator.ts:
+
+TypeScript
+
+export function hydrateScript(template: string, lead: any, caseStudy: any, trackingUrl: string): string {
+  return template
+    .replace(/\{\{firstName\}\}/g, lead.firstName || 'there')
+    .replace(/\{\{client\}\}/g, caseStudy.clientName || '[CLIENT]')
+    .replace(/\{\{heroStat\}\}/g, caseStudy.heroStat || 'significant time')
+    .replace(/\{\{caseStudyTitle\}\}/g, caseStudy.title || 'this case study')
+    .replace(/\{\{caseStudyUrl\}\}/g, trackingUrl);
+}
+4. SERVICE: HUBSPOT ENGINE (server/services/hubspot.ts)
+
+Dependencies: npm install @hubspot/api-client bottleneck
+
+Configuration:
+
+TypeScript
+
+import { Client } from '@hubspot/api-client';
+import Bottleneck from 'bottleneck';
+import { hydrateScript } from '../lib/scriptGenerator';
+import { rankCaseStudiesForPersona } from '../lib/caseStudyMatcher';
+import { db } from '../db';
+import { hubspotSyncLogs, leads, personas } from '@shared/schema';
+import { eq } from 'drizzle-orm';
+
+const hubspotClient = new Client({ accessToken: process.env.HUBSPOT_ACCESS_TOKEN });
+const limiter = new Bottleneck({ minTime: 100 }); // 10 req/sec
+
+export const STAGE_MAP: Record<string, string> = {
+  'new': 'lead', 'contacted': 'lead', 'qualified': 'marketingqualifiedlead', 
+  'proposal': 'salesqualifiedlead', 'closed_won': 'customer', 'closed_lost': 'other'
+};
+
+export async function syncLead(lead: any, personaCode: string) {
+  try {
+    const rankings = await rankCaseStudiesForPersona(personaCode);
+    const bestCaseStudy = rankings[0];
+    if (!bestCaseStudy) throw new Error("No matching case study found");
+
+    const trackingUrl = `${process.env.APP_URL}/api/track?leadId=${lead.id}&dest=${encodeURIComponent(bestCaseStudy.pdfUrl)}`;
+    const persona = await db.query.personas.findFirst({ where: eq(personas.code, personaCode) });
+    const script = hydrateScript(persona!.scriptTemplate, lead, bestCaseStudy, trackingUrl);
+
+    await limiter.schedule(async () => {
+       const searchResponse = await hubspotClient.crm.contacts.searchApi.doSearch({ filterGroups: [{ filters: [{ propertyName: 'email', operator: 'EQ', value: lead.email }] }] });
+       const properties = {
+         email: lead.email, firstname: lead.firstName, lastname: lead.lastName, lifecyclestage: STAGE_MAP[lead.status] || 'lead',
+         s2p_persona_code: personaCode, s2p_case_study_url: trackingUrl, s2p_outreach_script: script, s2p_lead_id: lead.id
+       };
+
+       if (searchResponse.total > 0) {
+         await hubspotClient.crm.contacts.basicApi.update(searchResponse.results[0].id, { properties });
+       } else {
+         await hubspotClient.crm.contacts.basicApi.create({ properties });
+       }
+    });
+
+    await db.insert(hubspotSyncLogs).values({ leadId: lead.id, syncStatus: 'synced' });
+  } catch (error: any) {
+    await db.insert(hubspotSyncLogs).values({ leadId: lead.id, syncStatus: 'failed', errorMessage: error.message });
+    throw error; // Re-throw for batch handling
+  }
+}
+5. API: ROUTES & WEBHOOKS (server/routes.ts)
+
+Endpoint: GET /api/track
+
+TypeScript
+
+app.get('/api/track', async (req, res) => {
+  const { leadId, dest } = req.query;
+  if (!leadId || !dest) return res.status(400).send('Missing params');
+
+  const recent = await db.query.trackingEvents.findFirst({
+    where: and(
+      eq(trackingEvents.leadId, Number(leadId)),
+      eq(trackingEvents.assetUrl, String(dest)),
+      gt(trackingEvents.clickedAt, new Date(Date.now() - 24 * 60 * 60 * 1000))
+    )
+  });
+
+  if (!recent) {
+    await db.insert(trackingEvents).values({ leadId: Number(leadId), eventType: 'case_study_click', assetUrl: String(dest), referrer: req.headers.referer });
+    await db.update(leads).set({ leadScore: sql`lead_score + 10` }).where(eq(leads.id, Number(leadId)));
+
+    const lead = await db.query.leads.findFirst({ where: eq(leads.id, Number(leadId)) });
+    if (lead?.ownerId) {
+      await db.insert(notifications).values({ userId: lead.ownerId, type: 'lead_click', leadId: lead.id, message: `${lead.firstName || 'A lead'} clicked your case study` });
+    }
+  }
+  res.redirect(decodeURIComponent(String(dest)));
+});
+Endpoint: POST /api/leads/batch-sync
+
+TypeScript
+
+app.post('/api/leads/batch-sync', requireRole(['sales', 'ceo']), async (req, res) => {
+  const { leadIds } = req.body;
+  if (!Array.isArray(leadIds) || leadIds.length === 0) return res.status(400).json({ error: 'leadIds array required' });
+
+  const results = { synced: [] as number[], failed: [] as { leadId: number; error: string }[] };
+
+  for (const leadId of leadIds) {
+    const lead = await db.query.leads.findFirst({ where: eq(leads.id, leadId) });
+    if (!lead) { results.failed.push({ leadId, error: 'Lead not found' }); continue; }
+    if (!lead.personaCode) { results.failed.push({ leadId, error: 'No persona assigned' }); continue; }
+
+    try {
+      await syncLead(lead, lead.personaCode);
+      results.synced.push(leadId);
+    } catch (err: any) {
+      results.failed.push({ leadId, error: err.message });
+    }
+  }
+  res.json(results);
+});
+6. UI COMPONENTS
+
+LeadGen: Add "Quick Classify" (BP1-BP7), "HubSpot Status" badge, and "Batch Sync" button.
+
+Notifications: Add Header Bell Icon that polls the notifications table.

@@ -1,0 +1,183 @@
+Role: Full Stack Engineer Objective: Implement a "Client Input Portal" (Magic Link) that allows clients to answer "Unknown" questions directly, updating the Quote in real-time.
+
+1. DATABASE: ADD TOKEN TO QUOTES (shared/schema.ts)
+
+Action: Add a secure token field to the quotes table so we can generate public links without requiring client login.
+
+Code:
+
+TypeScript
+
+// Inside quotes table definition
+export const quotes = pgTable("quotes", {
+  // ... existing fields ...
+  clientToken: text("client_token"), // Unique ID for the public link
+  clientStatus: text("client_status").default("pending"), // 'pending', 'answered'
+});
+2. API: THE PUBLIC ENDPOINTS (server/routes.ts)
+
+Action: Create the "Read" and "Write" routes for the public form.
+
+Code:
+
+TypeScript
+
+import { nanoid } from 'nanoid'; // Lightweight ID generator
+
+// 1. Generate Link (Rep Trigger)
+app.post('/api/quotes/:id/generate-link', async (req, res) => {
+  const token = nanoid(10); // e.g., "V1StGXr8_Z"
+  await db.update(quotes)
+    .set({ clientToken: token })
+    .where(eq(quotes.id, parseInt(req.params.id)));
+  res.json({ link: `/client-input/${token}` });
+});
+
+// 2. Get Questions (Client View)
+app.get('/api/public/quote/:token', async (req, res) => {
+  const quote = await db.query.quotes.findFirst({
+    where: eq(quotes.clientToken, req.params.token)
+  });
+  if (!quote) return res.status(404).send("Link expired or invalid");
+
+  // Filter the data to ONLY send what's needed (Security)
+  res.json({
+    id: quote.id,
+    projectType: quote.projectType,
+    // Send the fields that are marked "ask_client"
+    unknowns: {
+      includeMep: quote.includeMep === 'ask_client',
+      includeRoof: quote.includeRoof === 'ask_client',
+      occupiedStatus: quote.occupiedStatus === 'ask_client',
+    }
+  });
+});
+
+// 3. Submit Answers (Client Action)
+app.post('/api/public/quote/:token', async (req, res) => {
+  const { answers } = req.body; // e.g., { includeMep: "yes" }
+
+  await db.update(quotes)
+    .set({ 
+      ...answers, 
+      clientStatus: "answered" 
+    })
+    .where(eq(quotes.clientToken, req.params.token));
+
+  res.json({ success: true });
+});
+3. UI: THE CLIENT "GOOGLE FORM" (client/src/pages/ClientInput.tsx)
+
+Action: Create a simplified, brand-safe page for the client.
+
+Code:
+
+TypeScript
+
+import { useRoute, useLocation } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState } from "react";
+
+export default function ClientInput() {
+  const [match, params] = useRoute("/client-input/:token");
+  const [answers, setAnswers] = useState({});
+  const [submitted, setSubmitted] = useState(false);
+
+  // Fetch the "Unknowns"
+  const { data, isLoading } = useQuery({
+    queryKey: [`/api/public/quote/${params?.token}`],
+    enabled: !!params?.token
+  });
+
+  const submitMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", `/api/public/quote/${params?.token}`, { answers });
+    },
+    onSuccess: () => setSubmitted(true)
+  });
+
+  if (submitted) return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <Card className="w-full max-w-md text-center p-8">
+        <h2 className="text-2xl font-bold text-green-600 mb-2">Thank You!</h2>
+        <p className="text-slate-600">We have updated your project details. We will send the final quote shortly.</p>
+      </Card>
+    </div>
+  );
+
+  if (isLoading) return <div className="p-8 text-center">Loading Project Details...</div>;
+
+  return (
+    <div className="min-h-screen bg-slate-100 py-12 px-4">
+      <Card className="max-w-lg mx-auto shadow-lg">
+        <CardHeader className="bg-blue-600 text-white rounded-t-lg">
+          <CardTitle>Project Clarification Request</CardTitle>
+          <p className="text-blue-100 text-sm">Please answer the following to finalize your quote.</p>
+        </CardHeader>
+        <CardContent className="space-y-6 pt-6">
+
+          {/* DYNAMIC QUESTIONS */}
+          {data.unknowns.includeMep && (
+            <div className="space-y-2">
+              <label className="font-semibold text-slate-700">Do you need MEP (Pipes/Ducts) modeled?</label>
+              <Select onValueChange={(val) => setAnswers({...answers, includeMep: val})}>
+                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="yes">Yes, Full MEP</SelectItem>
+                  <SelectItem value="partial">Partial (Main Runs Only)</SelectItem>
+                  <SelectItem value="no">No, Architecture Only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {data.unknowns.occupiedStatus && (
+            <div className="space-y-2">
+              <label className="font-semibold text-slate-700">What is the current site status?</label>
+              <Select onValueChange={(val) => setAnswers({...answers, occupiedStatus: val})}>
+                <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="vacant">Vacant</SelectItem>
+                  <SelectItem value="occupied">Occupied (Business Hours)</SelectItem>
+                  <SelectItem value="construction">Under Construction</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <Button 
+            onClick={() => submitMutation.mutate()}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6"
+            disabled={Object.keys(answers).length === 0}
+          >
+            Submit Answers
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+4. ROUTING (client/src/App.tsx)
+
+Action: Register the public route.
+
+Code:
+
+TypeScript
+
+import ClientInput from "@/pages/ClientInput";
+// ... inside switch ...
+<Route path="/client-input/:token" component={ClientInput} />
+The New Workflow:
+Rep: Selects "I don't know" in Quote Builder.
+
+Rep: Clicks "Copy Client Link" (instead of Copy Email).
+
+Client: Opens link on their phone, taps "Vacant" and "No MEP", clicks Submit.
+
+Rep: Refreshes page -> The Quote Builder is now fully populated and valid.
+
+This removes the "Data Entry" step for your team entirely.

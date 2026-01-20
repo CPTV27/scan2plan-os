@@ -1,0 +1,51 @@
+It makes perfect sense that you are confused. The Replit Architect is likely seeing the "Server" code inside the folder you just cloned (e.g., `server.js` or `main.py` from the old CPQ) and assumes it needs to run as a separate "mini-server" inside your app. That is why it’s talking about APIs.
+
+We need to tell the Architect: **"Stop acting like these are two strangers sending letters. Treat them like one brain sharing thoughts."**
+
+Here is the explanation and the specific Prompt to fix this.
+
+### **The "Monolith" Correction Prompt**
+
+Copy and paste this into your **Scan2Plan OS** Replit chat. It forces the AI to rip out the "API" logic and simply **import** the math.
+
+---
+
+**Role:** Senior Software Architect
+
+**Objective:** Refactor the recently ingested `sales_engine` module to function as a **native internal library**, NOT a separate microservice.
+
+**1. Architecture Correction: No Internal APIs**
+
+* **Stop** trying to run a second server inside the `client/src/modules/sales_engine` folder.
+* **Delete** any `server.js`, `app.py`, or `express` routing files found inside that `sales_engine` folder. We do not need them.
+* **Logic:** Instead of the main app calling `fetch('/api/calculate')`, I want the main app to directly `import { calculatePrice }` from the pricing logic file.
+
+**2. Data Flow Refactor**
+
+* **Old Way (Wrong):** User clicks "Quote" -> Browser sends JSON to Server -> Server calculates -> Server sends JSON back.
+* **New Way (Right):** User clicks "Quote" -> Browser runs the math instantly in Javascript/Typescript using the imported function.
+* **Why:** This removes all latency and eliminates the need for internal API routes.
+
+**3. UI Integration**
+
+* Take the **React Components** (like `QuoteForm.tsx` or `PricingTable.tsx`) from the `sales_engine` folder and register them directly in our main `App.tsx` router.
+* **Route:** Map `/sales/calculator` to mount the `SalesEngine` component directly.
+
+**4. Data Binding**
+
+* Ensure the `SalesEngine` component pulls the `pricing_matrix` data directly from our main Redux/State store or database seed, rather than trying to fetch it from an external CSV.
+
+---
+
+### **What this changes (Visualized)**
+
+* **Before (What Replit is trying to do):** Your Dashboard sends a message *out* to the internet (or a fake local server) to ask "What is the price?", waits for an answer, and then shows it. This is slow and breaks easily.
+* **After (What this prompt does):** Your Dashboard *already knows* the math. When you change "Square Footage," the price updates instantly because the calculator is now part of the Dashboard's own code.
+
+### **How to verify it worked:**
+
+Once Replit finishes this refactor, ask it this simple question:
+
+> "Are we calculating the price on the **Client Side** (in the browser) or the **Server Side**?"
+
+The answer should be **"Client Side"** (or "In the browser"). That means the API is gone and the merge is complete.

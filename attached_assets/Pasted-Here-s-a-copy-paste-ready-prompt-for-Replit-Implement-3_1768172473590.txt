@@ -1,0 +1,76 @@
+Here's a copy-paste ready prompt for Replit:
+
+---
+
+**Implement 3 UI/UX improvements to DealWorkspace:**
+
+## Feature 1: Evidence Vault Pull-Down Menu
+Refactor the Evidence Vault from a standalone Dialog (`client/src/components/EvidenceVault.tsx`) into a collapsible accordion/dropdown embedded directly in the proposal generation interface. 
+
+- Extract the content (IntelligenceOverview, PersonaCard, ResearchSummaryCards, PhantomRevenueCalculator, RegulatoryRisksCard) from the Dialog wrapper
+- Create a new `EvidenceVaultPanel` component that renders as a collapsible section
+- Integrate it at the top of the proposal generation UI so users can expand/collapse research while writing proposals
+- Keep the same data fetching logic (`/api/leads/${leadId}/research`)
+
+## Feature 2: Consolidated AI Assist Panel
+Merge `DealAIAssistant.tsx` and `ProposalGenerator.tsx` into a single unified panel within DealWorkspace.
+
+- Combine the three AI assist tabs (Proposal, Email, Objection) with the ProposalGenerator
+- Single interface with: Evidence Vault pull-down at top → Persona selector → Deal context → Generation tabs
+- Remove the separate floating AI assistant trigger
+- All generation endpoints stay the same (`/api/intelligence/generate/*`)
+
+## Feature 3: Gmail Correspondence Tracking Per Deal
+Add email thread tracking for each deal's point-of-contact and billing contact.
+
+**Database (shared/schema.ts):**
+```typescript
+export const emailThreads = pgTable("email_threads", {
+  id: serial("id").primaryKey(),
+  leadId: integer("lead_id").references(() => leads.id),
+  threadId: text("thread_id").notNull(), // Gmail thread ID
+  subject: text("subject"),
+  participants: jsonb("participants"), // array of email addresses
+  lastMessageAt: timestamp("last_message_at"),
+  messageCount: integer("message_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const emailMessages = pgTable("email_messages", {
+  id: serial("id").primaryKey(),
+  threadId: integer("thread_id").references(() => emailThreads.id),
+  gmailMessageId: text("gmail_message_id").notNull(),
+  fromEmail: text("from_email"),
+  toEmails: jsonb("to_emails"),
+  subject: text("subject"),
+  snippet: text("snippet"),
+  bodyPreview: text("body_preview"),
+  receivedAt: timestamp("received_at"),
+  isOutbound: boolean("is_outbound").default(false),
+});
+```
+
+**Backend (server/routes/google.ts):**
+- Add `GET /api/google/gmail/threads/:leadId` - fetches Gmail threads where participants include `lead.contactEmail` OR `lead.billingContactEmail`
+- Add `POST /api/google/gmail/sync/:leadId` - syncs latest threads for a lead's contacts
+- Use Gmail API `users.threads.list` with query `from:{email} OR to:{email}`
+
+**Frontend:**
+- Create `CorrespondenceTimeline.tsx` component showing email threads grouped by contact
+- Display in DealWorkspace (new tab or sidebar section)
+- Show: thread subject, last message date, message count, expand to see snippets
+- Add "Sync Emails" button to trigger manual refresh
+
+**Files to modify:**
+- `client/src/pages/DealWorkspace.tsx`
+- `client/src/components/EvidenceVault.tsx` → refactor to `EvidenceVaultPanel.tsx`
+- `client/src/components/DealAIAssistant.tsx` → merge into unified panel
+- `client/src/components/intelligence/ProposalGenerator.tsx` → merge
+- `server/routes/google.ts` → add thread endpoints
+- `shared/schema.ts` → add email tables
+- `server/storage.ts` → add CRUD for email tables
+
+---
+
+That should give Replit enough context to execute. Want me to break any of these into smaller, more focused prompts if it chokes on the scope?

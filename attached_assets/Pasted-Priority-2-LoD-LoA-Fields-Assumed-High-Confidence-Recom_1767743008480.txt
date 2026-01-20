@@ -1,0 +1,18 @@
+Priority #2: LoD/LoA Fields — [Assumed] High Confidence
+• Recommendation: This should immediately follow or be developed in parallel with the Hard Gates.
+• Strategic Rationale: The "Measure of Excellence" is one of Scan2Plan’s "3 Uniques". Without these fields in the project schema, the application cannot track its primary value proposition. The schema should utilize standardized dropdowns that default to LoA 40 (≤ 1/4" measured tolerance) and LoA 30 (≤ 1/2" modeled tolerance) to align with USIBD and company standards.
+Priority #3: Unified Nomenclature — [Observed] Medium Confidence
+• Recommendation: Critical for scaling, but can follow the technical schema updates.
+• Strategic Rationale: The sources emphasize the need for a unique identifier (e.g., [Client]-[Project]-[Date]) to serve as the "glue" between separate departments. This ensures that Agata (accounting) and Kurt (production) are speaking the same language, reducing the "information failure" that accounts for a significant portion of industry errors.
+Priority #4: BOMA Sqft Audit Logic — [Hypothesized] Medium Confidence
+• Recommendation: Highly valuable for "Monetizing Accuracy," but technically downstream from initial project setup.
+• Strategic Rationale: BOMA audits typically uncover 2% to 5% more rentable space, which is a powerful ROI marketing hook. Integrating a 10% tolerance billing adjustment logic into the app allows the firm to automatically certify and bill for actual scanned area vs. client estimates, directly impacting Net Operating Income (NOI).
+2. Guidance for the Dialogue with Replit
+When you begin this session with the Replit Agent, I suggest you provide the following specific instructions to ensure the implementation matches the Manifest Mode requirements:
+• For the Retainer Gate: "Refactor the ProductionTracker component to disable the transition of a project to the 'Scanning' stage unless the retainerPaid boolean in the database is true. If a user attempts to move it, trigger a visual 'Hard Gate' alert referencing the AR/AP Workflow Mitigation policy."
+• For the LoD/LoA Fields: "Update the projects table in shared/schema.ts to include targetLoD and targetLoA fields. Use Zod enums to restrict these to industry-standard values (e.g., LoD 200, 300, 350, 350+ and LoA 10, 20, 30, 40, 50). Default these to LoD 300 and LoA 30/40 per the S2P Brand Guide."
+• For the Nomenclature Refactor: "Implement a utility function to generate a universalProjectID. It must concatenate the clientCode, a unique projectNumber, and the creationDate to ensure a single source of truth across sales, production, and accounting."
+3. Strategic "Human in the Loop" Validation Questions
+As the developer, you should ask yourself:
+1. Staleness: Does the "Staleness Depreciation Engine" correctly trigger a follow-up action in the UI after 7 days of inactivity to maintain our 1-week response guarantee?
+2. Multimodal Gaps: While Whisper is implemented for field notes, how will we eventually bridge the gap for PDF/Image MEP complexity analysis to improve our upfront quoting accuracy?

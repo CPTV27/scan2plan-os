@@ -1,0 +1,109 @@
+Good—the updated doc confirms `case_studies` exists with tags-based matching. But I don't see `clientName` or `heroStat` columns. The existing API (`GET /api/case-studies/match`) returns by tags, not ranked by overlap score.
+
+Here's the addendum block. Append this to the Final Master Prompt:
+
+---
+
+```
+**ADDENDUM: MISSING UTILITIES & SCHEMA UPDATES**
+
+**A1. CASE STUDIES TABLE UPDATE (`shared/schema.ts`)**
+Add these columns to the existing `case_studies` table:
+- clientName: text (e.g., "Memorial Hospital", "Acme Manufacturing")
+- heroStat: text (e.g., "47% faster coordination", "3-week schedule recovery")
+
+**A2. CASE STUDY RANKER (`server/lib/caseStudyMatcher.ts`)**
+```typescript
+import { db } from '../db';
+import { caseStudies, personas } from '@shared/schema';
+import { eq, arrayOverlaps } from 'drizzle-orm';
+
+export async function rankCaseStudiesForPersona(personaCode: string) {
+  const persona = await db.query.personas.findFirst({
+    where: eq(personas.code, personaCode)
+  });
+  
+  if (!persona?.preferredTags?.length) return [];
+  
+  const matched = await db.query.caseStudies.findMany({
+    where: arrayOverlaps(caseStudies.tags, persona.preferredTags)
+  });
+  
+  // Sort by tag overlap count (most relevant first)
+  return matched.sort((a, b) => {
+    const aScore = (a.tags || []).filter(t => persona.preferredTags.includes(t)).length;
+    const bScore = (b.tags || []).filter(t => persona.preferredTags.includes(t)).length;
+    return bScore - aScore;
+  });
+}
+```
+
+**A3. SCRIPT HYDRATOR (`server/lib/scriptGenerator.ts`)**
+```typescript
+import { Lead, CaseStudy, Persona } from '@shared/schema';
+
+export function hydrateScript(
+  persona: Persona, 
+  lead: Lead, 
+  caseStudy: CaseStudy,
+  trackingUrl: string
+): string {
+  const template = persona.scriptTemplate || '';
+  
+  return template
+    .replace(/\{\{firstName\}\}/g, lead.firstName || 'there')
+    .replace(/\{\{client\}\}/g, caseStudy.clientName || '[CLIENT]')
+    .replace(/\{\{heroStat\}\}/g, caseStudy.heroStat || '')
+    .replace(/\{\{caseStudyTitle\}\}/g, caseStudy.title || '')
+    .replace(/\{\{caseStudyUrl\}\}/g, trackingUrl);
+}
+```
+
+**A4. STAGE MAPPING (add to `server/services/hubspot.ts`)**
+```typescript
+export const STAGE_MAP: Record<string, string> = {
+  'new': 'lead',
+  'contacted': 'lead',
+  'qualified': 'marketingqualifiedlead',
+  'proposal': 'salesqualifiedlead',
+  'closed_won': 'customer',
+  'closed_lost': 'other'
+};
+```
+
+**A5. AUTO-ASSIGN OWNER (modify lead creation in `server/routes.ts`)**
+When creating a new lead, auto-assign the current user as owner:
+```typescript
+// In POST /api/leads handler
+const newLead = await db.insert(leads).values({
+  ...req.body,
+  ownerId: req.user.id, // Auto-assign creator as owner
+  leadScore: 0
+}).returning();
+```
+
+**A6. ENVIRONMENT VARIABLES (add to Required Secrets)**
+```
+HUBSPOT_ACCESS_TOKEN    → HubSpot Private App access token
+APP_URL                 → Base URL for tracking redirects (e.g., https://scan2plan.replit.app)
+```
+
+**A7. DEPENDENCIES (run in terminal)**
+```bash
+npm install @hubspot/api-client bottleneck
+```
+```
+
+---
+
+**Pre-flight checklist for you:**
+
+| Task | Where | Status |
+|------|-------|--------|
+| Create HubSpot Private App | HubSpot Settings → Integrations → Private Apps | ⬜ |
+| Add custom properties | HubSpot Settings → Data Management → Properties | ⬜ |
+| Add `HUBSPOT_ACCESS_TOKEN` | Replit Secrets | ⬜ |
+| Add `APP_URL` | Replit Secrets | ⬜ |
+| Seed `clientName` + `heroStat` into existing case studies | Drizzle Studio or seed script | ⬜ |
+
+Once those boxes are checked, the prompt is ready to run. Want me to draft the case study seed data based on your existing Proof Vault?

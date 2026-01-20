@@ -1,0 +1,114 @@
+8:08:45 PM [express] WARN: [AIClient] OpenAI API key not configured
+8:08:47 PM [express] ✅ Environment configuration validated successfully
+[Migrations] Schema columns ensured successfully
+8:08:47 PM [express] INFO: Sequence scheduler started
+8:08:48 PM [express] Seeding Marketing Engine...
+8:08:49 PM [express] Marketing Engine Seeded.
+Seeding buyer personas...
+  Updated persona: BP-OWNER - The Owner/Developer
+  Updated persona: BP-ARCH - The Architect
+  Updated persona: BP-ENG - The Engineer
+  Updated persona: BP-PM - The Project Manager / CM
+  Updated persona: BP-FAC - The Facilities Manager
+  Updated persona: BP-PROC - The Procurement Leader
+  Updated persona: BP-PROPTECH - The PropTech Innovator
+  Updated persona: BP-INST - The Institutional Owner
+Buyer personas seeded successfully.
+8:08:49 PM [express] serving on http://127.0.0.1:5000
+8:08:49 PM [express] [2caaea81-cca7-4c34-b0f2-5d34b77176b9] GET /api/notifications 304 in 5ms :: []
+8:08:49 PM [express] [88c169ae-7832-40c0-b8bd-912f9ff2b220] GET /api/notifications 304 in 3ms :: []
+8:08:52 PM [warn] [7ac559af-1014-47cf-98e9-f2874a417235] SLOW: GET /src/index.css completed in 1942ms (status: 304)
+8:08:52 PM [warn] [4ab97c8d-8f21-482b-b52b-9f0a48704a2a] SLOW: GET /src/index.css completed in 1896ms (status: 304)
+8:08:52 PM [warn] [f655829f-f787-421e-b26a-4bd134cce7ed] SLOW: GET /src/features/cpq/Calculator.tsx completed in 1151ms (status: 304)
+8:08:52 PM [warn] [d79fbada-0f14-462a-a315-401cf95d2eef] SLOW: GET /src/features/cpq/Calculator.tsx completed in 1161ms (status: 304)
+8:08:54 PM [express] [5c49b012-28a4-42af-8cb5-dd4561beb93c] GET /api/auth/user 200 in 1ms :: {"id":"local-user","email":"local@scan2plan.io","firstName":"Local","lastName":"User","profileImageUrl":null,"role":"ceo","scantecHome":null,"passwordHash":null,"passwordSetAt":null,"createdAt":"2026-01-19T01:08:47.853Z","updatedAt":"2026-01-19T01:08:47.853Z"}
+8:08:54 PM [express] [ac917949-b8f5-44c4-b1ee-fa9e2eedc82e] GET /api/notifications 304 in 1ms :: []
+8:08:54 PM [express] [b6446ba5-2d8b-41cd-ab52-7d9353328a83] GET /api/leads 304 in 17ms :: []
+8:08:55 PM [express] [795bd242-7972-4e9d-b60f-94baca20f27f] GET /api/auth/user 200 in 1ms :: {"id":"local-user","email":"local@scan2plan.io","firstName":"Local","lastName":"User","profileImageUrl":null,"role":"ceo","scantecHome":null,"passwordHash":null,"passwordSetAt":null,"createdAt":"2026-01-19T01:08:47.853Z","updatedAt":"2026-01-19T01:08:47.853Z"}
+8:08:55 PM [express] [e949c873-c716-4269-a9ea-42279022a463] GET /api/notifications 304 in 1ms :: []
+8:08:55 PM [express] [b8238dad-c9a6-49ad-8fb9-d520c859cb7c] GET /api/leads 304 in 16ms :: []
+8:09:13 PM [express] [Lead Create] Request body: {
+  "clientName": "",
+  "projectName": null,
+  "projectAddress": "",
+  "value": null,
+  "dealStage": "",
+  "probability": null,
+  "notes": null,
+  "quoteNumber": null,
+  "buildingType": null,
+  "sqft": null,
+  "scope": null,
+  "disciplines": null,
+  "bimDeliverable": null,
+  "bimVersion": null,
+  "contactName": null,
+  "contactEmail": null,
+  "contactPhone": null,
+  "billingContactName": null,
+  "billingContactEmail": null,
+  "billingContactPhone": null,
+  "dispatchLocation": null,
+  "distance": null,
+  "travelRate": null,
+  "timeline": null,
+  "paymentTerms": null,
+  "quoteUrl": null,
+  "quoteVersion": null,
+  "cpqAreas": [],
+  "cpqRisks": [],
+  "cpqTravel": {
+    "travelMode": "local"
+  },
+  "cpqServices": {},
+  "cpqScopingData": {},
+  "leadSource": null,
+  "source": null,
+  "referrerCompanyName": null,
+  "referrerContactName": null,
+  "leadPriority": 3,
+  "buyerPersona": null,
+  "focusSector": null,
+  "proofLinks": null
+}
+8:09:13 PM [express] [Lead Create] Success, lead ID: 1
+8:09:13 PM [express] [89c30da2-fad0-48ba-8637-88ae920324e5] POST /api/leads 201 in 150ms :: {"id":1,"projectCode":null,"clientName":"","projectName":null,"projectAddress":"","projectZipCode":null,"value":"0.00","dealStage":"","probability":null,"lastContactDate":"2026-01-19T01:09:13.886Z","closedAt":null,"lossReason":null,"wonReason":null,"notes":null,"retainerPaid":false,"retainerAmount":null,"retainerPaidDate":null,"legalJurisdiction":"Welor County","quoteNumber":null,"buildingType":null,"sqft":null,"scope":null,"disciplines":null,"bimDeliverable":null,"bimVersion":null,"contactName"
+8:09:13 PM [express] [1ce87b43-3741-4623-8689-3ace16d72ced] GET /api/leads 200 in 16ms :: [{"id":1,"projectCode":null,"clientName":"","projectName":null,"projectAddress":"","projectZipCode":null,"value":"0.00","dealStage":"","probability":null,"lastContactDate":"2026-01-19T01:09:13.886Z","closedAt":null,"lossReason":null,"wonReason":null,"notes":null,"retainerPaid":false,"retainerAmount":null,"retainerPaidDate":null,"legalJurisdiction":"Welor County","quoteNumber":null,"buildingType":null,"sqft":null,"scope":null,"disciplines":null,"bimDeliverable":null,"bimVersion":null,"contactName
+8:09:17 PM [express] [4734bf14-d07a-42a4-8405-04e6bd54df9a] GET /api/auth/user 304 in 1ms :: {"id":"local-user","email":"local@scan2plan.io","firstName":"Local","lastName":"User","profileImageUrl":null,"role":"ceo","scantecHome":null,"passwordHash":null,"passwordSetAt":null,"createdAt":"2026-01-19T01:08:47.853Z","updatedAt":"2026-01-19T01:08:47.853Z"}
+8:09:17 PM [express] [32c1d4d5-2a90-48ea-900d-95800e2950ee] GET /api/notifications 304 in 1ms :: []
+8:09:17 PM [express] [1a99278b-b088-4169-a379-d7f669134ec5] GET /api/leads 304 in 28ms :: [{"id":1,"projectCode":null,"clientName":"","projectName":null,"projectAddress":"","projectZipCode":null,"value":"0.00","dealStage":"","probability":null,"lastContactDate":"2026-01-19T01:09:13.886Z","closedAt":null,"lossReason":null,"wonReason":null,"notes":null,"retainerPaid":false,"retainerAmount":null,"retainerPaidDate":null,"legalJurisdiction":"Welor County","quoteNumber":null,"buildingType":null,"sqft":null,"scope":null,"disciplines":null,"bimDeliverable":null,"bimVersion":null,"contactName
+8:09:25 PM [express] [e6e3e489-f33b-4143-bb17-6504c8ed1a19] GET /api/notifications 304 in 1ms :: []
+8:09:47 PM [express] [d1518829-e690-4aa2-9dbd-19291322bb6f] GET /api/notifications 304 in 1ms :: []
+8:09:55 PM [express] [8218a284-5537-484d-90dc-6d70b94e293b] GET /api/notifications 304 in 1ms :: []
+8:10:17 PM [express] [1bab62fa-e773-4d26-8a27-fe2092262f79] GET /api/notifications 304 in 1ms :: []
+8:10:25 PM [express] [df82ec98-ab91-42e9-8326-f3d614a254d0] GET /api/notifications 304 in 0ms :: []
+8:10:47 PM [express] [61dc0369-587b-4e43-ab75-996ab8810101] GET /api/notifications 304 in 1ms :: []
+8:10:55 PM [express] [8e5335e2-dde7-4599-a8b0-ea511f2cb130] GET /api/notifications 304 in 1ms :: []
+[2m8:11:17 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/Sales.tsx, /src/index.css[22m
+8:11:17 PM [express] [cd43f01c-5342-426f-b54e-166cd6450b83] GET /api/notifications 304 in 1ms :: []
+8:11:18 PM [express] [22d81e0e-24dd-42cb-9339-0d428deab75f] GET /api/leads 304 in 106ms :: [{"id":1,"projectCode":null,"clientName":"","projectName":null,"projectAddress":"","projectZipCode":null,"value":"0.00","dealStage":"","probability":null,"lastContactDate":"2026-01-19T01:09:13.886Z","closedAt":null,"lossReason":null,"wonReason":null,"notes":null,"retainerPaid":false,"retainerAmount":null,"retainerPaidDate":null,"legalJurisdiction":"Welor County","quoteNumber":null,"buildingType":null,"sqft":null,"scope":null,"disciplines":null,"bimDeliverable":null,"bimVersion":null,"contactName
+8:11:18 PM [express] [b964dd92-b9af-49d0-a868-3d1ae1e26954] GET /api/leads 200 in 115ms :: [{"id":1,"projectCode":null,"clientName":"","projectName":null,"projectAddress":"","projectZipCode":null,"value":"0.00","dealStage":"","probability":null,"lastContactDate":"2026-01-19T01:09:13.886Z","closedAt":null,"lossReason":null,"wonReason":null,"notes":null,"retainerPaid":false,"retainerAmount":null,"retainerPaidDate":null,"legalJurisdiction":"Welor County","quoteNumber":null,"buildingType":null,"sqft":null,"scope":null,"disciplines":null,"bimDeliverable":null,"bimVersion":null,"contactName
+[2m8:11:42 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/DealWorkspace.tsx, /src/index.css[22m
+8:11:48 PM [express] [d23a1e10-272c-42fe-9b05-ef62a41ee61d] GET /api/notifications 304 in 1ms :: []
+8:11:48 PM [express] [6ef27d42-935d-4782-ba40-c9af90b4f945] GET /api/notifications 304 in 1ms :: []
+8:12:18 PM [express] [bfc408ca-65a4-4a62-8472-2ac1c8a50472] GET /api/notifications 304 in 1ms :: []
+8:12:18 PM [express] [4188d529-74cd-48d6-a1f0-ae3c4ae5008f] GET /api/notifications 304 in 1ms :: []
+8:12:25 PM [express] [b880bb29-e971-4262-adf5-f5f0676241b7] GET /api/auth/user 304 in 1ms :: {"id":"local-user","email":"local@scan2plan.io","firstName":"Local","lastName":"User","profileImageUrl":null,"role":"ceo","scantecHome":null,"passwordHash":null,"passwordSetAt":null,"createdAt":"2026-01-19T01:08:47.853Z","updatedAt":"2026-01-19T01:08:47.853Z"}
+8:12:25 PM [express] [e255d4ef-dbd9-406f-b8fc-20b814c205da] GET /api/notifications 304 in 1ms :: []
+8:12:25 PM [express] [41c97d32-e858-49cc-b04e-a4248bd8412d] GET /api/leads 304 in 116ms :: [{"id":1,"projectCode":null,"clientName":"","projectName":null,"projectAddress":"","projectZipCode":null,"value":"0.00","dealStage":"","probability":null,"lastContactDate":"2026-01-19T01:09:13.886Z","closedAt":null,"lossReason":null,"wonReason":null,"notes":null,"retainerPaid":false,"retainerAmount":null,"retainerPaidDate":null,"legalJurisdiction":"Welor County","quoteNumber":null,"buildingType":null,"sqft":null,"scope":null,"disciplines":null,"bimDeliverable":null,"bimVersion":null,"contactName
+8:12:48 PM [express] [78640b87-8e57-4a63-8b32-7c4e4712958a] GET /api/notifications 304 in 1ms :: []
+8:12:55 PM [express] [f13adb87-1877-4051-85a4-6b2ed4a7e945] GET /api/notifications 304 in 2ms :: []
+8:13:18 PM [express] [591a5aae-bb85-4182-916e-3bae7dd762be] GET /api/notifications 304 in 1ms :: []
+8:13:25 PM [express] [cb56e916-e7a4-4497-8774-361a5962ab41] GET /api/notifications 304 in 1ms :: []
+8:13:48 PM [express] [95cd8aba-75e0-4bf2-a382-65bcf26963f7] GET /api/notifications 304 in 1ms :: []
+8:13:55 PM [express] [f4e4c499-375e-48a6-acb5-8004f22218e5] GET /api/notifications 304 in 1ms :: []
+8:14:18 PM [express] [274e90c1-ef4a-41fc-9905-be6f03adc321] GET /api/notifications 304 in 0ms :: []
+8:14:25 PM [express] [314297c8-9cff-4757-a861-a3d98cc78b49] GET /api/auth/user 304 in 0ms :: {"id":"local-user","email":"local@scan2plan.io","firstName":"Local","lastName":"User","profileImageUrl":null,"role":"ceo","scantecHome":null,"passwordHash":null,"passwordSetAt":null,"createdAt":"2026-01-19T01:08:47.853Z","updatedAt":"2026-01-19T01:08:47.853Z"}
+8:14:25 PM [express] [7138b351-6262-4a30-9902-be204a74b2cd] GET /api/notifications 304 in 0ms :: []
+8:14:25 PM [express] [454d28d5-541d-4acd-85a0-ec46533045f4] GET /api/leads 304 in 125ms :: [{"id":1,"projectCode":null,"clientName":"","projectName":null,"projectAddress":"","projectZipCode":null,"value":"0.00","dealStage":"","probability":null,"lastContactDate":"2026-01-19T01:09:13.886Z","closedAt":null,"lossReason":null,"wonReason":null,"notes":null,"retainerPaid":false,"retainerAmount":null,"retainerPaidDate":null,"legalJurisdiction":"Welor County","quoteNumber":null,"buildingType":null,"sqft":null,"scope":null,"disciplines":null,"bimDeliverable":null,"bimVersion":null,"contactName
+8:14:34 PM [express] [92ce56a9-f4bf-434f-9cd9-ae3a5a4533e3] GET /api/auth/user 304 in 1ms :: {"id":"local-user","email":"local@scan2plan.io","firstName":"Local","lastName":"User","profileImageUrl":null,"role":"ceo","scantecHome":null,"passwordHash":null,"passwordSetAt":null,"createdAt":"2026-01-19T01:08:47.853Z","updatedAt":"2026-01-19T01:08:47.853Z"}
+8:14:34 PM [express] [07497aa0-2cf4-4f24-94d9-7f429896f2e7] GET /api/notifications 304 in 1ms :: []
+8:14:34 PM [express] [23d0590a-e37e-45ba-accd-2787fc626bf8] GET /api/leads 304 in 22ms :: [{"id":1,"projectCode":null,"clientName":"","projectName":null,"projectAddress":"","projectZipCode":null,"value":"0.00","dealStage":"","probability":null,"lastContactDate":"2026-01-19T01:09:13.886Z","closedAt":null,"lossReason":null,"wonReason":null,"notes":null,"retainerPaid":false,"retainerAmount":null,"retainerPaidDate":null,"legalJurisdiction":"Welor County","quoteNumber":null,"buildingType":null,"sqft":null,"scope":null,"disciplines":null,"bimDeliverable":null,"bimVersion":null,"contactName
+8:14:39 PM [express] [195a286c-3814-41d1-a27b-71cf9b03b028] GET /api/auth/user 304 in 1ms :: {"id":"local-user","email":"local@scan2plan.io","firstName":"Local","lastName":"User","profileImageUrl":null,"role":"ceo","scantecHome":null,"passwordHash":null,"passwordSetAt":null,"createdAt":"2026-01-19T01:08:47.853Z","updatedAt":"2026-01-19T01:08:47.853Z"}
+8:14:39 PM [express] [6bed6da5-c094-4003-93b9-c7fd3d905813] GET /api/notifications 304 in 1ms :: []
+8:14:39 PM [express] [dcd55451-cfeb-4141-bc2f-676253256f79] GET /api/leads 304 in 32ms :: [{"id":1,"projectCode":null,"clientName":"","projectName":null,"projectAddress":"","projectZipCode":null,"value":"0.00","dealStage":"","probability":null,"lastContactDate":"2026-01-19T01:09:13.886Z","closedAt":null,"lossReason":null,"wonReason":null,"notes":null,"retainerPaid":false,"retainerAmount":null,"retainerPaidDate":null,"legalJurisdiction":"Welor County","quoteNumber":null,"buildingType":null,"sqft":null,"scope":null,"disciplines":null,"bimDeliverable":null,"bimVersion":null,"contactName

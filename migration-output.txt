@@ -1,0 +1,20 @@
+﻿≡ƒÜÇ Starting CPQ data migration...
+
+Γ£à Connected to source database (original CPQ)
+Γ£à Connected to target database (Scan2Plan Sales Production)
+
+≡ƒôª Migrating pricing_matrix...
+   Γ£à Migrated 1856 pricing_matrix rows
+≡ƒôª Migrating upteam_pricing_matrix...
+   Γ£à Migrated 1872 upteam_pricing_matrix rows
+≡ƒôª Migrating cad_pricing_matrix...
+   Γ£à Migrated 189 cad_pricing_matrix rows
+≡ƒôª Migrating pricing_parameters...
+   Γ£à Migrated 38 pricing_parameters rows
+≡ƒôª Checking for quotes data...
+   Found 30 quotes in source (skipping - may conflict with existing data)
+   Γä╣∩╕Å Run separate quote migration if needed
+
+≡ƒÄë CPQ data migration complete!
+
+Γ£à Database connections closed

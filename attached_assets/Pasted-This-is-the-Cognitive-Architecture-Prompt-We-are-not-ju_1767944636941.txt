@@ -1,0 +1,150 @@
+This is the **"Cognitive Architecture"** Prompt.
+
+We are not just asking Replit to "store text." We are asking it to build a **Logic Engine** that thinks like your Executive Signal Mapper and writes like your Master Author.
+
+It includes the **"Self-Check v2"** loop (the automated critic) and the **"Hard Deck"** of facts (LoA/LoD standards) so the AI cannot hallucinate or oversell.
+
+**Copy and paste the entire block below into the Replit Agent.**
+
+---
+
+# 🚀 PROMPT START: The Cognitive Brand Architecture
+
+**Role:** You are a Senior Systems Architect and AI Engineer.
+**Objective:** Upgrade the Scan2Plan OS database and backend logic to incorporate a "Cognitive Brand Engine."
+**Goal:** The system must generate proposals, emails, and negotiation tactics that strictly adhere to the "Executive Signal Mapper" and "Master Author" personas provided in the context.
+
+## PHASE 1: Database Schema (`shared/schema.ts`)
+
+Create a new set of tables to house the "Brain" of the brand.
+
+1. **`brand_personas` Table:**
+* `id`: Serial PK
+* `name`: Text (e.g., "Executive Signal Mapper", "Master Author", "Industry Skeptic")
+* `core_identity`: Text (The cognitive role, e.g., "Peer-level authority, no sales breath")
+* `voice_mode`: JSON (Stores parameters for "Mark Twain" conciseness vs "Buckminster Fuller" systems thinking)
+* `active`: Boolean
+
+
+2. **`governance_red_lines` Table:**
+* *Stores the "Do Not Say" rules.*
+* `id`: Serial PK
+* `rule_content`: Text (e.g., "No 'Zero Rework' claims without case study")
+* `violation_category`: Text (e.g., "V1 - Hype", "V3 - Unsupported Guarantee")
+* `correction_instruction`: Text (e.g., "Rewrite as a 'Mechanism' of control")
+
+
+3. **`standard_definitions` Table (The Hard Deck):**
+* *Stores the immutable facts.*
+* `term`: Text (e.g., "LoA 30")
+* `definition`: Text (e.g., "0–1/2 inch tolerance, Modeled Accuracy")
+* `guarantee_text`: Text (The specific legal-safe wording for this term)
+
+
+4. **`generation_audit_logs` Table:**
+* *Tracks the AI's self-correction.*
+* `id`: Serial PK
+* `prompt_context`: Text
+* `initial_draft`: Text
+* `violation_count`: Integer (How many Red Lines it broke)
+* `final_output`: Text (The clean version)
+
+
+
+---
+
+## PHASE 2: The Logic Engine (`server/lib/brand_engine.ts`)
+
+Create a library that enforces the "Decision Ladder" from the documents.
+
+**Function 1: `constructContext(buyerMode, situation)**`
+
+* *Input:* User defines if the buyer is "Architecture Principal" (Type A) or "Owner/Developer" (Type B).
+* *Logic:*
+* If Type A: Focus on **Standardization** and **Low Babysitting**.
+* If Type B: Focus on **Defensibility** and **Risk Variance**.
+
+
+
+**Function 2: `runSelfCheckV2(draftText)**`
+
+* *The Critic:* This function must scan the draft against `governance_red_lines`.
+* *Logic:*
+* **V1 Check:** Does it contain hype adjectives ("Amazing", "Revolutionary")? -> Flag.
+* **V2 Check:** Does it promise "Zero Rework" without citing a specific mechanism? -> Flag.
+* **V3 Check:** Does it use the word "Guarantee" outside of the approved `standard_definitions`? -> Flag.
+
+
+* *Return:* A score (0-5) and a list of required fixes.
+
+**Function 3: `applyMasterAuthor(draftText, mode)**`
+
+* *Style Transfer:*
+* **Mode "Twain":** Remove 30% of adjectives. Shorten sentences. Assert facts.
+* **Mode "Fuller":** Connect the specific task to the "Macro Industry System" (e.g., "Scanning is not a service; it is infrastructure").
+
+
+
+---
+
+## PHASE 3: The "Brain Transplant" (Seeding Data)
+
+Create a seed script `server/seed_brand.ts` to inject the specific rules from the uploaded documents. Use this exact content:
+
+**1. Insert into `brand_personas`:**
+
+* **Name:** "Executive Signal Mapper"
+* **Identity:** "Internal executive advisor. Peer-level, calm authority. Mechanism-first. Non-salesy."
+* **Mantra:** "Variance is the enemy; consistency is the product."
+
+
+* **Name:** "Master Author"
+* **Identity:** "Cognition-driven brand voice. Clarity, precision, systemic depth."
+* **Directives:** "No persuasion. Just expertise and the unshakable authority of truth."
+
+
+
+**2. Insert into `governance_red_lines`:**
+
+* **Rule:** "No quantified outcomes ('weeks saved') without a documented case." (Category: V1-Hype)
+* **Rule:** "No competitor comparisons or price anchoring." (Category: V2-Focus)
+* **Rule:** "No guarantees unless confirmed in canonical sources." (Category: V3-Legal)
+* **Rule:** "No emotional manipulation or 'sales pressure'." (Category: V5-Tone)
+
+**3. Insert into `standard_definitions` (The Truth):**
+
+* **Term:** "LoA 30" -> **Def:** "Modeled Accuracy. Tolerance: 0–1/2 inch. Purpose: Construction-ready deliverables."
+* **Term:** "LoA 40" -> **Def:** "Measured Accuracy. Tolerance: 0–1/8 inch. Purpose: High-precision scan data."
+* **Term:** "LoD 350" -> **Def:** "Detailed construction-ready models with joint and connection details."
+
+---
+
+## PHASE 4: The API Endpoint (`server/routes.ts`)
+
+Create a route `/api/generate/executive-brief`.
+
+**Workflow:**
+
+1. **Receive:** `buyer_type`, `pain_point`, `project_context`.
+2. **Retrieve:** The definitions from `standard_definitions` (so it doesn't hallucinate facts).
+3. **Draft:** Use OpenAI to generate a draft using `Executive Signal Mapper` persona.
+4. **Loop:** Run `runSelfCheckV2` on the draft.
+* *If Violations > 0:* Feed the errors back to OpenAI and ask for a rewrite (up to 3 times).
+
+
+5. **Final Polish:** Run `applyMasterAuthor` to sharpen the prose.
+6. **Respond:** Return the `final_output` + the `violation_report` (so we can see what it fixed).
+
+---
+
+## PHASE 5: The UI (`client/src/pages/BrandGenerator.tsx`)
+
+Create a simple internal tool for you to use.
+
+* **Inputs:** Dropdowns for Buyer Type (Principal/Owner), Pain Point (Reno/New Build), and a Text Area for "Rough Notes."
+* **Button:** "Generate Executive Brief"
+* **Display:** Show the Final Output on the left, and the "Audit Log" (what it fixed) on the right.
+
+**Execute this plan.** Start by defining the schema.
+
+# 🚀 PROMPT END

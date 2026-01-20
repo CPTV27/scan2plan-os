@@ -1,0 +1,196 @@
+Quote → Project Data Inheritance on Closed Won
+When a deal moves to "Closed Won", the created project should inherit ALL quote and scoping data—not just a name and link. Production needs to see exactly what was sold.
+Problem: Currently, when dealStage changes to "Closed Won" in server/routes.ts, the project is created with minimal data. Production has to go back to the lead to see what was quoted.
+Solution: Expand project creation to inherit the full quote context.
+Part 1: Add Fields to Projects Table
+In shared/schema.ts, add these fields to the projects table:
+typescript// CPQ Inheritance (from lead at time of close)
+quotedPrice: decimal("quoted_price", { precision: 12, scale: 2 }),
+quotedMargin: decimal("quoted_margin", { precision: 5, scale: 2 }),
+quotedAreas: jsonb("quoted_areas").$type<any[]>(),           // Snapshot of cpqAreas
+quotedRisks: jsonb("quoted_risks").$type<any>(),             // Snapshot of cpqRisks
+quotedTravel: jsonb("quoted_travel").$type<any>(),           // Snapshot of cpqTravel
+quotedServices: jsonb("quoted_services").$type<any>(),       // Snapshot of cpqServices
+
+// Site Readiness Inheritance
+siteReadiness: jsonb("site_readiness").$type<Record<string, any>>(),
+
+// Client Contact (snapshot at close)
+clientName: text("client_name"),
+clientContact: text("client_contact"),
+clientEmail: text("client_email"),
+clientPhone: text("client_phone"),
+projectAddress: text("project_address"),
+
+// Dispatch & Travel
+dispatchLocation: text("dispatch_location"),
+distance: integer("distance"),
+
+// Scope Summary (for quick reference)
+scopeSummary: text("scope_summary"),  // Auto-generated plain English summary
+Part 2: Update Closed Won Trigger
+In server/routes.ts, where the project is created on Closed Won (around lines 359-435), expand the createProject call:
+typescriptif (isClosingWon) {
+  const existingProject = await storage.getProjectByLeadId(leadId);
+  if (!existingProject) {
+    // ... existing UPID and Drive folder logic ...
+
+    // Generate scope summary
+    const scopeSummary = generateScopeSummary(lead);
+
+    // Create project with full quote inheritance
+    await storage.createProject({
+      // Existing fields
+      name: `${lead.clientName} - ${lead.projectAddress || 'Project'}`,
+      leadId: leadId,
+      universalProjectId,
+      status: "Scheduling",
+      priority: "Medium",
+      progress: 0,
+      driveFolderId,
+      driveFolderUrl,
+      driveFolderStatus: driveConnected ? "success" : "pending",
+      driveSubfolders,
+
+      // NEW: CPQ Inheritance
+      quotedPrice: lead.value,
+      quotedMargin: lead.grossMarginPercent,
+      quotedAreas: lead.cpqAreas || [],
+      quotedRisks: lead.cpqRisks || {},
+      quotedTravel: lead.cpqTravel || {},
+      quotedServices: lead.cpqServices || {},
+
+      // NEW: Site Readiness
+      siteReadiness: lead.siteReadiness || {},
+
+      // NEW: Client Contact Snapshot
+      clientName: lead.clientName,
+      clientContact: lead.contactName,
+      clientEmail: lead.contactEmail,
+      clientPhone: lead.contactPhone,
+      projectAddress: lead.projectAddress,
+
+      // NEW: Travel Config
+      dispatchLocation: lead.dispatchLocation,
+      distance: lead.distance,
+
+      // NEW: Scope Summary
+      scopeSummary,
+    });
+  }
+}
+Part 3: Create Scope Summary Generator
+Add a helper function that generates a plain-English summary:
+typescriptfunction generateScopeSummary(lead: Lead): string {
+  const areas = lead.cpqAreas || [];
+  if (areas.length === 0) return "No areas configured";
+
+  const totalSqft = areas.reduce((sum, area) => sum + (parseInt(area.squareFeet) || 0), 0);
+  const disciplines = [...new Set(areas.flatMap(a => a.disciplines || []))];
+  const buildingTypes = [...new Set(areas.map(a => getBuildingTypeName(a.buildingType)))];
+
+  const parts = [];
+  
+  // Area summary
+  if (areas.length === 1) {
+    parts.push(`${totalSqft.toLocaleString()} sqft ${buildingTypes[0] || 'building'}`);
+  } else {
+    parts.push(`${areas.length} areas totaling ${totalSqft.toLocaleString()} sqft`);
+  }
+
+  // Disciplines
+  if (disciplines.length > 0) {
+    const disciplineNames = disciplines.map(d => {
+      const map: Record<string, string> = {
+        architecture: 'Architecture',
+        mepf: 'MEP',
+        structure: 'Structure',
+        site: 'Site'
+      };
+      return map[d] || d;
+    });
+    parts.push(disciplineNames.join(', '));
+  }
+
+  // LOD (get most common or highest)
+  const lods = areas.map(a => a.lod).filter(Boolean);
+  if (lods.length > 0) {
+    const maxLod = Math.max(...lods.map(l => parseInt(l) || 200));
+    parts.push(`LOD ${maxLod}`);
+  }
+
+  // Risks
+  const risks = lead.cpqRisks || {};
+  const activeRisks = Object.entries(risks).filter(([_, v]) => v === true).map(([k]) => k);
+  if (activeRisks.length > 0) {
+    parts.push(`Risk factors: ${activeRisks.join(', ')}`);
+  }
+
+  // Travel
+  if (lead.dispatchLocation) {
+    parts.push(`Dispatch from ${lead.dispatchLocation}`);
+    if (lead.distance) {
+      parts.push(`${lead.distance} miles`);
+    }
+  }
+
+  return parts.join(' • ');
+}
+Part 4: Display in Production UI
+In the Production project detail view (wherever projects are displayed), add a "Scope Summary" section that shows:
+tsx{/* Scope Overview Card */}
+<Card>
+  <CardHeader>
+    <CardTitle>Quoted Scope</CardTitle>
+  </CardHeader>
+  <CardContent>
+    {/* Quick Summary */}
+    <p className="text-muted-foreground mb-4">{project.scopeSummary}</p>
+    
+    {/* Quoted Price */}
+    <div className="flex justify-between py-2 border-b">
+      <span>Quoted Price</span>
+      <span className="font-semibold">${project.quotedPrice?.toLocaleString()}</span>
+    </div>
+    
+    {/* Client Contact */}
+    <div className="flex justify-between py-2 border-b">
+      <span>Client Contact</span>
+      <span>{project.clientContact} • {project.clientPhone}</span>
+    </div>
+    
+    {/* Areas */}
+    {project.quotedAreas?.length > 0 && (
+      <div className="mt-4">
+        <h4 className="font-medium mb-2">Areas ({project.quotedAreas.length})</h4>
+        {project.quotedAreas.map((area, i) => (
+          <div key={i} className="text-sm py-1 border-b">
+            {area.name || `Area ${i + 1}`}: {area.squareFeet} sqft • 
+            {getBuildingTypeName(area.buildingType)} • 
+            LOD {area.lod} • 
+            {area.disciplines?.join(', ')}
+          </div>
+        ))}
+      </div>
+    )}
+    
+    {/* Site Readiness */}
+    {project.siteReadiness && Object.keys(project.siteReadiness).length > 0 && (
+      <div className="mt-4">
+        <h4 className="font-medium mb-2">Site Conditions</h4>
+        {Object.entries(project.siteReadiness).map(([key, value]) => (
+          <div key={key} className="text-sm py-1">
+            {formatSiteReadinessLabel(key)}: {String(value)}
+          </div>
+        ))}
+      </div>
+    )}
+  </CardContent>
+</Card>
+Part 5: Run Migration
+After updating the schema, run the database migration to add the new columns:
+bashnpm run db:push
+
+Summary of Changes:
+FileChangeshared/schema.tsAdd 12+ new fields to projects tableserver/routes.tsExpand Closed Won project creationserver/routes.tsAdd generateScopeSummary() helperProduction UIAdd "Quoted Scope" display card
+Result: When a deal closes, Production sees everything: what was quoted, site conditions, client contact, and a plain-English summary. No more going back to the lead to figure out what was sold.

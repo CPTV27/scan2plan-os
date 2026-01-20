@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database (existing - reference only)
+  # db:
+  #   image: postgres:15
+  #   environment:
+  #     POSTGRES_USER: scan2plan
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD}
+  #     POSTGRES_DB: scan2plan
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+
+  # DocuSeal E-Signature (self-hosted)
+  docuseal:
+    image: docuseal/docuseal:latest
+    container_name: scan2plan-docuseal
+    ports:
+      - "3001:3000"
+    environment:
+      - SECRET_KEY_BASE=${DOCUSEAL_SECRET_KEY}
+      - SMTP_ADDRESS=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USERNAME=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+    volumes:
+      - docuseal_data:/data
+    restart: unless-stopped
+
+  # ChromaDB Vector Database
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: scan2plan-chromadb
+    ports:
+      - "8000:8000"
+    volumes:
+      - chromadb_data:/chroma/chroma
+    restart: unless-stopped
+
+  # Mautic Marketing Automation
+  mautic:
+    image: mautic/mautic:latest
+    container_name: scan2plan-mautic
+    ports:
+      - "8080:80"
+    environment:
+      - MAUTIC_DB_HOST=${MAUTIC_DB_HOST:-localhost}
+      - MAUTIC_DB_NAME=${MAUTIC_DB_NAME:-mautic}
+      - MAUTIC_DB_USER=${MAUTIC_DB_USER:-mautic}
+      - MAUTIC_DB_PASSWORD=${MAUTIC_DB_PASSWORD}
+      - MAUTIC_RUN_CRON_JOBS=true
+      - MAUTIC_TRUSTED_PROXIES=["0.0.0.0/0"]
+    volumes:
+      - mautic_data:/var/www/html
+    restart: unless-stopped
+    depends_on:
+      - mautic_db
+
+  # Mautic Database (MySQL)
+  mautic_db:
+    image: mysql:8.0
+    container_name: scan2plan-mautic-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MAUTIC_DB_PASSWORD}
+      - MYSQL_DATABASE=${MAUTIC_DB_NAME:-mautic}
+      - MYSQL_USER=${MAUTIC_DB_USER:-mautic}
+      - MYSQL_PASSWORD=${MAUTIC_DB_PASSWORD}
+    volumes:
+      - mautic_mysql_data:/var/lib/mysql
+    restart: unless-stopped
+
+volumes:
+  docuseal_data:
+  chromadb_data:
+  mautic_data:
+  mautic_mysql_data:

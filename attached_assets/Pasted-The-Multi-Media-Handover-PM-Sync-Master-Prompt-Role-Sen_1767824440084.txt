@@ -1,0 +1,33 @@
+The "Multi-Media Handover & PM Sync" Master Prompt
+Role: Senior Systems Integration & Mobile UX Engineer
+
+Objective: Implement a robust, multi-video upload system for the Field Hub that utilizes native phone storage and provides real-time notifications to Project Management.
+
+1. Native-First Upload Architecture
+Mechanism: Do NOT use an in-browser camera. Use a standard <input type="file" multiple accept="video/*,image/*"> labeled "Add Site Media (Walkthroughs & Details)."
+
+Rationale: This allows technicians to use their native phone camera for 4K stability and high-detail captures, then select them from the gallery for upload.
+
+2. Multi-Video "Evidence Stream"
+Support for Multiple Files: Allow the technician to select and upload multiple videos and photos simultaneously.
+
+Metadata Labels: For each file added, provide a small text field for an "Area Description" (e.g., "Main Lobby," "Chiller Room Detail," "Roof MEP").
+
+Naming Convention: Automatically rename files on upload following this pattern: [UPID]_[Area_Description]_[Timestamp].
+
+3. Resumable & Parallel Uploads (Google Drive)
+Protocol: Implement a resumable upload engine (using the Google Drive API).
+
+Reliability: If the technician loses signal mid-upload, the system must "Pause" and automatically "Resume" once 5G/Wi-Fi is restored.
+
+Destination: All files must be routed to the specific Google Drive project folder: [CLIENT]-[PROJ]-[DATE].
+
+4. Automated PM Notifications & Status
+Google Chat Integration: Once all selected files hit 100% upload, trigger a notification to the project's Google Chat Space: "🚀 DATA HANDOVER COMPLETE: [Tech Name] has uploaded [Number] files for [UPID]. [Link to Drive Folder]"
+
+Kanban Workflow: Automatically move the project status from "Scanning" to "QC / Modeling" in the main OS dashboard once the final handover is confirmed.
+
+5. Technical Resiliency
+Background Tasking: Allow the tech to continue filling out site notes or checklists while the video files are uploading in the background.
+
+Progress Bar: Display a high-visibility progress bar for each file so the tech knows when it is safe to close the app.

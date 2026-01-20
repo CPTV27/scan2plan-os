@@ -1,0 +1,57 @@
+To provide **Replit** with the most current strategic context for the **Scan2Plan OS (CEO Hub)**, I have updated the high-level application summary and functional requirements based on the new data provided, including **BOMA 2024/2025 standards**, **LEED v5 prerequisites**, and the **BIM Core** lifecycle philosophy.
+
+### **Scan2Plan OS: High-Level Application Summary (Updated)**
+
+**The Application Intent**
+Scan2Plan OS is the **"Single Source of Truth"** and centralized **Command Center** for a high-fidelity reality capture and documentation business. It is a **"bottom-of-funnel" tool** designed to manage the critical transition where qualified leads become high-stakes AEC projects requiring extreme precision.
+
+**Ultimate Strategic Goals**
+1.  **Risk Mitigation & Financial Security:** Enforce **operational "Hard Gates"**—specifically a **Retainer Gate**—to ensure payment compliance before mobilizing field crews, mitigating the industry risk where rework and unpaid balances threaten margins.
+2.  **Monetizing Accuracy (The BOMA Mandate):** Provide the audit-proof spatial data required for **BOMA 2024 (Office)** and **BOMA 2025 (Industrial)** audits. This allows clients to monetize previously "free" spaces like balconies and loading docks, typically increasing rentable area by **2% to 5%**.
+3.  **Sustainability Compliance (The LEED v5 Play):** Position the company as the primary data source for **LEED v5 (MRp2)** prerequisites by delivering the high-LOD models and **Bill of Materials (BoM)** necessary to quantify **embodied carbon**.
+4.  **Operational Velocity:** Maintain the **"Ready When You Are"** guarantee of a 1-week response time for scanning through integrated scheduling and a **Staleness Depreciation Engine** that prioritizes active leads.
+5.  **Long-Term Stewardship (BIM Core):** Move beyond "project delivery" to "asset lifecycle management" by adopting a **BIM Core** philosophy—preserving digital building documentation and its **Representation Information** (sensor logs, calibration) indefinitely.
+
+---
+
+### **MISSION_ALIGNMENT.md (Updated for Replit)**
+
+You can provide this distilled list to the **Replit Agent** to ensure all code generation aligns with the business logic.
+
+**1. Primary Application Persona (The Bottom-of-Funnel Tool)**
+*   **Context:** The app is a specialized command center for project execution, not a general-purpose CRM.
+*   **AI Intelligence:** Utilize the **5 AI Modules** (Client, Property, Competitor, Regulatory, Expansion) to enrich leads with MEP complexity scores and regional risk data.
+
+**2. The "Measure of Excellence" Logic (Project Schema Updates)**
+*   **Required Fields:** Every project in the `projects` table must include dropdowns for **Level of Detail (LoD)** and **Level of Accuracy (LoA)**.
+*   **LoD Defaults:** Defaults for historic/complex sites should be **LoD 350+ (HBIM)**.
+*   **BOMA Audit Logic:** Implement a **Sqft Reconciliation Tool** that compares client estimates against actual scanned area with an automated **10% tolerance billing adjustment** trigger.
+
+**3. Operational "Hard Gates" (Enforced Discipline)**
+*   **The Retainer Gate:** Hard-code a block in the `ProductionTracker` to prevent moving a project to the **"Scanning"** stage if `retainerPaid` is false.
+*   **QC Workflow:** Enforce a 3-stage **Quality Control (QC) Gate** (Scanning -> Registration -> Modeling) to ensure every deliverable meets the **±1/2" modeled accuracy** standard.
+
+**4. Unified Nomenclature (Single Source of Truth)**
+*   **Unique Identifier:** Generate a `universalProjectID` for every project: `[Client Code] - [Project Code] - [Date]`.
+*   **Accounting Sync:** This ID must be used across all `field_notes`, `leads`, and `projects` tables to ensure Agata (Accounting) and Kurt (Production) speak the same language.
+
+---
+
+### **Dialogue Initiation: Human in the Loop (Manifest Mode)**
+
+**Current Destination:** 
+[Hypothesized] We are finalizing the **Retainer Gate** in the Production Tracker and the **LoD/LoA schema updates** to bring the app into alignment with the "Measure of Excellence" promise. **Confidence: High.**
+
+**The Immediate Problem:**
+[Observed] While the `retainerPaid` field exists, it is not currently a "Hard Gate." Furthermore, the **CPQ tool** needs a nicely formatted **PDF export button** to replace the manual QuickBooks estimate process and feed directly into **PandaDoc**.
+
+**Current Decision Class:**
+[Observed] **Class II: Adjusting logic or provisional rewiring (Medium risk)**. We are modifying the `ProductionTracker` state logic and adding a new export feature to the CPQ.
+
+**Question for the Human in the Loop:**
+Would you like to start by **enforcing the Retainer Gate** in the UI (blocking the Scanning column) or should we first have Replit implement the **formatted PDF export** from the CPQ to accelerate your proposal workflow?
+
+***
+
+**Analogy for Understanding:**
+Think of the Scan2Plan OS as the **"Surgical Operating System"** for a high-end medical facility. The scanners are the MRI machines, the modelers are the surgeons, but this OS is the **mandatory safety checklist**. Just as a surgeon cannot start an incision without a confirmed patient ID and blood type, Scan2Plan OS ensures no crew goes into the field without a **confirmed Retainer (Hard Gate)** and a **standardized surgical plan (LoD/LoA)**.

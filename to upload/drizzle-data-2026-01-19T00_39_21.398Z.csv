@@ -1,0 +1,462 @@
+"id","name","slug","category","content","description","version","is_default","is_active","sort_order","variables","created_at","updated_at","created_by"
+"1","Cover Page","cover-page","intro","# Scan2Plan Proposal
+
+## {{project_name}}
+
+**Prepared for:** {{client_name}}
+
+**Date:** {{quote_date}}
+
+**Valid Until:** {{valid_until}}
+
+---
+
+*Professional 3D Scanning & BIM Modeling Services*
+
+![Scan2Plan Logo](/logo.png)
+
+---
+
+**Scan2Plan**
+Brooklyn, NY
+www.scan2plan.com
+",,"1","true","true","1","[""client_name"",""project_name"",""quote_date"",""valid_until""]","""2026-01-14T02:10:09.540Z""","""2026-01-14T02:10:09.540Z""",
+"2","Executive Summary","executive-summary","intro","## Executive Summary
+
+Thank you for considering Scan2Plan for your **{{project_name}}** project located at **{{project_address}}**.
+
+We are pleased to provide this proposal for professional 3D laser scanning and BIM modeling services. Our team combines cutting-edge technology with deep industry expertise to deliver accurate, reliable as-built documentation.
+
+### Why Scan2Plan?
+
+- **Accuracy Guaranteed**: ±1/8"" precision across all deliverables
+- **Fast Turnaround**: Industry-leading delivery times
+- **Full-Service**: From field scanning to final BIM model
+- **Quality Assured**: ISO-certified processes
+
+We look forward to partnering with {{client_name}} on this project.
+",,"1","true","true","2","[""project_name"",""client_name"",""project_address""]","""2026-01-14T02:10:09.540Z""","""2026-01-14T02:10:09.540Z""",
+"3","About Scan2Plan","about-scan2plan","company","## About Scan2Plan
+
+**Scan2Plan** is a leading provider of 3D laser scanning and BIM modeling services, serving architects, engineers, contractors, and building owners across the Northeast.
+
+### Our Expertise
+
+- **3D Laser Scanning**: High-definition point cloud capture
+- **BIM Modeling**: LOD 200-400 Revit models
+- **CAD Conversion**: 2D floor plans and elevations
+- **Virtual Tours**: Matterport 3D walkthroughs
+- **As-Built Documentation**: Complete building documentation
+
+### Our Clients
+
+We proudly serve industry leaders including:
+- Top architecture firms
+- Major general contractors
+- Property management companies
+- Educational institutions
+- Healthcare facilities
+
+### Quality Commitment
+
+All projects are delivered with our quality guarantee. Our ISO-certified workflow ensures consistency, accuracy, and reliability on every engagement.
+",,"1","true","true","3","[]","""2026-01-14T02:10:09.540Z""","""2026-01-14T02:10:09.540Z""",
+"4","Scope of Work","scope-of-work","scope","## Scope of Work
+
+### Project Location
+**{{project_address}}**
+
+### Areas Included
+
+{{areas_table}}
+
+### Field Work
+
+Our certified technicians will perform comprehensive 3D laser scanning of all areas specified above. The scanning process includes:
+
+1. **Site Preparation**: Coordination with facility contacts
+2. **Scanning**: Complete coverage of all specified areas
+3. **Field Notes**: Documentation of conditions and observations
+4. **Quality Check**: On-site verification of data capture
+
+### Deliverables
+
+Upon completion of modeling, you will receive:
+
+- Revit model at specified LOD levels
+- Point cloud files (RCP/RCS format)
+- PDF exports of floor plans and elevations
+- Project coordination support
+",,"1","true","true","4","[""project_name"",""project_address"",""areas_table""]","""2026-01-14T02:10:09.540Z""","""2026-01-14T02:10:09.540Z""",
+"5","Deliverables Detail","deliverables-detail","scope","## Deliverables
+
+### Revit BIM Model
+
+Your Revit model will include:
+
+- **Architecture**: Walls, doors, windows, ceilings, stairs, railings
+- **MEP/F**: Major mechanical equipment, ductwork, piping, fixtures
+- **Structural**: Columns, beams, floor/roof structure
+
+### LOD Definitions
+
+| LOD | Description |
+|-----|-------------|
+| LOD 200 | Generic system representations, approximate geometry |
+| LOD 300 | Specific system assemblies, accurate geometry and location |
+| LOD 350 | LOD 300 plus interfaces and connections |
+| LOD 400 | Fabrication-ready, shop drawing level detail |
+
+### File Formats
+
+- Revit (.rvt) - Native format
+- Point Cloud (.rcp/.rcs) - Compressed laser scan data
+- DWG (.dwg) - AutoCAD format
+- PDF - Print-ready documentation
+",,"1","true","true","5","[]","""2026-01-14T02:10:09.540Z""","""2026-01-14T02:10:09.540Z""",
+"6","Service Deliverables","service-deliverables","pricing","## What's Included
+
+**End-to-End Project Management and Customer Service**
+
+Our team provides dedicated project management from kick-off through delivery, ensuring clear communication and timely updates throughout the engagement.
+
+---
+
+### LiDAR Scanning
+A certified scanning technician will capture the {{scope}} using state-of-the-art 3D laser scanning equipment. Our technicians are trained to efficiently capture comprehensive data while minimizing disruption to your operations.
+
+### Matterport Scanning
+A scanning technician will capture the {{matterport_scope}} using Matterport Pro2 cameras, creating immersive 3D virtual tours and dollhouse views of your space.
+
+### Point Cloud Registration
+Point cloud data captured on-site will be registered, cleaned, and reviewed for quality assurance. This process ensures seamless alignment of all scan positions and removes noise or artifacts from the data.
+
+### BIM Modeling
+Your deliverable will be modeled in your preferred software (Revit, ArchiCAD, Rhino, SketchUp, etc.) to the specified Level of Detail. Our modeling team follows industry-standard BIM practices and your template requirements.
+
+### CAD Drafting
+CAD sheets will be prepared according to your standards, including floor plans, reflected ceiling plans, elevations, and sections as specified in your scope.
+
+### QA/QC
+The entire project is redundantly reviewed and checked by our QC team and senior engineering staff. Multiple quality gates ensure accuracy, completeness, and adherence to your deliverable specifications.
+",,"1","true","true","6","[""scope"",""matterport_scope""]","""2026-01-14T02:10:09.540Z""","""2026-01-14T02:10:09.540Z""",
+"7","Pricing","pricing","pricing","## Investment
+
+### Pricing Breakdown
+
+{{line_items_table}}
+
+---
+
+### **Total: {{total_price}}**
+
+*Prices are valid for 30 days from proposal date.*
+
+### What's Included
+
+- All field scanning labor and equipment
+- BIM modeling to specified LOD levels
+- One round of revisions
+- Project management and coordination
+- Electronic file delivery
+",,"1","true","true","7","[""line_items_table"",""total_price""]","""2026-01-14T02:10:09.540Z""","""2026-01-14T02:10:09.540Z""",
+"8","Timeline","timeline","scope","## Timeline
+
+### Estimated Project Duration: {{timeline}}
+
+| Phase | Duration |
+|-------|----------|
+| Scheduling & Coordination | 1-2 days |
+| Field Scanning | 1-3 days |
+| Data Processing | 2-3 days |
+| BIM Modeling | 1-3 weeks |
+| Quality Review | 2-3 days |
+| Delivery & Revisions | As needed |
+
+*Timeline begins upon receipt of signed proposal and retainer payment.*
+
+### Scheduling Flexibility
+
+We can often accommodate rush timelines for an additional fee. Please contact us to discuss expedited options if needed.
+",,"1","true","true","8","[""timeline""]","""2026-01-14T02:10:09.540Z""","""2026-01-14T02:10:09.540Z""",
+"9","Payment Terms - Owner","payment-terms-owner","terms","## Payment Terms
+
+### Pricing Basis
+
+The price estimate is based on a square footage estimate. The total cost of the project will be determined by the actual square footage scanned and modeled. We use the **BOMA 2024 Gross Areas Standard**, and will send a square footage audit approximately one week after scan completion.
+
+### Payment Schedule
+
+- **50% of the estimated cost** will be due at the time of the client engaging the Services.
+- The first invoice will be for half of the estimated cost.
+- The second invoice, due upon delivery, will be for the outstanding balance based on the total square footage scanned and modeled.
+
+### Accepted Forms of Payment
+
+- **ACH** (Preferred Method)
+- **Check** - Please mail check to Scan2Plan, 188 1st St., Troy, NY 12180
+- **Credit Card** (additional 3% fee) - Email accounting@scan2plan.io to request this option
+",,"1","true","true","9","[]","""2026-01-14T02:10:09.540Z""","""2026-01-14T02:10:09.540Z""",
+"10","Payment Terms - Partner","payment-terms-partner","terms","## Payment Terms
+
+### Pricing Basis
+
+The price estimate is based on a square footage estimate. The total cost of the project will be determined by the actual square footage scanned and modeled. We use the **BOMA 2024 Gross Areas Standard**, and will send a square footage audit approximately one week after scan completion.
+
+### Payment Schedule
+
+- **50% of the estimated cost** will be due at the time of the client (""Client"") engaging the Services.
+- The first invoice will be for half of the estimated cost.
+- The second invoice will be for the outstanding balance based on the total square footage scanned and modeled.
+
+### Accepted Forms of Payment
+
+- **ACH** (Preferred Method)
+- **Check** - Please mail check to Scan2Plan, 188 1st St., Troy, NY 12180
+- **Credit Card** (additional 3% fee) - Email accounting@scan2plan.io to request this option
+",,"1","false","true","9","[]","""2026-01-14T02:10:09.540Z""","""2026-01-14T02:10:09.540Z""",
+"11","Payment Terms - Net 30","payment-terms-net30","terms","## Payment Terms
+
+### Net 30
+
+Net 30 - upon delivery.
+
+### Pricing Basis
+
+The price estimate is based on a square footage estimate. The total cost of the project will be determined by the actual square footage scanned and modeled. We use the **BOMA 2024 Gross Areas Standard**, and will send a square footage audit approximately one week after scan completion.
+
+**Net 30 Projects carry a 5% service fee.**
+
+### Accepted Forms of Payment
+
+- **ACH** (Preferred Method)
+- **Check** - Please mail check to Scan2Plan, 188 1st St., Troy, NY 12180
+- **Credit Card** (additional 3% fee) - Email accounting@scan2plan.io to request this option
+",,"1","false","true","9","[]","""2026-01-14T02:10:09.540Z""","""2026-01-14T02:10:09.540Z""",
+"12","Payment Terms - Net 60","payment-terms-net60","terms","## Payment Terms
+
+### Net 60
+
+Net 60 - upon delivery.
+
+### Pricing Basis
+
+The price estimate is based on a square footage estimate. The total cost of the project will be determined by the actual square footage scanned and modeled. We use the **BOMA 2024 Gross Areas Standard**, and will send a square footage audit approximately one week after scan completion.
+
+**Net 60 Projects carry a 10% service fee.**
+
+### Accepted Forms of Payment
+
+- **ACH** (Preferred Method)
+- **Check** - Please mail check to Scan2Plan, 188 1st St., Troy, NY 12180
+- **Credit Card** (additional 3% fee) - Email accounting@scan2plan.io to request this option
+",,"1","false","true","9","[]","""2026-01-14T02:10:09.540Z""","""2026-01-14T02:10:09.540Z""",
+"13","Payment Terms - Net 90","payment-terms-net90","terms","## Payment Terms
+
+### Net 90
+
+Net 90 - upon delivery.
+
+### Pricing Basis
+
+The price estimate is based on a square footage estimate. The total cost of the project will be determined by the actual square footage scanned and modeled. We use the **BOMA 2024 Gross Areas Standard**, and will send a square footage audit approximately one week after scan completion.
+
+**Net 90 Projects carry a 15% service fee.**
+
+### Accepted Forms of Payment
+
+- **ACH** (Preferred Method)
+- **Check** - Please mail check to Scan2Plan, 188 1st St., Troy, NY 12180
+- **Credit Card** (additional 3% fee) - Email accounting@scan2plan.io to request this option
+",,"1","false","true","9","[]","""2026-01-14T02:10:09.540Z""","""2026-01-14T02:10:09.540Z""",
+"14","General Terms","general-terms","terms","## Terms & Conditions
+
+### Revisions
+
+- One round of revisions is included in the base price
+- Additional revisions billed at standard hourly rates
+- Major scope changes require a change order
+
+### Cancellation
+
+- Cancellation before field work: Full refund less 10% administrative fee
+- Cancellation after field work: Field work charges apply
+- Cancellation during modeling: Pro-rated charges apply
+
+### Intellectual Property
+
+- All deliverables become client property upon final payment
+- Scan2Plan retains right to use project for portfolio/marketing (anonymized)
+",,"1","true","true","10","[]","""2026-01-14T02:10:09.540Z""","""2026-01-14T02:10:09.540Z""",
+"15","Insurance & Liability","insurance-liability","legal","## Insurance & Liability
+
+### Coverage
+
+Scan2Plan maintains comprehensive insurance coverage:
+
+- **General Liability**: $2,000,000 per occurrence
+- **Professional Liability (E&O)**: $1,000,000 per claim
+- **Workers Compensation**: As required by law
+- **Auto Liability**: $1,000,000 combined single limit
+
+### Certificates
+
+Insurance certificates available upon request. Additional insured endorsements available.
+
+### Limitation of Liability
+
+Scan2Plan's liability is limited to the contract value. We are not responsible for:
+
+- Decisions made based on deliverables
+- Consequential or incidental damages
+- Delays due to site access issues
+- Third-party claims
+",,"1","true","true","10","[]","""2026-01-14T02:10:09.540Z""","""2026-01-14T02:10:09.540Z""",
+"16","Terms & Conditions","terms-conditions","legal","## Scan2Plan Terms & Conditions
+
+### Responsibilities of Scan2Plan
+
+Scan2Plan (referred to as ""S2P"") will assign a dedicated point of contact to each project. This designated representative will be consistently accessible to the client (""Client""). S2P retains the prerogative to modify the point of contact, with advance notice provided to the Client.
+
+---
+
+### Responsibilities of the Client
+
+1. **Compensation**: The Client is obligated to compensate S2P in accordance with the payment terms outlined in the Proposal.
+
+2. **Designation of Representative**: The Client may appoint an authorized representative with the capacity to act on its behalf. This representative may remain in consistent and prompt communication with S2P.
+
+3. **Cooperation with S2P**: The Client is required to collaborate with S2P by:
+   - Providing comprehensive information about the conditions and requisites of the engaged project (""the Project"")
+   - Responding to S2P's information and approval requests within a reasonable timeframe
+   - Diligently reviewing S2P's work to ensure accuracy and compliance with the Project's requirements. Any issues or concerns shall be promptly communicated to S2P
+   - Facilitating suitable coordination for on-site Project visits and other relevant matters
+
+4. **Access for Scanning Technician**: During the designated scanning period, the Scanning Technician necessitates unrestricted access to all relevant spaces, including rooms, floors, roof, closets, and more.
+
+5. **Client Preparation and Shoot Conditions**: The Client shall ensure thorough preparation for the shoot, including:
+   - Adequate lighting and tidiness in shoot areas
+   - Removal of clutter and excess furniture, ensuring well-lit and tidy spaces
+   - Ensuring clear line of sight for the LiDAR scanners, which require unobstructed views of features to be documented
+   - Acknowledgment that areas with poor visibility due to obstacles may need to be assumed in the documentation
+
+6. **Timeliness and Shoot Readiness**: The Scanning Technician may wait no more than 30 minutes for the Client and shoot area to be ready upon arrival on site. Delays beyond this period may incur a charge of $150.00 per hour or portion thereof.
+
+7. **Access and Rescheduling**: If the Scanning Technician cannot access a required scanning area, the shoot may be rescheduled, and the Client may be subject to a $1,500.00 re-shoot fee.
+
+8. **Cancellation Policy**:
+   - Cancellations made within 48 hours of the scheduled scanning start time may result in a $450.00 cancellation fee, alongside compensation for nonrefundable expenses
+   - Cancellations communicated over 48 hours prior to the scheduled scanning start time may not incur a cancellation fee but may still involve charges for nonrefundable expenses (if applicable)
+
+---
+
+### Non-Solicitation
+
+As a recognition of the substantial effort and resources invested by S2P in cultivating its expertise and training authorized service partners, the Client hereby agrees that throughout its association with S2P, and for a duration of at least two (2) years thereafter, the Client shall refrain, directly or indirectly, on behalf of itself or any other entity, from:
+
+1. Initiating contact, solicitation, disruption, or any attempt to allure customers or potential customers away from S2P or its affiliated entities.
+
+2. Inducing or endeavoring to induce any employee of S2P or its affiliated entities to terminate their employment, or engaging in any activity that could disrupt such employment relationships.
+
+3. Encouraging or attempting to encourage any consultant or contractor currently engaged with S2P or its affiliated entities to discontinue their collaboration, or engaging in any conduct that may disrupt such working relationships.
+
+---
+
+### Property Rights
+
+1. The Client acknowledges that these General Terms and Conditions, the Proposal, and any other agreement or disclosure of Confidential Information shall not be interpreted as conferring any license or right to the Client or its Affiliates concerning any of the disclosed Confidential Information.
+
+2. With the exception of stipulations stated here, any work-product produced by S2P during the execution of the Services will continue to be the sole property of S2P. S2P retains the authority to charge any potential user, apart from the client, for utilizing such work-product or the final product mentioned below.
+
+3. The final product slated for delivery to the Client will become the property of the Client upon full payment for the Services.
+
+---
+
+### Limitation of Liability
+
+1. The Services, including those arranged by S2P from third-party providers on behalf of the Client, are provided without any form of warranty, whether explicit or implied. There is no assurance that these Services may fulfill the Client's requirements or expectations, or that they may be effective, accurate, or reliable.
+
+2. All work-product produced by S2P during the provision of the Services is intended solely for the Client's use. S2P assumes no responsibility for the use of such work-product by any other individual or entity.
+
+3. Topographic services are exclusively provided for design purposes. The documentation delivered is conceptual and not intended as a land survey.
+
+4. To the fullest extent permitted by applicable law, neither S2P nor its Affiliates shall be held liable for:
+   - Indirect, incidental, punitive, special, consequential, or exemplary damages, or any form of loss arising from the Client's use of the Services, or from content, information, materials, or products made available through the Services
+   - Damages exceeding the actual payment made by the Client for the Services
+   - The provision or omission of BIM models, construction documents, or environmental, electrical, mechanical, or structural engineering services
+   - Delays or circumstances beyond the reasonable control of S2P or its Affiliates
+   - Inaccurate information supplied by the Client or reliable sources
+   - Project site conditions not communicated to S2P or its Affiliates
+   - Presence of hazardous materials or toxic substances at the Project site
+   - Specification of equipment or products for purposes consistent with the manufacturer's published literature
+   - Decisions made by others, encompassing equipment and materials
+   - Construction means, methods, techniques, sequences, or procedures
+   - Adherence to condition investigation or construction safety programs
+   - Timeliness or quality of contractor performance, or failure of any contractor to adhere to the Project's construction documents
+   - Actions or inactions of others, including consultants, utility companies, and governmental agencies
+
+---
+
+### Warranties Regarding Drawings, Specifications, and Documents
+
+S2P affirms and guarantees that the drawings, specifications, surveys, reports, recommendations, and other documents crafted for the client and/or owner as part of its services will be suitably comprehensive for their intended purposes, with the exception of any inadequacies attributable to imprecise survey control or data provided by the client, owner, or third parties on their behalf.
+
+S2P does not extend any assurances or warranties concerning such survey control or data. The client and/or owner acknowledges that S2P bears no responsibility for inaccuracies in said survey control or data.
+
+Unless S2P possesses verifiable knowledge of substantial inconsistencies, discrepancies, or omissions in the survey control or data, S2P is entitled to rely on the accuracy of the survey control or data provided by the client, owner, or third parties acting on their behalf. S2P reliance on such information shall not breach the established standard of care for S2P.
+
+These terms and conditions, as well as any other agreement pertaining to S2P's services, do not impose any obligation on S2P to conduct inquiries or investigations into the accuracy of the survey control or data. This Agreement and any associated documents, reports, opinions, or otherwise, do not include or imply any other representation, express or implied, nor any warranty or guarantee.
+
+---
+
+### Indemnification
+
+1. The Client undertakes to indemnify and hold harmless S2P and its Affiliates from any and all costs, losses, liabilities, expenses (including reasonable attorney fees), judgments, fines, and settlement payments actually and reasonably incurred in relation to third-party claims against S2P (collectively referred to as ""Losses"") arising from:
+   - Any action or omission by S2P or on its behalf within the scope of its duties under these General Terms and Conditions, the Proposal, or any other agreement with the Client, except when:
+     - The action or omission amounts to negligence, willful misconduct, or breach of fiduciary duty. In such cases, S2P may not be entitled to indemnification, or
+     - The Losses are covered by insurance.
+
+2. Indemnification also extends to any action or omission involving negligence, willful misconduct, or breach of fiduciary duty by the Client or one of its Affiliates in connection with these General Terms and Conditions, the Proposal, or any other agreement with S2P.
+
+---
+
+### Governing Law
+
+1. These General Terms and Conditions, along with the Proposal and any transactions envisaged by them, shall be subject to governance by, interpretation and construction in accordance with the laws of the State of New York. This application may be without regard to the choice-of-law principles of the state.
+
+2. Any legal or equitable action seeking relief arising from or concerning these General Terms and Conditions, the Proposal, and any transactions envisaged by them shall exclusively be brought in the New York County Supreme Court or the US District Court for the Northern District of New York situated in Albany, New York.
+
+---
+
+### Modification of Terms and Conditions
+
+S2P retains the right to modify these General Terms and Conditions periodically. As revisions come into effect, the Client acknowledges that continued utilization of S2P's services may signify consent to adhere to these revised terms upon receipt from S2P.
+",,"1","true","true","11","[]","""2026-01-14T02:10:09.540Z""","""2026-01-14T02:10:09.540Z""",
+"17","Signature Block","signature-block","legal","## Acceptance
+
+By signing below, {{client_name}} agrees to the scope, pricing, and terms outlined in this proposal.
+
+---
+
+**Client Signature:** _________________________
+
+**Printed Name:** _________________________
+
+**Title:** _________________________
+
+**Date:** _________________________
+
+---
+
+**Scan2Plan Authorization:**
+
+**Signature:** _________________________
+
+**Printed Name:** _________________________
+
+**Date:** {{quote_date}}
+
+---
+
+*Please sign and return this proposal to proceed. Thank you for your business!*
+",,"1","true","true","11","[""client_name"",""quote_date""]","""2026-01-14T02:10:09.540Z""","""2026-01-14T02:10:09.540Z""",

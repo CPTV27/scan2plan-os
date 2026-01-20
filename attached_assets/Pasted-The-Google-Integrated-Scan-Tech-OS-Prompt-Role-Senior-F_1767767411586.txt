@@ -1,0 +1,47 @@
+The "Google Integrated Scan Tech OS" Prompt
+Role: Senior Full-Stack Engineer & Google Cloud Architect Objective: Integrate Google Workspace and Cloud APIs to automate project infrastructure, logistics, and site intelligence.
+
+1. Automated Project Infrastructure (Drive API)
+The Trigger: When a Lead status changes to "Closed Won" and the Universal Project ID is generated.
+
+The Mission: * Automatically create a parent folder in Google Drive named [Universal Project ID].
+
+Inside that folder, create four standardized subfolders: 01_Field_Capture, 02_BIM_Production, 03_Accounting_Financials, and 04_Client_Final_Deliverables.
+
+Store the folder_id in the projects table.
+
+UI: Display a "Folder" icon in the Project Dashboard that deep-links directly to this Drive location.
+
+2. Travel-Aware Scheduling (Calendar + Routes API)
+The Logic: Create a "Smart Schedule" function for the Scan Tech module.
+
+The Calculation: Use the Routes API to calculate the travel time from the scantec_home_address to the project_address.
+
+The Action: Use the Calendar API to create a Google Calendar event.
+
+Event A: "Transit to [Project ID]" (using the calculated travel time).
+
+Event B: "Scan Mission: [Project ID]" (using the duration from the CPQ estimate).
+
+The Gate: If the total travel + scan time exceeds the tech's 8-hour shift, block the schedule and notify the user to split the mission.
+
+3. Site Reality Check (Vertex AI Grounding)
+The Mission: Before a project moves to the "Scanning" column, run a "Site Reality Audit."
+
+The Logic: Pass the project_address and your current scoping_notes to Vertex AI with Google Maps Grounding.
+
+The Check: Have the AI compare your notes (e.g., "1-story warehouse") against Google's photorealistic 3D mesh data.
+
+The Alert: If the AI detects a mismatch (e.g., "Building appears to be a 4-story industrial complex"), flag the deal with a "Scoping Risk" warning.
+
+4. Document Intelligence (Document AI)
+The Feature: Add an "Upload RFQ/Floorplan" button to the Sales Module.
+
+The Logic: Use Google Document AI to parse uploaded PDF blueprints or client documents.
+
+The Integration: Automatically extract the "Client Estimated Square Footage" and populate the baseline_sqft field to ensure the Square Foot Audit is initialized with verified data.
+
+5. Technical Requirements
+Security: Use Service Account credentials stored in Replit Secrets for backend-to-backend calls (Drive/DocAI).
+
+OAuth: Use the existing QuickBooks OAuth flow as a template to ensure the user's Google Workspace permissions are correctly scoped.

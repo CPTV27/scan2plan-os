@@ -1,0 +1,95 @@
+Role: Senior Growth Engineer & Product Developer Objective: Automate the generation of anonymized social media content based on operational triggers, including notifications for the SDR.
+
+1. DATABASE: CONTENT SCHEMA (shared/schema.ts)
+
+Action: Create marketing_posts table.
+
+Code:
+
+TypeScript
+
+export const marketingPosts = pgTable("marketing_posts", {
+  id: serial("id").primaryKey(),
+  caseStudyId: integer("case_study_id").references(() => caseStudies.id),
+  platform: text("platform").default("linkedin"),
+  category: text("category"), // "stat_bomb", "process_tease"
+  content: text("content"), // The formatted text body
+  suggestedVisual: text("suggested_visual"), // "Bar Chart"
+  status: text("status").default("draft"), // "draft", "posted"
+  createdAt: timestamp("created_at").defaultNow(),
+});
+2. LIB: THE ANONYMIZED COPYWRITER (server/lib/contentGenerator.ts)
+
+Logic: Generates posts using generic types (e.g., "Commercial Renovation") instead of client names. Appends the mandatory CTA.
+
+Code:
+
+TypeScript
+
+export function generateSocialContent(project: any, variance: number, savings: number) {
+  const variancePct = (variance * 100).toFixed(1);
+  const savingsStr = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumSignificantDigits: 3 }).format(savings);
+
+  // ANONYMIZATION LOGIC
+  // Use generic project type or default to "Commercial Project"
+  const type = project.lead.projectType || "Commercial Renovation"; 
+  const city = project.lead.city || "Memphis"; 
+
+  const CTA = "\n\n👉 DM 'SHIELD' for a free Variance Risk Assessment on your next project.";
+
+  return [
+    {
+      category: "stat_bomb",
+      suggestedVisual: "Bar Chart: Est vs Actual SQFT (Red Bar)",
+      content: `🚨 **Audit Alert: ${variancePct}% Variance Detected**\n\nWe just audited a ${type} in ${city}.\n\n📉 **The Data:**\n- Drawings: ${project.lead.estimatedSqft} sqft\n- Reality: ${project.sqftActual} sqft\n- Variance: +${variancePct}%\n\nWithout the Scan2Plan Overrun Shield, this owner was exposed to approx ${savingsStr} in change order risk.\n\nDon't bid on 1980s PDFs. Bid on the Truth.${CTA}\n\n#Construction #RiskManagement #OverrunShield`
+    },
+    {
+      category: "process_tease",
+      suggestedVisual: "Screenshot of S2P Audit Dashboard (Red Badge)",
+      content: `This is what a "Hard Gate" looks like.\n\nAt Scan2Plan, we don't deliver the model until the math works. Today, our system flagged a ${variancePct}% variance on a ${type}.\n\nMost firms would just send the file. We stopped the line, flagged the risk, and saved the client ${savingsStr}.\n\nGet the Overrun Shield before you break ground.${CTA}\n\n#VDC #BIM #ProjectControls`
+    }
+  ];
+}
+3. SERVICE: THE NOTIFICATION LOOP (server/services/marketingLoop.ts)
+
+Action: Trigger content generation AND notify the SDR.
+
+Code:
+
+TypeScript
+
+// Imports: db, marketingPosts, notifications, generateSocialContent
+
+// Inside triggerTruthLoop(projectId, variance, actualSqft)...
+// ... after creating draft Case Study ...
+
+// 1. Generate Content
+const posts = generateSocialContent(project, variance, savingsAmount);
+
+// 2. Save to DB
+for (const post of posts) {
+  await db.insert(marketingPosts).values({
+    caseStudyId: newCaseStudy.id,
+    category: post.category,
+    content: post.content,
+    suggestedVisual: post.suggestedVisual
+  });
+}
+
+// 3. Notify SDR (Owner or Admin)
+// Find the lead owner or default to an admin ID
+const ownerId = project.lead.ownerId || 1; // Default to ID 1 if null
+
+await db.insert(notifications).values({
+  userId: ownerId,
+  type: "content_ready",
+  leadId: project.lead.id,
+  message: `🔥 Truth Loop: New "Overrun Shield" content generated for ${project.lead.projectType || 'Project'}. Ready to post.`
+});
+4. UI: THE CONTENT QUEUE (client/src/pages/Marketing.tsx)
+
+Visual: New Tab "Content Queue".
+
+Layout: Cards showing the generated text.
+
+Actions: "Copy to Clipboard" and "Mark Posted".

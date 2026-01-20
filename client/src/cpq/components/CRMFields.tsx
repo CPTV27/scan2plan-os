@@ -1,0 +1,279 @@
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { Card } from "@/components/ui/card";
+import { ExternalLink } from "lucide-react";
+
+interface CRMFieldsProps {
+  data: {
+    assumedGrossMargin: string;
+    caveatsProfitability: string;
+    tierAScanningCost: string;
+    tierAScanningCostOther: string;
+    tierAModelingCost: string;
+    tierAMargin: string;
+    source: string;
+    sourceNote: string;
+    assist: string;
+    probabilityOfClosing: string;
+    projectStatus: string;
+    projectStatusOther: string;
+  };
+  onChange: (field: string, value: any) => void;
+}
+
+export default function CRMFields({ data, onChange }: CRMFieldsProps) {
+  return (
+    <div className="space-y-6">
+      {/* Internal Notes */}
+      <Card className="p-4 bg-accent/50">
+        <h3 className="text-lg font-semibold mb-4">Internal Notes</h3>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="assumed-margin" className="text-sm font-medium">
+              Assumed Gross Margin
+            </Label>
+            <Input
+              id="assumed-margin"
+              placeholder="e.g., 30%"
+              value={data.assumedGrossMargin}
+              onChange={(e) => onChange('assumedGrossMargin', e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="caveats-profitability" className="text-sm font-medium">
+              Caveats for Profitability
+            </Label>
+            <Textarea
+              id="caveats-profitability"
+              placeholder="Note any factors that could affect profitability..."
+              value={data.caveatsProfitability}
+              onChange={(e) => onChange('caveatsProfitability', e.target.value)}
+              rows={3}
+            />
+          </div>
+        </div>
+      </Card>
+
+      {/* Tier A Pricing */}
+      <Card className="p-4 bg-accent/50">
+        <h3 className="text-lg font-semibold mb-4">Tier A Pricing (Internal)</h3>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              Tier A - Scanning Cost
+            </Label>
+            <RadioGroup value={data.tierAScanningCost} onValueChange={(val) => onChange('tierAScanningCost', val)}>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="3500" id="tier-scan-3500" />
+                <Label htmlFor="tier-scan-3500" className="cursor-pointer">$3,500</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="7000" id="tier-scan-7000" />
+                <Label htmlFor="tier-scan-7000" className="cursor-pointer">$7,000</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="10500" id="tier-scan-10500" />
+                <Label htmlFor="tier-scan-10500" className="cursor-pointer">$10,500</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="15000" id="tier-scan-15000" />
+                <Label htmlFor="tier-scan-15000" className="cursor-pointer">$15,000</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="18500" id="tier-scan-18500" />
+                <Label htmlFor="tier-scan-18500" className="cursor-pointer">$18,500</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="other" id="tier-scan-other" />
+                <Label htmlFor="tier-scan-other" className="cursor-pointer">Other</Label>
+              </div>
+            </RadioGroup>
+            {data.tierAScanningCost === 'other' && (
+              <Input
+                placeholder="Specify scanning cost"
+                value={data.tierAScanningCostOther}
+                onChange={(e) => onChange('tierAScanningCostOther', e.target.value)}
+                className="mt-2"
+              />
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="tier-modeling-cost" className="text-sm font-medium">
+              Tier A - Modeling Cost
+            </Label>
+            <Input
+              id="tier-modeling-cost"
+              placeholder="Enter modeling cost"
+              value={data.tierAModelingCost}
+              onChange={(e) => onChange('tierAModelingCost', e.target.value)}
+            />
+            <a 
+              href="https://docs.google.com/spreadsheets/d/192MhTytrT01h05V3xOugBXm7dFcxl4ZMxcwuVUCQAuo/edit?usp=sharing"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+            >
+              View Modeling Cost Reference
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="tier-margin" className="text-sm font-medium">
+              Tier A - Margin
+            </Label>
+            <Select value={data.tierAMargin} onValueChange={(val) => onChange('tierAMargin', val)}>
+              <SelectTrigger id="tier-margin">
+                <SelectValue placeholder="Select margin" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2.352">2.352X (1.68 overhead X 1.4 min GM)</SelectItem>
+                <SelectItem value="2.5">2.5X</SelectItem>
+                <SelectItem value="3">3X</SelectItem>
+                <SelectItem value="3.5">3.5X</SelectItem>
+                <SelectItem value="4">4X</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </Card>
+
+      {/* Lead Tracking */}
+      <Card className="p-4 bg-accent/50">
+        <h3 className="text-lg font-semibold mb-4">Lead Tracking</h3>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="source" className="text-sm font-medium">
+              Source
+            </Label>
+            <Select value={data.source} onValueChange={(val) => onChange('source', val)}>
+              <SelectTrigger id="source">
+                <SelectValue placeholder="Select source" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ABM">ABM</SelectItem>
+                <SelectItem value="Cold outreach">Cold outreach</SelectItem>
+                <SelectItem value="Referral - Client">Referral - Client</SelectItem>
+                <SelectItem value="Referral - Partner">Referral - Partner</SelectItem>
+                <SelectItem value="Existing customer">Existing customer</SelectItem>
+                <SelectItem value="CEU">CEU</SelectItem>
+                <SelectItem value="Proof Vault">Proof Vault</SelectItem>
+                <SelectItem value="Spec/Standards">Spec/Standards</SelectItem>
+                <SelectItem value="Podcast">Podcast</SelectItem>
+                <SelectItem value="Site/SEO">Site/SEO</SelectItem>
+                <SelectItem value="Permit trigger">Permit trigger</SelectItem>
+                <SelectItem value="Compliance trigger">Compliance trigger</SelectItem>
+                <SelectItem value="Procurement trigger">Procurement trigger</SelectItem>
+                <SelectItem value="Event/Conference">Event/Conference</SelectItem>
+                <SelectItem value="Social">Social</SelectItem>
+                <SelectItem value="Vendor Onboarding">Vendor Onboarding</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+                <SelectItem value="Unknown">Unknown</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="source-note" className="text-sm font-medium">
+              Source Note
+            </Label>
+            <Textarea
+              id="source-note"
+              placeholder="Additional details about the source..."
+              value={data.sourceNote}
+              onChange={(e) => onChange('sourceNote', e.target.value)}
+              rows={2}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="assist" className="text-sm font-medium">
+              Assist
+            </Label>
+            <Select value={data.assist} onValueChange={(val) => onChange('assist', val)}>
+              <SelectTrigger id="assist">
+                <SelectValue placeholder="Select assist" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ABM">ABM</SelectItem>
+                <SelectItem value="Cold outreach">Cold outreach</SelectItem>
+                <SelectItem value="Referral - Client">Referral - Client</SelectItem>
+                <SelectItem value="Referral - Partner">Referral - Partner</SelectItem>
+                <SelectItem value="Existing customer">Existing customer</SelectItem>
+                <SelectItem value="CEU">CEU</SelectItem>
+                <SelectItem value="Proof Vault">Proof Vault</SelectItem>
+                <SelectItem value="Spec/Standards">Spec/Standards</SelectItem>
+                <SelectItem value="Podcast">Podcast</SelectItem>
+                <SelectItem value="Site/SEO">Site/SEO</SelectItem>
+                <SelectItem value="Permit trigger">Permit trigger</SelectItem>
+                <SelectItem value="Compliance trigger">Compliance trigger</SelectItem>
+                <SelectItem value="Procurement trigger">Procurement trigger</SelectItem>
+                <SelectItem value="Event/Conference">Event/Conference</SelectItem>
+                <SelectItem value="Social">Social</SelectItem>
+                <SelectItem value="Vendor Onboarding">Vendor Onboarding</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+                <SelectItem value="Unknown">Unknown</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="probability-closing" className="text-sm font-medium">
+              Probability of Closing: {data.probabilityOfClosing || 50}%
+            </Label>
+            <Slider
+              id="probability-closing"
+              min={0}
+              max={100}
+              step={5}
+              value={[parseInt(data.probabilityOfClosing) || 50]}
+              onValueChange={(vals) => onChange('probabilityOfClosing', vals[0].toString())}
+              className="w-full"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              Project Status
+            </Label>
+            <RadioGroup value={data.projectStatus} onValueChange={(val) => onChange('projectStatus', val)}>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="proposal" id="status-proposal" />
+                <Label htmlFor="status-proposal" className="cursor-pointer">Proposal Phase</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="inhand" id="status-inhand" />
+                <Label htmlFor="status-inhand" className="cursor-pointer">In Hand</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="urgent" id="status-urgent" />
+                <Label htmlFor="status-urgent" className="cursor-pointer">Urgent</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="other" id="status-other" />
+                <Label htmlFor="status-other" className="cursor-pointer">Other:</Label>
+              </div>
+            </RadioGroup>
+            {data.projectStatus === 'other' && (
+              <Input
+                placeholder="Specify status"
+                value={data.projectStatusOther}
+                onChange={(e) => onChange('projectStatusOther', e.target.value)}
+                className="mt-2"
+              />
+            )}
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+
+

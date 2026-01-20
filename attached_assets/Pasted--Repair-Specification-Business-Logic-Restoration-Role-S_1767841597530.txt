@@ -1,0 +1,75 @@
+### **Repair Specification: Business Logic Restoration**
+
+**Role:** Senior Lead Engineer  
+**Source A (Gold Standard):** `Scan2Plan CPQ Pricing Logic Technical Documentation`  
+**Source B (Target):** `Scan2Plan OS: Technical Audit and System Architecture Review`  
+
+---
+
+### **REPLIT INSTRUCTION BLOCK: COPY-PASTE TO AI AGENT**
+
+**Task: Restore critical pricing logic in `client/src/features/cpq/pricing.ts`**
+
+Please update the pricing engine logic to match the following three specifications extracted from our gold-standard documentation.
+
+#### **1. Restore Risk Premium Isolation**
+**Issue:** Current logic applies risk percentages to the project total. Our standard requires premiums to multiply **only** the Architecture discipline subtotal.
+**Implementation:**
+*   Isolate `archBaseTotal` before calculation.
+*   Apply **Occupied Building (+15%)**, **Hazardous Conditions (+25%)**, or **No Power/HVAC (+20%)** solely to that subtotal.
+*   **TS Logic to Insert:**
+```typescript
+let archAfterRisk = archBaseTotal;
+if (risks.length > 0) {
+  risks.forEach((risk) => {
+    let riskPercent = 0.15; // Default: occupied
+    if (risk === "hazardous") riskPercent = 0.25;
+    else if (risk === "noPower") riskPercent = 0.20;
+
+    const premium = archBaseTotal * riskPercent;
+    archAfterRisk += premium;
+
+    items.push({
+      label: `Risk Premium - ${risk} (+${Math.round(riskPercent * 100)}% on Architecture)`,
+      value: premium,
+      editable: true,
+    });
+  });
+}
+// Final subtotal merges adjusted Arch with other disciplines
+let runningTotal = archAfterRisk + otherDisciplinesTotal;
+```
+
+#### **2. Restore Brooklyn Tiered Travel Logic**
+**Issue:** The system has lost its tiered dispatch logic for Brooklyn projects.
+**Requirement:** Implement a base fee trigger based on **total project square footage** for the "Brooklyn" dispatch location.
+**Logic Table:**
+*   **Tier C:** (< 10,000 sqft) → **$150 base**.
+*   **Tier B:** (10,000–49,999 sqft) → **$300 base**.
+*   **Tier A:** (≥ 50,000 sqft) → **$0 base**.
+*   **Mileage:** Add **$4.00/mile** for any distance exceeding **20 miles**.
+*   **Standard Dispatch:** Keep the fallback rate at **$3.00/mile** from Troy HQ.
+
+#### **3. Restore Landscape Acreage Conversion**
+**Issue:** Input for Landscape is currently treated as SqFt, but must be treated as **Acres** for correct tiering and then converted for display.
+**Requirement:**
+*   Detect **Building Type 14 (Built Landscape)** and **Building Type 15 (Natural Landscape)**.
+*   Treat the input as `acres` and convert to `sqft` using the constant **43,560**.
+*   Use the per-acre tiered rates (e.g., Built LoD 200: <5ac = $875/ac, 5-20ac = $625/ac).
+*   **TS Logic to Insert:**
+```typescript
+const isLandscape = area.buildingType === "14" || area.buildingType === "15";
+if (isLandscape) {
+  const acres = parseFloat(area.squareFeet) || 0;
+  const sqft = Math.round(acres * 43560);
+  const perAcreRate = getLandscapePerAcreRate(area.buildingType, acres, lod);
+  
+  lineTotal = acres * perAcreRate * scopePortion;
+  areaLabel = `${acres} acres (${sqft.toLocaleString()} sqft)`;
+}
+```
+
+---
+
+**Analogy for the Developer:**  
+This fix is like **correcting a tax form**. Currently, the system is applying a "luxury tax" (Risk Premium) to the taxpayer's **entire net worth** (Grand Total). We need to change the logic so it only applies to their **real estate holdings** (Architecture discipline), ensuring the calculation is targeted and compliant with our specific business bylaws.

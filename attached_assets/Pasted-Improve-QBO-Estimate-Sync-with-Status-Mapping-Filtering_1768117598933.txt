@@ -1,0 +1,273 @@
+Improve QBO Estimate Sync with Status Mapping & Filtering
+The QBO sync brought in all estimates as "Proposal" stage. We need to:
+
+Map QBO estimate status to appropriate deal stages
+Track which leads came from QBO sync
+Add filtering to pipeline view
+Allow bulk stage assignment
+
+Part 1: Add QBO Source Tracking to Leads
+In shared/schema.ts, add to leads table:
+typescript// QBO Sync Tracking
+qboEstimateId: text("qbo_estimate_id"),        // QBO DocNumber or Id
+qboEstimateStatus: text("qbo_estimate_status"), // Pending, Accepted, Closed, etc.
+qboSyncedAt: timestamp("qbo_synced_at"),
+qboHasLinkedInvoice: boolean("qbo_has_linked_invoice").default(false),
+importSource: text("import_source"),            // "qbo_sync", "hubspot", "manual", etc.
+Run migration after schema update.
+Part 2: Update QBO Sync Logic with Status Mapping
+In the QBO sync function (wherever estimates are imported), add status mapping:
+typescriptfunction mapQboStatusToDealStage(estimate: QBOEstimate): string {
+  const status = estimate.TxnStatus;
+  
+  // Check if estimate was converted to invoice
+  if (estimate.LinkedTxn?.some(txn => txn.TxnType === 'Invoice')) {
+    return 'Closed Won';
+  }
+  
+  switch (status) {
+    case 'Accepted':
+      return 'Closed Won';
+    case 'Rejected':
+      return 'Closed Lost';
+    case 'Closed':
+      // Closed without acceptance is usually a loss
+      // But could check if there's a linked invoice
+      return 'Closed Lost';
+    case 'Pending':
+    default:
+      return 'Proposal';
+  }
+}
+
+// When creating lead from QBO estimate:
+const lead = {
+  clientName: estimate.CustomerRef?.name || '',
+  projectName: estimate.DocNumber || `Estimate ${estimate.Id}`,
+  projectAddress: extractAddress(estimate),
+  value: parseFloat(estimate.TotalAmt) || 0,
+  
+  // Stage based on QBO status
+  dealStage: mapQboStatusToDealStage(estimate),
+  
+  // QBO tracking
+  qboEstimateId: estimate.Id,
+  qboEstimateStatus: estimate.TxnStatus,
+  qboSyncedAt: new Date(),
+  qboHasLinkedInvoice: estimate.LinkedTxn?.some(txn => txn.TxnType === 'Invoice') || false,
+  importSource: 'qbo_sync',
+};
+Part 3: Add Re-Sync Endpoint to Update Existing Imports
+typescript// POST /api/qbo/resync-statuses
+app.post("/api/qbo/resync-statuses", isAuthenticated, requireRole("ceo"), async (req, res) => {
+  try {
+    // Get all leads that came from QBO
+    const qboLeads = await storage.getLeadsByImportSource('qbo_sync');
+    
+    let updated = 0;
+    let errors = 0;
+    
+    for (const lead of qboLeads) {
+      if (!lead.qboEstimateId) continue;
+      
+      try {
+        // Fetch current estimate status from QBO
+        const estimate = await qboClient.getEstimate(lead.qboEstimateId);
+        
+        if (estimate) {
+          const newStage = mapQboStatusToDealStage(estimate);
+          const hasInvoice = estimate.LinkedTxn?.some(txn => txn.TxnType === 'Invoice') || false;
+          
+          await storage.updateLead(lead.id, {
+            dealStage: newStage,
+            qboEstimateStatus: estimate.TxnStatus,
+            qboHasLinkedInvoice: hasInvoice,
+          });
+          updated++;
+        }
+      } catch (err) {
+        console.error(`Failed to resync lead ${lead.id}:`, err);
+        errors++;
+      }
+    }
+    
+    res.json({ 
+      success: true, 
+      updated, 
+      errors,
+      message: `Updated ${updated} leads from QBO status` 
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+Part 4: Add Filters to Pipeline/Leads View
+In the leads list component, add filter controls:
+tsxinterface LeadFilters {
+  importSource?: 'all' | 'qbo_sync' | 'hubspot' | 'manual';
+  qboStatus?: 'all' | 'Pending' | 'Accepted' | 'Closed' | 'Rejected';
+  hasLinkedInvoice?: 'all' | 'yes' | 'no';
+  syncedAfter?: Date;
+  syncedBefore?: Date;
+}
+
+const [filters, setFilters] = useState<LeadFilters>({
+  importSource: 'all',
+  qboStatus: 'all',
+});
+
+// Filter UI
+<div className="flex gap-4 mb-4 p-4 bg-muted rounded-lg">
+  <div>
+    <label className="text-sm font-medium">Source</label>
+    <Select 
+      value={filters.importSource} 
+      onValueChange={(v) => setFilters(f => ({ ...f, importSource: v }))}
+    >
+      <SelectTrigger className="w-[150px]">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All Sources</SelectItem>
+        <SelectItem value="qbo_sync">QBO Import</SelectItem>
+        <SelectItem value="hubspot">HubSpot</SelectItem>
+        <SelectItem value="manual">Manual Entry</SelectItem>
+      </SelectContent>
+    </Select>
+  </div>
+
+  {filters.importSource === 'qbo_sync' && (
+    <div>
+      <label className="text-sm font-medium">QBO Status</label>
+      <Select 
+        value={filters.qboStatus} 
+        onValueChange={(v) => setFilters(f => ({ ...f, qboStatus: v }))}
+      >
+        <SelectTrigger className="w-[150px]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Statuses</SelectItem>
+          <SelectItem value="Pending">Pending</SelectItem>
+          <SelectItem value="Accepted">Accepted</SelectItem>
+          <SelectItem value="Closed">Closed</SelectItem>
+          <SelectItem value="Rejected">Rejected</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  )}
+
+  <div>
+    <label className="text-sm font-medium">Has Invoice</label>
+    <Select 
+      value={filters.hasLinkedInvoice} 
+      onValueChange={(v) => setFilters(f => ({ ...f, hasLinkedInvoice: v }))}
+    >
+      <SelectTrigger className="w-[120px]">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">Any</SelectItem>
+        <SelectItem value="yes">Yes</SelectItem>
+        <SelectItem value="no">No</SelectItem>
+      </SelectContent>
+    </Select>
+  </div>
+
+  <Button 
+    variant="outline" 
+    onClick={() => setFilters({ importSource: 'all', qboStatus: 'all' })}
+  >
+    Clear Filters
+  </Button>
+</div>
+Part 5: Add QBO Badge to Lead Cards
+Show the source and QBO status on lead cards:
+tsx{lead.importSource === 'qbo_sync' && (
+  <div className="flex gap-2">
+    <Badge variant="outline" className="text-xs">
+      QBO Import
+    </Badge>
+    {lead.qboEstimateStatus && (
+      <Badge 
+        variant={
+          lead.qboEstimateStatus === 'Accepted' ? 'default' :
+          lead.qboEstimateStatus === 'Rejected' ? 'destructive' :
+          'secondary'
+        }
+        className="text-xs"
+      >
+        {lead.qboEstimateStatus}
+      </Badge>
+    )}
+    {lead.qboHasLinkedInvoice && (
+      <Badge variant="default" className="text-xs bg-green-500">
+        Invoiced
+      </Badge>
+    )}
+  </div>
+)}
+Part 6: Bulk Stage Assignment
+Add ability to select multiple leads and assign stage:
+tsxconst [selectedLeads, setSelectedLeads] = useState<number[]>([]);
+
+const bulkUpdateStage = useMutation({
+  mutationFn: async ({ leadIds, stage }: { leadIds: number[], stage: string }) => {
+    const response = await apiRequest("POST", "/api/leads/bulk-update-stage", {
+      leadIds,
+      dealStage: stage,
+    });
+    return response.json();
+  },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+    setSelectedLeads([]);
+    toast({ title: "Leads updated" });
+  },
+});
+
+// Bulk action bar (shows when leads selected)
+{selectedLeads.length > 0 && (
+  <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-background border rounded-lg shadow-lg p-4 flex items-center gap-4">
+    <span>{selectedLeads.length} selected</span>
+    <Select onValueChange={(stage) => bulkUpdateStage.mutate({ leadIds: selectedLeads, stage })}>
+      <SelectTrigger className="w-[180px]">
+        <SelectValue placeholder="Set Stage..." />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="Lead">Lead</SelectItem>
+        <SelectItem value="Qualified">Qualified</SelectItem>
+        <SelectItem value="Proposal">Proposal</SelectItem>
+        <SelectItem value="Negotiation">Negotiation</SelectItem>
+        <SelectItem value="Closed Won">Closed Won</SelectItem>
+        <SelectItem value="Closed Lost">Closed Lost</SelectItem>
+      </SelectContent>
+    </Select>
+    <Button variant="ghost" onClick={() => setSelectedLeads([])}>
+      Cancel
+    </Button>
+  </div>
+)}
+Part 7: Backend Bulk Update Endpoint
+typescript// POST /api/leads/bulk-update-stage
+app.post("/api/leads/bulk-update-stage", isAuthenticated, requireRole("ceo", "sales"), async (req, res) => {
+  const { leadIds, dealStage } = req.body;
+  
+  if (!Array.isArray(leadIds) || !dealStage) {
+    return res.status(400).json({ error: "leadIds array and dealStage required" });
+  }
+  
+  let updated = 0;
+  for (const id of leadIds) {
+    await storage.updateLead(id, { dealStage });
+    updated++;
+  }
+  
+  res.json({ success: true, updated });
+});
+
+Summary:
+TaskPurposeAdd QBO tracking fieldsKnow where leads came fromMap QBO status → deal stageAuto-assign correct pipeline positionRe-sync endpointUpdate existing imports with current QBO statusFilter UIFind QBO imports quicklySource badgesVisual indicator of lead originBulk stage assignmentQuickly triage ambiguous imports
+Immediate Action:
+After this lands, run the re-sync to update all existing QBO imports with their current status. That should auto-sort most of them into the right stages.

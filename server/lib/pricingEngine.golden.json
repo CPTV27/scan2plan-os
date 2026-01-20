@@ -1,0 +1,113 @@
+{
+  "version": "2.0.0",
+  "generated": "2026-01-09",
+  "description": "Golden expected results for CPQ pricing engine cross-agent validation",
+  "testResults": [
+    {"category": "areaTier", "test": "0-3k tier at 2000 sqft", "input": 2000, "expected": "0-3k"},
+    {"category": "areaTier", "test": "3k-5k tier at 3000 sqft", "input": 3000, "expected": "3k-5k"},
+    {"category": "areaTier", "test": "10k-25k tier at 10000 sqft", "input": 10000, "expected": "10k-25k"},
+    {"category": "areaTier", "test": "50k-75k tier at 50000 sqft", "input": 50000, "expected": "50k-75k"},
+    {"category": "areaTier", "test": "100k+ tier at 100000 sqft", "input": 100000, "expected": "100k+"},
+
+    {"category": "brooklynTier", "test": "Tier C for 5000 sqft", "input": 5000, "expected": "tierC"},
+    {"category": "brooklynTier", "test": "Tier B for 25000 sqft", "input": 25000, "expected": "tierB"},
+    {"category": "brooklynTier", "test": "Tier A for 75000 sqft", "input": 75000, "expected": "tierA"},
+
+    {"category": "brooklynBaseFee", "test": "$150 for Tier C (5000 sqft)", "input": 5000, "expected": 150},
+    {"category": "brooklynBaseFee", "test": "$300 for Tier B (25000 sqft)", "input": 25000, "expected": 300},
+    {"category": "brooklynBaseFee", "test": "$0 for Tier A (75000 sqft)", "input": 75000, "expected": 0},
+
+    {"category": "landscape", "test": "isLandscapeType('14')", "input": "14", "expected": true},
+    {"category": "landscape", "test": "isLandscapeType('15')", "input": "15", "expected": true},
+    {"category": "landscape", "test": "isLandscapeType('1')", "input": "1", "expected": false},
+    {"category": "acresToSqft", "test": "acresToSqft(1)", "input": 1, "expected": 43560},
+    {"category": "acresToSqft", "test": "acresToSqft(2.5)", "input": 2.5, "expected": 108900},
+
+    {"category": "landscapeTier", "test": "< 5 acres = tier 0", "input": 3, "expected": 0},
+    {"category": "landscapeTier", "test": "5-20 acres = tier 1", "input": 10, "expected": 1},
+    {"category": "landscapeTier", "test": "20-50 acres = tier 2", "input": 30, "expected": 2},
+    {"category": "landscapeTier", "test": "50-100 acres = tier 3", "input": 75, "expected": 3},
+    {"category": "landscapeTier", "test": "100+ acres = tier 4", "input": 150, "expected": 4},
+
+    {"category": "landscapeRate", "test": "Built Landscape (14), < 5ac, LoD 300", "input": {"type": "14", "acres": 3, "lod": "300"}, "expected": 1000},
+    {"category": "landscapeRate", "test": "Natural Landscape (15), < 5ac, LoD 300", "input": {"type": "15", "acres": 3, "lod": "300"}, "expected": 750},
+    {"category": "landscapeRate", "test": "Built Landscape, 5-20ac, LoD 350", "input": {"type": "14", "acres": 10, "lod": "350"}, "expected": 1000},
+
+    {"category": "landscapePrice", "test": "5 acres Built Landscape LoD 300", "input": {"type": "14", "acres": 5, "lod": "300"}, "expected": 3750},
+    {"category": "landscapePrice", "test": "3 acres Natural Landscape LoD 200", "input": {"type": "15", "acres": 3, "lod": "200"}, "expected": 1875},
+
+    {"category": "standardTravel", "test": "30 miles = $90", "input": 30, "expected": {"baseCost": 90, "scanDayFee": 0, "totalCost": 90}},
+    {"category": "standardTravel", "test": "80 miles with scan day fee", "input": 80, "expected": {"baseCost": 240, "scanDayFee": 300, "totalCost": 540}},
+    {"category": "standardTravel", "test": "75 miles triggers scan day fee", "input": 75, "expected": {"scanDayFee": 300}},
+    {"category": "standardTravel", "test": "74 miles no scan day fee", "input": 74, "expected": {"scanDayFee": 0}},
+
+    {"category": "brooklynTravel", "test": "Tier C, 15 miles", "input": {"distance": 15, "sqft": 8000}, "expected": {"baseCost": 150, "extraMilesCost": 0, "totalCost": 150}},
+    {"category": "brooklynTravel", "test": "Tier B, 25 miles", "input": {"distance": 25, "sqft": 25000}, "expected": {"baseCost": 300, "extraMilesCost": 20, "totalCost": 320}},
+    {"category": "brooklynTravel", "test": "Tier A, 30 miles", "input": {"distance": 30, "sqft": 75000}, "expected": {"baseCost": 0, "extraMilesCost": 40, "totalCost": 40}},
+
+    {"category": "riskMultiplier", "test": "no risks", "input": [], "expected": 1.0},
+    {"category": "riskMultiplier", "test": "occupied only", "input": ["occupied"], "expected": 1.15},
+    {"category": "riskMultiplier", "test": "hazardous only", "input": ["hazardous"], "expected": 1.25},
+    {"category": "riskMultiplier", "test": "occupied + hazardous", "input": ["occupied", "hazardous"], "expected": 1.40},
+    {"category": "riskMultiplier", "test": "all risks", "input": ["occupied", "hazardous", "no_power"], "expected": 1.60},
+
+    {"category": "riskPremium", "test": "applies to arch", "input": {"discipline": "arch", "base": 1000, "risks": ["occupied"]}, "expected": 1150},
+    {"category": "riskPremium", "test": "does NOT apply to mepf", "input": {"discipline": "mepf", "base": 1000, "risks": ["occupied"]}, "expected": 1000},
+    {"category": "riskPremium", "test": "does NOT apply to structure", "input": {"discipline": "structure", "base": 1000, "risks": ["occupied", "hazardous"]}, "expected": 1000},
+    {"category": "riskPremium", "test": "does NOT apply to site", "input": {"discipline": "site", "base": 1000, "risks": ["occupied"]}, "expected": 1000},
+
+    {"category": "tierA", "test": "49999 sqft = false", "input": 49999, "expected": false},
+    {"category": "tierA", "test": "50000 sqft = true", "input": 50000, "expected": true},
+    {"category": "tierA", "test": "75000 sqft = true", "input": 75000, "expected": true},
+    {"category": "tierAPrice", "test": "scanning + modeling * margin", "input": {"scanning": 10500, "modeling": 18000, "margin": 3}, "expected": 85500},
+
+    {"category": "scopeDiscount", "test": "full = 0%", "input": "full", "expected": 0},
+    {"category": "scopeDiscount", "test": "interior = 35%", "input": "interior", "expected": 0.35},
+    {"category": "scopeDiscount", "test": "exterior = 65%", "input": "exterior", "expected": 0.65},
+    {"category": "applyScopeDiscount", "test": "full scope no discount", "input": {"price": 1000, "scope": "full"}, "expected": 1000},
+    {"category": "applyScopeDiscount", "test": "interior 35% discount", "input": {"price": 1000, "scope": "interior"}, "expected": 650},
+    {"category": "applyScopeDiscount", "test": "exterior 65% discount", "input": {"price": 1000, "scope": "exterior"}, "expected": 350},
+
+    {"category": "paymentTerm", "test": "partner = 0%", "input": "partner", "expected": 0},
+    {"category": "paymentTerm", "test": "net30 = 5%", "input": "net30", "expected": 0.05},
+    {"category": "paymentTerm", "test": "net60 = 10%", "input": "net60", "expected": 0.10},
+    {"category": "paymentTerm", "test": "net90 = 15%", "input": "net90", "expected": 0.15},
+    {"category": "applyPaymentTerm", "test": "net30 adds 5%", "input": {"subtotal": 10000, "terms": "net30"}, "expected": 10500},
+    {"category": "applyPaymentTerm", "test": "net90 adds 15%", "input": {"subtotal": 10000, "terms": "net90"}, "expected": 11500},
+
+    {"category": "elevations", "test": "0 elevations", "input": 0, "expected": 0},
+    {"category": "elevations", "test": "5 elevations", "input": 5, "expected": 125},
+    {"category": "elevations", "test": "10 elevations", "input": 10, "expected": 250},
+    {"category": "elevations", "test": "15 elevations", "input": 15, "expected": 350},
+    {"category": "elevations", "test": "25 elevations", "input": 25, "expected": 525},
+
+    {"category": "modelingCost", "test": "with database rates (arch 5k sqft)", "input": {"sqft": 5000, "discipline": "arch", "lod": "300", "clientRate": 3.50, "upteamRate": 2.00, "scope": 1.0}, "expected": {"clientPrice": 17500, "upteamCost": 10000}},
+    {"category": "modelingCost", "test": "fallback upteam rate", "input": {"sqft": 5000, "discipline": "mepf", "lod": "300", "clientRate": 4.00, "upteamRate": null, "scope": 1.0}, "expected": {"clientPrice": 20000, "upteamCost": 13000}},
+    {"category": "modelingCost", "test": "fallback both rates (arch LoD 300)", "input": {"sqft": 5000, "discipline": "arch", "lod": "300", "clientRate": null, "upteamRate": null, "scope": 1.0}, "expected": {"clientPrice": 16250, "upteamCost": 10562.5}},
+    {"category": "modelingCost", "test": "fallback both rates (mepf LoD 350)", "input": {"sqft": 5000, "discipline": "mepf", "lod": "350", "clientRate": null, "upteamRate": null, "scope": 1.0}, "expected": {"clientPrice": 22500, "upteamCost": 14625}},
+    {"category": "modelingCost", "test": "minimum sqft floor (2000 → 3000)", "input": {"sqft": 2000, "discipline": "arch", "lod": "300", "clientRate": 3.00, "upteamRate": 1.80, "scope": 1.0}, "expected": {"clientPrice": 9000, "upteamCost": 5400, "effectiveSqft": 3000}},
+    {"category": "modelingCost", "test": "interior scope 65%", "input": {"sqft": 10000, "discipline": "arch", "lod": "300", "clientRate": 3.00, "upteamRate": 1.80, "scope": 0.65}, "expected": {"clientPrice": 19500, "upteamCost": 11700}},
+    {"category": "modelingCost", "test": "exterior scope 35%", "input": {"sqft": 10000, "discipline": "arch", "lod": "300", "clientRate": 3.00, "upteamRate": 1.80, "scope": 0.35}, "expected": {"clientPrice": 10500, "upteamCost": 6300}},
+
+    {"category": "actPricing", "test": "ACT 5000 sqft @ $2.00/sqft", "input": 5000, "expected": {"clientPrice": 10000, "upteamCost": 6500}},
+    {"category": "actPricing", "test": "ACT min floor (2000 → 3000)", "input": 2000, "expected": {"clientPrice": 6000, "upteamCost": 3900, "effectiveSqft": 3000}},
+
+    {"category": "matterportPricing", "test": "Matterport 5000 sqft @ $0.10/sqft", "input": 5000, "expected": {"clientPrice": 500, "upteamCost": 325}},
+    {"category": "matterportPricing", "test": "Matterport min floor (2000 → 3000)", "input": 2000, "expected": {"clientPrice": 300, "upteamCost": 195, "effectiveSqft": 3000}},
+
+    {"category": "landscapeAreaPricing", "test": "Built Landscape 5 acres LoD 300", "input": {"type": "14", "acres": 5, "lod": "300"}, "expected": {"clientPrice": 3750, "upteamCost": 2437.5}},
+    {"category": "landscapeAreaPricing", "test": "Natural Landscape 10 acres LoD 350", "input": {"type": "15", "acres": 10, "lod": "350"}, "expected": {"clientPrice": 7500, "upteamCost": 4875}},
+
+    {"category": "profitMargin", "test": "50% gross margin", "input": {"clientPrice": 10000, "upteamCost": 5000}, "expected": {"margin": 5000, "grossMarginPercent": 50}},
+    {"category": "profitMargin", "test": "35% gross margin", "input": {"clientPrice": 10000, "upteamCost": 6500}, "expected": {"margin": 3500, "grossMarginPercent": 35}},
+
+    {"category": "lodMultiplier", "test": "LoD 200 = 1.0", "input": "200", "expected": 1.0},
+    {"category": "lodMultiplier", "test": "LoD 300 = 1.3", "input": "300", "expected": 1.3},
+    {"category": "lodMultiplier", "test": "LoD 350 = 1.5", "input": "350", "expected": 1.5},
+
+    {"category": "defaultBaseRate", "test": "arch = $2.50", "input": "arch", "expected": 2.50},
+    {"category": "defaultBaseRate", "test": "mepf = $3.00", "input": "mepf", "expected": 3.00},
+    {"category": "defaultBaseRate", "test": "structure = $2.00", "input": "structure", "expected": 2.00},
+    {"category": "defaultBaseRate", "test": "site = $1.50", "input": "site", "expected": 1.50}
+  ]
+}

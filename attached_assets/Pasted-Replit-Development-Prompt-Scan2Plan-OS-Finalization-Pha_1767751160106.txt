@@ -1,0 +1,18 @@
+Replit Development Prompt: Scan2Plan OS Finalization Phase
+Objective: Complete the "bottom-of-funnel" command center by fixing visualization bugs, enforcing data integrity, and building the financial stewardship module.
+Constraint: Do NOT enable write-access for Airtable. Maintain AIRTABLE_WRITE_ENABLED = false. Use mock functions for the "Airtable Handoff" button that simulate a 200 OK response without actual data modification.
+1. CPQ Visualization & PDF Automation
+• Fix Display Limit: Debug the CPQ iframe logic that currently limits the project list to six entries. Ensure all active negotiations are visible via a scrollable list or pagination.
+• PDF Export Button: Add a "Generate PDF Estimate" button to the CPQ. This must generate a professionally formatted PDF (mirroring the fields in a standard QuickBooks estimate) to be used as a standalone attachment for PandaDoc proposals, bypassing the current "clunky" CSV export/import workflow.
+2. Data Integrity & Nomenclature Enforcement
+• Universal Project ID: Implement a utility to auto-generate a universalProjectID for every lead that reaches the "Proposal" stage. Format: [Client Code] - [Project Code] - [Date]. This ID must be the primary key shared between the Sales Kanban, CPQ, and future Accounting views.
+• OS-Side Georeferencing: Move all address reformatting and Google-mapping logic to the OS application side. The CPQ should receive a finalized, unique address (including zip code) as a read-only parameter to ensure "Single Source of Truth" identification on legal documents.
+3. Financial Stewardship Module (Agata’s View)
+• AR/AP Dashboard: Create a dedicated "Accounting" user role and view. This page must allow for the manual update of payment statuses (e.g., Retainer Paid, Balance Outstanding, In Collections).
+• Automated Payment Reminders: Build the logic for automated email triggers (using the SendGrid/Gmail integration) for late invoices at 15, 30, and 45-day intervals, including a standard 2% monthly late fee calculation in the notification text.
+• The Retainer Gate: Hard-code a visual "Red Flag" or "Schedule Lock" in the Production Tracker. A project should be blocked from moving into the "Scanning" column unless the retainerPaid flag is true.
+4. Legal & Compliance Integration
+• Jurisdiction disclaimer: Update the proposal generation logic to include a mandatory legal footer: "This project is governed by the laws of Rensselaer County, NY, and any legal proceedings shall be handled within said jurisdiction".
+• Terms & Conditions Link: Ensure every generated PDF and PandaDoc draft includes a functional hyperlink to the live Scan2Plan T&C page covering reshoot and delay fees.
+5. AI Intelligence Prompt Refresh
+• High-Signal Harvesting: Update the background prompts for the Property Intelligence module to specifically look for BOMA 2024 "Phantom Revenue" (unenclosed occupant areas like terraces/balconies) and MEP Complexity Scores (to prevent the 5%–12% average cost of construction rework).

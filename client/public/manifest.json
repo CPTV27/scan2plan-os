@@ -1,0 +1,19 @@
+{
+  "name": "Scan2Plan Field Hub",
+  "short_name": "Field Hub",
+  "description": "Mobile field operations for Scan2Plan technicians",
+  "start_url": "/field",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

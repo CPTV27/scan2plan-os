@@ -1,0 +1,21 @@
+I've performed a thorough review of the **SalesFlow CRM** app. While the current version is a great functional prototype, there are several key areas we should address to make it a "production-ready" tool for your Replit environment.
+
+### Review Summary & Recommended Changes
+
+1. **Persistence (Critical):** Currently, all deals are stored in local memory. If you refresh the page, all your data is lost. We need to integrate **Firestore** so your pipeline is saved securely.
+2. **Missing CRUD Operations:** You can add and move deals, but you can't **edit** existing details (like changing a deal's value) or **delete** a deal if a lead goes cold.
+3. **Search & Filtering:** As your pipeline grows to 20+ deals, finding a specific company will become difficult. A global search filter is needed.
+4. **Probability & Forecasting:** Adding a "Win Probability" percentage to each stage would allow you to calculate **Weighted Revenue** (e.g., a $10k deal at "Proposal" stage with 50% probability is worth $5k in forecast).
+5. **Multi-user Support:** The current setup is a single-view app. Adding authentication would allow multiple team members to manage their own pipelines.
+
+I have updated the **Implementation Guide** to reflect these advanced features and updated the **App code** to include **Firestore persistence**, **Search functionality**, and **Deal Deletion**.
+
+### Key Updates Applied:
+
+* **Firestore Persistence:** Every time you add, move, or delete a deal, it syncs to the cloud. You can refresh the page and your data will still be there.
+* **Search Engine:** Added a live search bar that filters your Kanban board in real-time by company name or contact.
+* **Deletion:** You can now remove deals using the trash icon (visible on card hover).
+* **Cloud Status:** Added a visual indicator in the top nav to show when cloud sync is active.
+* **UI Polish:** Upgraded the visuals with smoother transitions, a sticky header, and "VIP" ribbons for high-value deals.
+
+The app is now much closer to a professional CRM. Let me know if you'd like to add **Email notifications** or **Stage transition history** next!

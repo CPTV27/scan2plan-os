@@ -1,0 +1,113 @@
+Role: Senior Frontend Engineer Objective: Enforce "Explicit Selection" validation in the Quote Builder. No field can be skipped; users must explicitly select "N/A" if a value doesn't apply.
+
+1. SCHEMA: UPDATE VALIDATION LOGIC (shared/schema.ts)
+
+Action: Update the quoteSchema (or insertQuoteSchema) to remove optionality. Ensure Zod requires a non-empty string or number for every field.
+
+Code:
+
+TypeScript
+
+import { z } from "zod";
+
+// Enforce that even "optional" logical fields are REQUIRED in the form
+// The user must explicitly select "None" or "0" instead of leaving it null
+export const quoteFormSchema = z.object({
+  // PROJECT BASICS
+  projectType: z.string().min(1, "You must select a project type"),
+  sqft: z.number({ invalid_type_error: "SQFT is required" }).min(1, "SQFT must be > 0"),
+
+  // COMPLEXITY (No defaults allowed)
+  complexity: z.enum(["low", "medium", "high"], { 
+    errorMap: () => ({ message: "Select a complexity level" }) 
+  }),
+
+  // SCOPE (The "Explicit Selection" fields)
+  // Instead of boolean (true/false), use enum so they MUST pick one
+  includeMep: z.enum(["yes", "no", "partial"], {
+    errorMap: () => ({ message: "Select MEP scope (or choose No)" }) 
+  }),
+  includeRoof: z.enum(["yes", "no"], {
+    errorMap: () => ({ message: "Select Roof scope" }) 
+  }),
+
+  // LOGISTICS
+  ceilingHeight: z.string().min(1, "Select ceiling height range"),
+  occupiedStatus: z.enum(["vacant", "occupied", "construction"], {
+    errorMap: () => ({ message: "Select site status" }) 
+  }),
+});
+2. UI: UPDATE QUOTE BUILDER FORM (client/src/pages/QuoteBuilder.tsx)
+
+Action: Implement react-hook-form with the Zod resolver. Change all optional checkboxes to "Radio Groups" or "Selects" to force interaction.
+
+Code:
+
+TypeScript
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { quoteFormSchema } from "@shared/schema";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+
+export default function QuoteBuilder() {
+  const form = useForm({
+    resolver: zodResolver(quoteFormSchema),
+    defaultValues: {
+      projectType: "",     // Starts empty (Invalid)
+      complexity: undefined, // Starts undefined (Invalid)
+      includeMep: undefined, // Forces user to pick "No" explicitly
+      // ...
+    },
+    mode: "onChange" // Real-time validation
+  });
+
+  const { isValid, isDirty } = form.formState;
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+
+        {/* EXAMPLE: EXPLICIT SELECTION FIELD */}
+        <FormField
+          control={form.control}
+          name="includeMep"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="after:content-['*'] after:ml-0.5 after:text-red-500">
+                MEP Scope?
+              </FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger className={!field.value ? "text-slate-400" : ""}>
+                    <SelectValue placeholder="Select Scope..." />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="yes">Yes - Full MEP</SelectItem>
+                  <SelectItem value="partial">Partial - Major Runs Only</SelectItem>
+                  <SelectItem value="no">No - Architectural Only</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* BLOCKING SUBMIT BUTTON */}
+        <Button type="submit" disabled={!isValid || !isDirty} className="w-full">
+          {!isValid ? "Complete All Fields to Continue" : "Generate Quote"}
+        </Button>
+
+      </form>
+    </Form>
+  );
+}
+Why this works:
+Visual Guilt: The "Select..." placeholder text is gray (inactive). The field only looks "completed" when the user picks an option.
+
+The "No" Click: By forcing them to select "No" for MEP, you are making them confirm they don't want it, rather than just forgetting to check the box.
+
+Gatekeeper Button: The button literally says "Complete All Fields to Continue" when disabled. This removes confusion about why it's not working.

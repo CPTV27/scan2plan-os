@@ -1,0 +1,45 @@
+Client Delivery Module & Potree Integration Plan
+Goal Description
+Create a "Client Delivery Portal" where clients can view and download final project assets. Key features:
+
+Google Cloud Storage (GCS) Integration: Robust file hosting for large deliverables.
+Potree Viewer: Embedded 3D point cloud viewer.
+Delivery Workflow: Streamlined process for Production team to upload assets.
+User Review Required
+IMPORTANT
+
+Potree Hosting Strategy: Potree datasets consist of thousands of small files. Serving them via a Node.js proxy is slow. Recommendation: We will configure a Public GCS Bucket (or Signed URL compatible) for Potree data. The viewer will load directly from GCS. Workflow: The Production team will run PotreeConverter locally and upload the resulting folder to the specific GCS path.
+
+Proposed Changes
+1. Backend: Google Cloud Storage (GCS)
+[NEW] server/gcs.ts
+Initialize 
+Storage
+ client from @google-cloud/storage.
+Helper to Check/Create Bucket (scan2plan-deliverables).
+Functions to generate Signed URLs for uploading (PUT) and reading (GET).
+[NEW] server/routes/delivery.ts
+POST /api/delivery/sign-upload: Get a signed URL to upload a file directly to GCS.
+GET /api/delivery/files/:projectId: List files in the project's folder.
+POST /api/delivery/potree/config: Save the GCS path for the project's point cloud.
+2. Frontend: Client Delivery Portal
+[NEW] client/src/features/delivery/DeliveryPortal.tsx
+A new tab in the Project/Lead view (or a standalone client link).
+File Browser: List of downloadable files (PDFs, CAD, Models).
+Potree Viewer Component: An embedded frame to visualize the point cloud.
+[NEW] client/src/features/delivery/PotreeViewer.tsx
+React wrapper around Potree library.
+Accepts a cloudUrl prop (URL to metadata.json or cloud.js).
+Scripts loaded dynamically to avoid heavy bundle size.
+3. Workflow Implementation
+Potree Export Workflow:
+Step 1: Tech processes scan in Recap/Cyclone.
+Step 2: Tech runs PotreeConverter locally.
+Step 3: Tech uploads folder to gs://scan2plan-deliverables/{upid}/potree/.
+Step 4: Tech links this path in Scan2Plan OS.
+Step 5: Client clicks "View 3D Scan" and sees the model.
+Verification Plan
+Manual Verification
+GCS Connection: Verify distinct GCS bucket access (requires Service Account JSON in .env).
+Upload: Test uploading a large file via Signed URL.
+Potree: Upload a sample Potree dataset (cube/bunny) and verify it renders in the viewer.

@@ -1,0 +1,358 @@
+🎯 Objective
+Continue the refactoring work on Scan2Plan OS by improving type safety, adding testing infrastructure, and implementing error boundaries for the recently extracted deal workspace components.
+
+📋 Context
+The codebase has recently undergone significant refactoring:
+
+DealWorkspace.tsx
+ has been split into 11 focused components in client/src/features/deals/components/
+Components include: LeadDetailsTab.tsx, QuoteVersionDialog.tsx, VersionHistoryTab.tsx, DocumentsTab.tsx, etc.
+These components currently use any types in several places, particularly in form handling
+No unit tests exist yet for these new components
+No error boundaries are implemented for tab-based UI components
+🔨 Tasks (Complete in Order)
+Task 1: Create Type-Safe Form Schema for Lead Details
+Goal: Replace UseFormReturn<any> with proper TypeScript types throughout deal components.
+
+Steps:
+
+Create client/src/features/deals/types.ts with proper type definitions:
+typescript
+import { z } from "zod";
+import { insertLeadSchema } from "@shared/schema";
+// Create a type from the existing Zod schema
+export type LeadFormData = z.infer<typeof insertLeadSchema>;
+// Add any additional form-specific types
+export interface QuoteBuilderFormData {
+  areas: QuoteBuilderArea[];
+  dispatchLocation: string;
+  distance: string;
+  risks: string[];
+  // ... add all other quote builder fields
+}
+Update LeadDetailsTab.tsx to use the new types:
+Replace UseFormReturn<any> with UseFormReturn<LeadFormData>
+Replace onSubmit: (data: any) with onSubmit: (data: LeadFormData)
+Update the form prop type throughout
+Update DealWorkspace.tsx to use the typed form:
+Update the useForm hook to use the typed schema
+Ensure type consistency across all tab components
+Acceptance Criteria:
+
+✅ No any types in form-related props
+✅ TypeScript compiler shows no errors
+✅ IntelliSense provides autocomplete for form fields
+Task 2: Implement Error Boundaries for Tab Components
+Goal: Add error boundaries to prevent individual tab failures from crashing the entire deal workspace.
+
+Steps:
+
+Create client/src/components/ErrorBoundary.tsx:
+typescript
+import React from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+interface Props {
+  children: React.ReactNode;
+  fallbackTitle?: string;
+  fallbackMessage?: string;
+}
+interface State {
+  hasError: boolean;
+  error?: Error;
+}
+export class ErrorBoundary extends React.Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("ErrorBoundary caught an error:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <Alert variant="destructive" className="m-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>{this.props.fallbackTitle || "Something went wrong"}</AlertTitle>
+          <AlertDescription>
+            {this.props.fallbackMessage || "Failed to load this section. Please try refreshing the page."}
+            {this.state.error && (
+              <details className="mt-2 text-xs">
+                <summary className="cursor-pointer">Error details</summary>
+                <pre className="mt-2 whitespace-pre-wrap">{this.state.error.message}</pre>
+              </details>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              onClick={() => window.location.reload()}
+            >
+              <RefreshCw className="w-3 h-3 mr-2" />
+              Reload Page
+            </Button>
+          </AlertDescription>
+        </Alert>
+      );
+    }
+    return this.props.children;
+  }
+}
+Wrap each tab component in DealWorkspace.tsx with error boundaries:
+typescript
+<ErrorBoundary fallbackTitle="Lead Details Error" fallbackMessage="Failed to load lead details tab">
+  <LeadDetailsTab {...leadDetailsProps} />
+</ErrorBoundary>
+Add error boundaries for the Quote Builder tab and all other tabs
+Acceptance Criteria:
+
+✅ All tab components wrapped in <ErrorBoundary>
+✅ If one tab crashes, others continue working
+✅ Error messages are user-friendly with reload option
+Task 3: Set Up Testing Infrastructure (Vitest + React Testing Library)
+Goal: Add unit testing capability for the newly extracted components.
+
+Steps:
+
+Install testing dependencies:
+bash
+npm install -D vitest @vitest/ui @testing-library/react @testing-library/jest-dom @testing-library/user-event jsdom
+Create vitest.config.ts in the project root:
+typescript
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./client/src/test/setup.ts'],
+    include: ['**/*.{test,spec}.{ts,tsx}'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'dist/',
+        '**/*.d.ts',
+        '**/*.config.*',
+        '**/test/**',
+      ],
+    },
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './client/src'),
+      '@shared': path.resolve(__dirname, './shared'),
+    },
+  },
+});
+Create client/src/test/setup.ts:
+typescript
+import { expect, afterEach } from 'vitest';
+import { cleanup } from '@testing-library/react';
+import * as matchers from '@testing-library/jest-dom/matchers';
+expect.extend(matchers);
+afterEach(() => {
+  cleanup();
+});
+Add test scripts to package.json:
+json
+{
+  "scripts": {
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage"
+  }
+}
+Create a test utility file client/src/test/utils.tsx:
+typescript
+import { ReactElement } from 'react';
+import { render, RenderOptions } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+const createTestQueryClient = () => new QueryClient({
+  defaultOptions: {
+    queries: { retry: false },
+    mutations: { retry: false },
+  },
+});
+export function renderWithProviders(
+  ui: ReactElement,
+  options?: Omit<RenderOptions, 'wrapper'>
+) {
+  const queryClient = createTestQueryClient();
+  return render(ui, {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    ),
+    ...options,
+  });
+}
+export * from '@testing-library/react';
+export { renderWithProviders as render };
+Acceptance Criteria:
+
+✅ npm run test executes successfully
+✅ npm run test:ui opens Vitest UI
+✅ Test setup file properly configures jsdom environment
+Task 4: Write Unit Tests for LeadDetailsTab Component
+Goal: Create comprehensive tests for the most complex extracted component.
+
+Steps:
+
+Create client/src/features/deals/components/LeadDetailsTab.test.tsx:
+typescript
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen } from '@/test/utils';
+import { LeadDetailsTab } from './LeadDetailsTab';
+import { useForm } from 'react-hook-form';
+import type { Lead } from '@shared/schema';
+// Mock dependencies
+const mockLead: Partial<Lead> = {
+  id: 1,
+  clientName: 'Test Client',
+  projectName: 'Test Project',
+  projectAddress: '123 Test St',
+  dealStage: 'Leads',
+  value: '100000',
+  probability: 50,
+};
+describe('LeadDetailsTab', () => {
+  it('should render lead information', () => {
+    const form = useForm();
+    const mockToast = vi.fn();
+    const mockOnSubmit = vi.fn();
+    const mockQueryClient = {} as any;
+    const mockUpdateMutation = { mutate: vi.fn() } as any;
+    const mockUploadMutation = { mutate: vi.fn(), isPending: false } as any;
+    render(
+      <LeadDetailsTab
+        lead={mockLead as Lead}
+        leadId={1}
+        form={form}
+        onSubmit={mockOnSubmit}
+        isPending={false}
+        queryClient={mockQueryClient}
+        updateMutation={mockUpdateMutation}
+        toast={mockToast}
+        uploadDocumentMutation={mockUploadMutation}
+      />
+    );
+    expect(screen.getByText('Test Client')).toBeInTheDocument();
+    expect(screen.getByText('Test Project')).toBeInTheDocument();
+  });
+  it('should show attribution warning when moving to Closed Won without source', () => {
+    // Test implementation
+  });
+  it('should submit form with valid data', async () => {
+    // Test implementation
+  });
+});
+Write at least 5 meaningful tests covering:
+Component rendering
+Form validation
+Attribution warning logic
+Buyer persona selection
+Document upload interaction
+Acceptance Criteria:
+
+✅ At least 5 passing tests for LeadDetailsTab
+✅ Tests cover major functionality
+✅ All tests pass with npm run test
+Task 5: Add Inline Documentation for Complex Components
+Goal: Add JSDoc comments to complex functions and components for better developer experience.
+
+Steps:
+
+Add JSDoc to QuoteBuilderTab component in DealWorkspace.tsx:
+typescript
+/**
+ * Quote Builder Tab Component
+ * 
+ * Handles multi-building CPQ configuration with:
+ * - Area-by-area building type, sqft, LOD, and discipline selection
+ * - Travel configuration (local/regional/flyout)
+ * - Risk factor premiums
+ * - Real-time pricing calculation with margin guardrails
+ * 
+ * @param lead - The lead record this quote is for
+ * @param leadId - Lead ID for API calls
+ * @param queryClient - React Query client for cache invalidation
+ * @param toast - Toast notification function
+ * @param onQuoteSaved - Callback fired when quote is successfully saved
+ * @param existingQuotes - Array of existing quotes for this lead
+ * @param sourceQuote - Optional source quote for creating new versions
+ * @param onClearSourceQuote - Callback to clear source quote selection
+ */
+function QuoteBuilderTab({ ... }: QuoteBuilderTabProps) {
+  // ...
+}
+Add JSDoc to the calculateConfidenceScore logic:
+typescript
+/**
+ * Quote Confidence Scoring System
+ * 
+ * Calculates a confidence score (0-100) based on quote completeness:
+ * - Building Type (15%): Valid building type selected
+ * - Square Feet (15%): Valid sqft value provided
+ * - Disciplines (20%): At least one discipline selected
+ * - MEP Scope (15%): MEPF discipline with custom LOD/scope
+ * - Dispatch Location (10%): Valid dispatch location selected
+ * - Site Status (10%): Risks explicitly affirmed or selected
+ * - ACT Scanning (10%): Services affirmed or configured
+ * - Distance (5%): Valid travel distance provided
+ * 
+ * Used to indicate quote quality before saving.
+ */
+const calculateConfidenceScore = useMemo(() => {
+  // ...
+}, [dependencies]);
+Add JSDoc to pricing calculation functions in client/src/features/cpq/pricing.ts
+Acceptance Criteria:
+
+✅ All exported functions have JSDoc comments
+✅ Complex business logic is documented
+✅ Component props are documented
+✅ IntelliSense shows documentation when hovering
+🚫 What NOT to Do
+Don't rewrite working code - only refactor what's needed for type safety
+Don't change database schemas or API contracts
+Don't modify the CPQ pricing logic itself (only add types/docs)
+Don't break existing functionality - all current features must continue working
+Don't install unnecessary dependencies beyond what's specified
+✅ Success Criteria (All Tasks)
+ Zero TypeScript any types in client/src/features/deals/components/
+ All tab components wrapped in error boundaries
+ Vitest test suite runs successfully
+ At least 5 passing tests for LeadDetailsTab
+ JSDoc comments on all major components and functions
+ npm run check passes with no TypeScript errors
+ Application runs successfully with npm run dev
+📚 Reference Files
+Key files to reference during this work:
+
+client/src/features/deals/components/LeadDetailsTab.tsx (761 lines)
+client/src/pages/DealWorkspace.tsx (2,240 lines)
+shared/schema.ts (contains insertLeadSchema and types)
+client/src/features/cpq/pricing.ts (pricing calculation engine)
+package.json (for adding test scripts)
+🎯 Estimated Effort
+Task 1 (Type Safety): 30-45 minutes
+Task 2 (Error Boundaries): 20-30 minutes
+Task 3 (Testing Setup): 15-20 minutes
+Task 4 (Unit Tests): 45-60 minutes
+Task 5 (Documentation): 30-45 minutes
+Total: 2.5-3.5 hours
+
+Start with Task 1 and proceed sequentially. After completing each task, run npm run check and npm run dev to verify nothing broke. Good luck! 🚀
+
+Good
+Bad

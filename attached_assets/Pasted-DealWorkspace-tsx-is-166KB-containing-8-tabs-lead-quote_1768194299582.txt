@@ -1,0 +1,302 @@
+DealWorkspace.tsx is ~166KB containing:
+
+8 tabs: lead, quote, history, proposal, pandadoc, communicate, documents, ai
+5 embedded components that should be standalone files
+~20 mutations/queries all in one place
+A massive QuoteBuilderTab with its own confidence scoring system
+
+Let me write the spec:write_fileRequest{
+  `path`: `/Users/chasethis/Documents/Scan2Plan_OS/REPLIT_DEALWORKSPACE_BREAKDOWN_SPEC.md`,
+  `content`: `# DealWorkspace Component Breakdown Spec
+
+## Problem
+`client/src/pages/DealWorkspace.tsx` is ~166KB (~3,800 lines) mixing:
+- Lead CRM form
+- CPQ quote builder with confidence scoring
+- Version history
+- PandaDoc integration
+- Site readiness questionnaire
+- Document uploads
+- Email correspondence
+- Marketing attribution
+
+This blocks velocity - any change risks breaking unrelated features.
+
+## Target Architecture
+
+```
+client/src/pages/DealWorkspace.tsx          (~300 lines - orchestrator only)
+client/src/features/deals/
+├── components/
+│   ├── DealHeader.tsx                      (~150 lines)
+│   ├── LeadDetailsTab.tsx                  (~400 lines)
+│   ├── QuoteBuilderTab.tsx                 (~600 lines) - ALREADY EXISTS inline
+│   ├── QuoteHistoryTab.tsx                 (~200 lines)
+│   ├── ProposalTab.tsx                     (~100 lines)
+│   ├── PandaDocTab.tsx                     (~100 lines)
+│   ├── CommunicateTab.tsx                  (~100 lines)
+│   ├── DocumentsTab.tsx                    (~150 lines)
+│   ├── QboEstimateBadge.tsx                (~80 lines) - ALREADY EXISTS inline
+│   ├── TierAEstimatorCard.tsx              (~100 lines) - ALREADY EXISTS inline
+│   ├── MarketingInfluenceWidget.tsx        (~120 lines) - ALREADY EXISTS inline
+│   ├── SiteReadinessSection.tsx            (~250 lines)
+│   └── QuoteVersionDialog.tsx              (~200 lines)
+├── hooks/
+│   ├── useDealWorkspace.ts                 (shared state/mutations)
+│   ├── useQuoteBuilder.ts                  (CPQ state/calculations)
+│   └── useSiteReadiness.ts                 (magic link state)
+└── types.ts                                (shared interfaces)
+```
+
+## Extraction Order (Lowest Risk First)
+
+### Phase 1: Extract Standalone Widgets (No Tab Dependencies)
+These components are already self-contained functions inside DealWorkspace.tsx.
+
+**1. QboEstimateBadge.tsx**
+- Location: Lines ~140-210 in current file
+- Props: `{ lead: Lead }`
+- Dependencies: useQuery for estimate URL
+- Risk: LOW - pure display component
+
+**2. TierAEstimatorCard.tsx**
+- Location: Lines ~215-290 in current file
+- Props: `{ lead, leadId, updateMutation, queryClient, toast }`
+- Dependencies: useUpdateLead mutation
+- Risk: LOW - self-contained card
+
+**3. MarketingInfluenceWidget.tsx**
+- Location: Lines ~295-380 in current file
+- Props: `{ leadId: number }`
+- Dependencies: Own queries/mutations for attributions
+- Risk: LOW - fully self-contained
+
+### Phase 2: Extract Tab Content Components
+
+**4. DocumentsTab.tsx**
+- Extract the TabsContent value=\"documents\" block
+- Props: `{ leadId, documents, isLoading, uploadMutation, deleteMutation }`
+- Risk: LOW - minimal state interaction
+
+**5. CommunicateTab.tsx**
+- Extract the TabsContent value=\"communicate\" block
+- Currently just wraps CorrespondenceTimeline
+- Props: `{ leadId, contactEmail }`
+- Risk: LOW - wrapper only
+
+**6. ProposalTab.tsx**
+- Extract the TabsContent value=\"proposal\" block
+- Currently just wraps DealAIAssistant
+- Props: `{ lead: Lead }`
+- Risk: LOW - wrapper only
+
+**7. QuoteHistoryTab.tsx**
+- Extract the TabsContent value=\"history\" block
+- Props: `{ quotes, isLoading, onViewQuote, onCreateQuote }`
+- Risk: MEDIUM - needs callbacks for dialog state
+
+**8. PandaDocTab.tsx**
+- Extract the TabsContent value=\"pandadoc\" block
+- Props: `{ lead, latestQuote, proposalEmails, onDocumentCreated, onOpenSendDialog }`
+- Risk: MEDIUM - multiple callbacks
+
+### Phase 3: Extract Complex Sections
+
+**9. SiteReadinessSection.tsx**
+- Extract from LeadDetailsTab (the questionnaire card)
+- Props: `{ leadId, lead, siteReadinessAnswers, questionsToSend, ... }`
+- Risk: MEDIUM - significant local state
+
+**10. QuoteVersionDialog.tsx**
+- Extract the Dialog for viewing quote details
+- Props: `{ quote: CpqQuote | null, onClose, onEditVersion }`
+- Risk: MEDIUM - needs edit callback
+
+**11. DealHeader.tsx**
+- Extract the entire header section
+- Props: `{ lead, latestQuote, qboStatus, filesStatus, storageLinks, onNavigateBack, ... }`
+- Risk: MEDIUM - many action callbacks
+
+### Phase 4: Extract Major Tab Components
+
+**12. LeadDetailsTab.tsx**
+- The entire form with all sections
+- Props: `{ lead, leadId, form, onSubmit, isPending }`
+- Contains: Project Info, Deal Status, Contact Info, Site Readiness, Notes, Documentation
+- Risk: HIGH - largest extraction, form state
+
+**13. QuoteBuilderTab.tsx**
+- Already exists as inline function - move to own file
+- Props interface already defined: QuoteBuilderTabProps
+- Contains: Areas config, travel, risks, services, payment terms, pricing display
+- Risk: HIGH - complex state, useMemo for pricing
+
+### Phase 5: Create Shared Hooks
+
+**14. useDealWorkspace.ts**
+```typescript
+export function useDealWorkspace(leadId: number) {
+  // Lead query
+  // Quotes query
+  // Documents query
+  // Proposal emails query
+  // QBO status query
+  // Update mutation
+  // Delete mutation
+  // Upload mutation
+  // Push to QBO mutation
+  // Send proposal mutation
+  // Send to PandaDoc mutation
+  
+  return {
+    lead, quotes, documents, proposalEmails, qboStatus,
+    isLoading, 
+    mutations: { update, delete, upload, pushToQbo, sendProposal, sendToPandadoc }
+  };
+}
+```
+
+**15. useQuoteBuilder.ts**
+```typescript
+export function useQuoteBuilder(lead: Lead, sourceQuote?: CpqQuote) {
+  // Areas state
+  // Travel state
+  // Risks state
+  // Services state
+  // Margin target state
+  // Pricing calculation (useMemo)
+  // Confidence score calculation (useMemo)
+  // Save mutation
+  
+  return {
+    areas, setAreas, addArea, removeArea, updateArea,
+    travel, risks, services, marginTarget,
+    pricingResult, confidenceScore,
+    handleSave, isSaving
+  };
+}
+```
+
+**16. useSiteReadiness.ts**
+```typescript
+export function useSiteReadiness(leadId: number, lead: Lead) {
+  // Answers state
+  // Questions to send state
+  // Magic link state
+  // Save mutation
+  // Generate link mutation
+  
+  return {
+    answers, setAnswer,
+    questionsToSend, toggleQuestion,
+    magicLink, generateLink, copyLink,
+    clientAnswers, isSaving
+  };
+}
+```
+
+## Implementation Notes
+
+### Shared Types (types.ts)
+```typescript
+export interface QuoteBuilderArea {
+  id: string;
+  name: string;
+  buildingType: string;
+  squareFeet: string;
+  disciplines: string[];
+  disciplineLods: Record<string, { discipline: string; lod: string; scope: string }>;
+}
+
+export interface DealWorkspaceTab {
+  id: string;
+  label: string;
+  icon: React.ComponentType;
+  badge?: number;
+}
+```
+
+### Lazy Loading (Future)
+After extraction, add lazy loading:
+```typescript
+const QuoteBuilderTab = lazy(() => import('./features/deals/components/QuoteBuilderTab'));
+const PandaDocTab = lazy(() => import('./features/deals/components/PandaDocTab'));
+```
+
+### Test Preservation
+All `data-testid` attributes must be preserved exactly. The Playwright tests reference:
+- `page-deal-workspace`
+- `tab-lead`, `tab-quote`, `tab-history`, etc.
+- `button-save-quote`, `input-client-name`, etc.
+
+Run `npx playwright test tests/cpq-calculator.spec.ts` after each phase.
+
+## Acceptance Criteria
+
+1. DealWorkspace.tsx reduced to <400 lines
+2. Each tab loads independently
+3. All existing tests pass (or are updated with same selectors)
+4. No runtime regressions
+5. TypeScript strict mode passes
+6. Each extracted component can be tested in isolation
+
+## Files to Create
+
+```
+client/src/features/deals/
+├── components/
+│   ├── index.ts
+│   ├── DealHeader.tsx
+│   ├── LeadDetailsTab.tsx
+│   ├── QuoteBuilderTab.tsx
+│   ├── QuoteHistoryTab.tsx
+│   ├── ProposalTab.tsx
+│   ├── PandaDocTab.tsx
+│   ├── CommunicateTab.tsx
+│   ├── DocumentsTab.tsx
+│   ├── QboEstimateBadge.tsx
+│   ├── TierAEstimatorCard.tsx
+│   ├── MarketingInfluenceWidget.tsx
+│   ├── SiteReadinessSection.tsx
+│   └── QuoteVersionDialog.tsx
+├── hooks/
+│   ├── index.ts
+│   ├── useDealWorkspace.ts
+│   ├── useQuoteBuilder.ts
+│   └── useSiteReadiness.ts
+└── types.ts
+```
+
+## Suggested Replit Prompt
+
+Start with Phase 1 only:
+```
+Extract the following inline components from client/src/pages/DealWorkspace.tsx into separate files under client/src/features/deals/components/:
+
+1. QboEstimateBadge - currently defined around line 140
+2. TierAEstimatorCard - currently defined around line 215  
+3. MarketingInfluenceWidget - currently defined around line 295
+
+For each:
+- Create the new file with proper imports
+- Export the component
+- Import it back into DealWorkspace.tsx
+- Preserve all data-testid attributes exactly
+
+Do NOT extract tabs yet - just these three standalone widgets.
+```
+
+Then Phase 2, etc.
+`
+}ResponseSuccessfully wrote to /Users/chasethis/Documents/Scan2Plan_OS/REPLIT_DEALWORKSPACE_BREAKDOWN_SPEC.mdSynthesized specification and prepared user guidance.Good, I wrote the spec. Let me give the user a summary of what I created and how to use it.Done. Created REPLIT_DEALWORKSPACE_BREAKDOWN_SPEC.md with:
+16 extraction targets organized into 5 phases by risk level:
+
+Phase 1 (LOW risk): 3 standalone widgets that are already self-contained
+Phase 2 (LOW risk): 4 simple tab wrappers
+Phase 3 (MEDIUM risk): Dialog, header, site readiness section
+Phase 4 (HIGH risk): The two big tabs (LeadDetails, QuoteBuilder)
+Phase 5: Shared hooks to consolidate the 20+ mutations
+
+Key insight: The file already has QuoteBuilderTab, QboEstimateBadge, TierAEstimatorCard, and MarketingInfluenceWidget defined as separate functions inside the file. Moving them out is mostly copy-paste + import cleanup.
+The spec includes a starter Replit prompt for Phase 1 that's intentionally narrow - just extract the three widgets, nothing else. This lets you validate the pattern works before touching the tabs.
+Copy/paste that file into Replit once the validation spec finishes building, or tackle them in parallel if you're feeling bold.

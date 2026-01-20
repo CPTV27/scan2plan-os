@@ -1,0 +1,140 @@
+reat question! Let me give you an honest, practical assessment of each requirement:
+
+🟢 EXCELLENT Ideas (High ROI, Low Complexity)
+1. GM Hard Gate (40% floor)
+Verdict: ✅ Must-have
+Why: This is the single most important profitability control. You already have the logic—just need server enforcement. This prevents sales from accidentally (or intentionally) booking money-losing jobs.
+
+Alternative: None needed. This is table stakes for a profitable business.
+
+2. Auto-Tier A Flagging (≥50K sqft)
+Verdict: ✅ Valuable
+Why: Simple automation that ensures your CEO sees big opportunities immediately. Takes 30 lines of code.
+
+Alternative: None—this is a no-brainer.
+
+3. Auto-Geocoding on Lead Create
+Verdict: ✅ Great UX improvement
+Why: You already have the Google Distance Matrix integration. Auto-populating milesOneWay eliminates manual data entry and improves pricing accuracy. The code literally already exists; you're just moving it from GET to POST.
+
+Alternative: None needed.
+
+🟡 GOOD Ideas (Useful but needs prioritization)
+4. Mandatory Attribution (leadSource + leadAssist)
+Verdict: ⚠️ Good for analytics, but can be frustrating
+Why: Understanding marketing ROI is valuable. BUT blocking proposals until these are filled creates friction in your sales process.
+
+Better Alternative:
+
+Don't block proposals - make it a warning instead of a hard gate
+Add a "Quick Fill" dropdown that pre-populates based on recent patterns
+Make attribution mandatory for closing deals (when they hit "Closed Won"), not for generating proposals
+typescript
+// Softer approach
+if (!lead.source) {
+  // Warning, not blocker
+  warnings.push("Lead source not tracked - add for reporting");
+}
+5. Estimator Card Requirement
+Verdict: ⚠️ Context-dependent
+Why: If your team genuinely uses estimator cards for every project, this makes sense. But if it's aspirational (you want them to use it but they don't), this gate will just create workarounds (uploading blank PDFs).
+
+Better Alternative:
+
+Required only for Tier A deals (≥50K sqft)
+Optional for smaller deals with a "Generate Estimate" helper button
+Track compliance in reporting, but don't block workflow
+6. Travel Fold-In to Architecture $/sqft
+Verdict: ⚠️ Cosmetic change with marginal value
+Why: From a pricing transparency perspective, showing travel separately is actually clearer for clients. Folding it into Arch obscures what they're paying for.
+
+Better Alternative:
+
+Keep travel as a separate line for transparency
+If you want a "cleaner" proposal, add a toggle: "Show detailed breakdown" vs "Summary view"
+The current implementation is actually better for client relations
+🔴 QUESTIONABLE Ideas (High effort, uncertain ROI)
+7. UTM Tracking (utmSource, utmMedium, utmCampaign)
+Verdict: ❌ Over-engineered for a B2B scanning company
+Why: UTM tracking is valuable for high-volume B2C SaaS with thousands of leads/month. You're likely getting 20-50 leads/month, most from direct relationships, referrals, or ABM. Manual attribution at this scale is fine.
+
+Simpler Alternative:
+
+Keep the existing source field (already has 15 canonical options)
+Add leadAssist as a text field for secondary attribution
+Use GoHighLevel/HubSpot reporting for campaign tracking (they already capture UTMs)
+When to add UTMs: If you scale to 200+ leads/month or launch paid ad campaigns.
+
+8. Profitability Actuals Tracking (estScanDays, actualScanDays, actualGM)
+Verdict: ⚠️ Valuable data, but manual entry problem
+Why: Tracking estimated vs. actual costs is great for pricing model refinement. BUT it requires production team to diligently log actual scan days, travel costs, etc. In practice, this data rarely gets entered consistently without dedicated ops workflows.
+
+Simpler Alternative:
+
+Start with just actualGM (gross margin % from QuickBooks)
+Pull this automatically from QBO invoice vs. estimate comparison
+Add scan days tracking only if you have field tech reporting workflow
+Phased approach:
+
+Month 1: Track actual GM (automated from QBO)
+Month 3: Add manual scan days if team is compliant
+Month 6: Add travel cost variance if needed
+9. 5-Module AI Intelligence Chain
+Verdict: 🔴 Classic executive over-engineering
+Why: Running 5 AI modules on every lead create sounds impressive but:
+
+Cost: 5 GPT-4 calls per lead = $0.15-0.30/lead × 50 leads/month = $7.50-15/month... okay, cheap
+Accuracy: AI research modules hallucinate. "Competitor analysis" on niche scanning firms will return generic junk
+Latency: Lead create becomes 10-15 seconds instead of instant
+Maintenance: 5 modules = 5 prompts to tune when results drift
+Better Alternative - Staged Intelligence:
+
+typescript
+// Phase 1: Geocoding + Google Intel (already working)
+✅ Auto-populate sqft, distance, building insights
+// Phase 2: Add 1-2 high-value modules
+✅ Client tier lookup (Clearbit/ZoomInfo API - factual, not AI)
+✅ MEP complexity (only if sqft > 50K and healthcare/data center)
+// Phase 3: Manual triggers for deep research
+⚠️  "Run Competitive Intel" button (on-demand, not automatic)
+⚠️  "Expansion Scoring" (run quarterly on won accounts, not every lead)
+Core issue: Auto-running AI research on every lead creates noise. Most leads die in "Contacted" stage. Save expensive analysis for late-stage deals.
+
+Recommended:
+
+Auto: Geocoding + sqft + distance (factual APIs)
+Conditional: MEP complexity (only Tier A healthcare/industrial)
+Manual: Deep research modules (on-demand button in UI)
+📋 My Honest Recommendations
+✅ Implement These (High Value, Low Complexity)
+GM Hard Gate enforcement (server-side)
+Auto Tier A flagging
+Auto-geocoding on lead create
+UI gate feedback (button tooltips)
+Total effort: 1-2 days
+ROI: Immediate profitability protection + better UX
+
+⚠️ Refine These (Good intent, needs adjustment)
+Attribution: Warning, not blocker. Required at "Closed Won" stage only.
+Estimator Card: Required for Tier A only, optional otherwise.
+Travel Display: Keep as separate line—it's clearer for clients.
+🔴 Skip or Defer These
+UTM Tracking: Use GoHighLevel/HubSpot. Add only if you hit 200+ leads/month.
+Profitability Actuals: Start with QBO-synced actualGM only. Manual fields get ignored.
+5-Module AI Chain: Start with geocoding + sqft. Add 1 module at a time based on actual need.
+🎯 Bottom Line
+The "Flight Computer" analogy is brilliant, but some of these requirements confuse instrumentation (useful data) with automation (enforced workflows).
+
+Best approach:
+
+Automate factual lookups: Geocoding, distance, sqft from Google ✅
+Gate critical margins: GM floor, Tier A flagging ✅
+Suggest, don't force: Attribution warnings, not blockers ⚠️
+Manual for deep work: AI research on-demand, not auto-trigger ❌
+You're a ~$2-5M/year scanning company, not a SaaS unicorn. Keep it lean. The requirements that improve profitability directly (GM gate, auto-distance for accurate pricing) are golden. The ones that generate data for analysis (UTMs, 5 AI modules) are often abandoned in practice.
+
+My recommendation: Implement the 🟢 items this week, refine the 🟡 items, and put the 🔴 items in a "revisit Q2" bucket. You'll get 80% of the value in 20% of the effort.
+
+Good
+Bad
+Review Changes

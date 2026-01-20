@@ -1,0 +1,40 @@
+This is the final handshake between the field and the office. By integrating a "Data Handover" portal directly into the Field Hub, you eliminate the "Where is the data?" bottleneck.
+
+Using the Google Drive API, we can ensure that the moment the tech hits "Upload," the files are routed to the specific folder created by your Nomenclature Standard ([CLIENT_CODE]-[PROJ_CODE]-[YYYYMMDD]).
+
+Replit Prompt: The Data Handover & PM Notification
+Role: Senior Systems Integration Engineer
+
+Objective: Implement a "Final Data Handover" portal in the Field Hub that uploads files to a specific Google Drive folder and notifies the Project Manager.
+
+1. The Upload Portal
+Location: Place a "Final Data Upload" section at the bottom of the Mission Hub, visible after the [Leave Site] button is active.
+
+Functionality: * Support multiple file uploads (Video Walkthroughs, Raw Scan Data, Site Photos).
+
+Use the Google Drive API to target the specific project folder based on the Universal ID.
+
+Implement a progress bar so the tech knows when the "Heavy" video files are finished.
+
+2. Automated PM Notification
+Trigger: Once the "Data Handover" is 100% complete.
+
+Action: * Google Chat: Post a message to the project's Space: "🚀 DATA RECEIVED: [Tech Name] has uploaded the final data for [UPID]. View folder: [Drive_Link]"
+
+OS Status Update: Automatically move the project status from "Scanning" to "QC / Modeling" in the main Production Kanban.
+
+3. The "Square Foot Audit" Trigger
+Check: If the tech noted a square footage overage in their site notes, highlight this in the PM notification: "⚠️ ATTENTION: Tech flagged a potential SF overage. Review audit required before modeling."
+
+Visualizing the Handover Flow
+Why this completes your $2.2M "Toll Booth":
+Zero Latency: The Project Manager (Kurt) or the Modeler doesn't have to wait for an email. The chat notification is the "starting gun" for the next phase of production.
+
+Data Organization: No more loose files in a "General Uploads" folder. Everything is filed correctly the moment it’s born.
+
+Accounting Accuracy: Agata can now verify that the "End Travel" timestamp matches the time the data was actually uploaded, ensuring the tech isn't billing for "uploading from home" while on the clock.
+
+Final Instruction for Replit (The Full OS Sync)
+To make sure Replit ties this all together with your previous instructions, use this closing line:
+
+"Architect, ensure the Google Drive destination folder is dynamically pulled from our NOMENCLATURE_STANDARDS.md logic. If the folder does not exist yet, the system should create it using the [CLIENT]-[PROJ]-[DATE] format before starting the upload."

@@ -1,0 +1,483 @@
+Profitability Loop Gap Analysis
+Scan2Plan OS → "Active Flight Computer" Transformation
+Analysis Date: January 8, 2026
+Current State: Passive data ledger with some enforcement
+Target State: Active business logic engine with hard gates
+
+Executive Summary
+Category	Current Coverage	Missing Components	Complexity
+Database Schema	60%	UTM tracking, profitability actuals, vault analytics	🟡 MEDIUM
+Gatekeeper Logic	40%	Attribution enforcement, estimator card gate, auto-flagging	🟢 LOW
+Pricing SSOT	85%	Travel fold-in logic, 3K minimum enforcement	🟡 MEDIUM
+Geocoding	70%	Auto-population on lead create, milesOneWay field	🟢 LOW
+Intelligence Automation	20%	Auto-trigger on create, module chaining, expansion scoring	🔴 HIGH
+UI Enforcement	30%	Visual gate feedback, scope audit checklist	🟢 LOW
+Overall Readiness: ~50% — Solid foundation exists, needs targeted enhancements
+
+1. Database Schema Expansion
+✅ What EXISTS
+// In shared/schema.ts - leads table (lines 534-641)
+export const leads = pgTable("leads", {
+  // EXISTING attribution fields
+  leadSource: text("lead_source"),           // ✅ Legacy field exists
+  source: text("source").default("cold_outreach"),  // ✅ Canonical source exists
+  
+  // EXISTING intelligence
+  complexityScore: text("complexity_score"), // ✅ Already has MEP complexity
+  clientTier: text("client_tier"),          // ✅ SMB/Mid-Market/Enterprise
+  regulatoryRisks: jsonb("regulatory_risks"), // ✅ Array of risks
+  googleIntel: jsonb("google_intel"),        // ✅ Building + travel insights
+  
+  // EXISTING travel data
+  dispatchLocation: text("dispatch_location"), // ✅ Exists
+  distance: integer("distance"),              // ✅ Miles (integer)
+  
+  // EXISTING profitability tracking
+  value: decimal("value"),                    // ✅ Deal value
+  sqft: integer("sqft"),                      // ✅ Square footage
+  cpqTravel: jsonb("cpq_travel"),            // ✅ Travel config
+  
+  // EXISTING ABM tiering
+  abmTier: text("abm_tier").default("None"), // ✅ Tier A/B/C flagging exists
+});
+❌ What's MISSING
+// ADD to leads table:
+// 1. Marketing Performance Trace
+utmSource: text("utm_source"),           // ❌ NEW - Campaign source
+utmMedium: text("utm_medium"),           // ❌ NEW - Campaign medium
+utmCampaign: text("utm_campaign"),       // ❌ NEW - Campaign name
+leadAssist: jsonb("lead_assist"),        // ❌ NEW - Marketing touchpoints array
+// 2. Profitability Actuals (for FY26 variance tracking)
+estScanDays: integer("est_scan_days"),   // ❌ NEW - Estimated days
+estTravelCost: decimal("est_travel_cost"), // ❌ NEW - Estimated travel
+actualScanDays: integer("actual_scan_days"), // ❌ NEW - Actual days (post-project)
+actualTravelCost: decimal("actual_travel_cost"), // ❌ NEW - Actual travel
+actualGM: decimal("actual_gm"),          // ❌ NEW - Realized gross margin %
+// 3. Intelligence Outputs
+mepComplexityScore: text("mep_complexity_score"), // ⚠️ RENAME from complexityScore
+portfolioExpansionPotential: text("portfolio_expansion_potential"), // ❌ NEW
+// 4. Micro-Scoping
+milesOneWay: decimal("miles_one_way", { precision: 6, scale: 2 }), // ❌ NEW - Float miles
+archScopeWeight: decimal("arch_scope_weight", { precision: 3, scale: 2 }).default("0.65"), // ❌ NEW
+// 5. Estimator Card Requirement
+estimatorCardId: text("estimator_card_id"), // ❌ NEW - Link to PDF in Drive
+estimatorCardUrl: text("estimator_card_url"), // ❌ NEW - Direct Drive link
+❌ New Table NEEDED: Vault Analytics
+// Track Evidence Vault engagement (NEW TABLE)
+export const vault_analytics = pgTable("vault_analytics", {
+  id: serial("id").primaryKey(),
+  leadId: integer("lead_id").references(() => leads.id),
+  viewerToken: text("viewer_token").notNull(), // Unique visitor ID
+  dwellTime: integer("dwell_time"), // Seconds spent in viewer
+  tilesViewed: integer("tiles_viewed"), // Number of projects viewed
+  recordedAt: timestamp("recorded_at").defaultNow(),
+});
+Complexity: 🟡 MEDIUM
+LOE: 2-3 hours (schema edits + migration)
+
+2. Gatekeeper Logic ("Flight Computer Locks")
+✅ What EXISTS
+// In client/src/features/cpq/pricing.ts (lines 742-769)
+// ✅ GM Hard Gate ALREADY IMPLEMENTED (40% floor)
+export function passesMarginGate(pricing: PricingResult): boolean {
+  const marginPercent = calculateMarginPercent(pricing);
+  return marginPercent >= (FY26_GOALS.MARGIN_FLOOR * 100); // 40%
+}
+export function getMarginGateError(pricing: PricingResult): string | null {
+  const marginPercent = calculateMarginPercent(pricing);
+  return validateMarginGate(marginPercent); // Returns error if <40%
+}
+Status: ✅ GM gate logic EXISTS but needs server-side enforcement
+
+⚠️ What Needs MODIFICATION
+// In server/routes.ts (currently NO gatekeeper on this endpoint)
+// CURRENT: No validation
+app.post("/api/proposals/generate", isAuthenticated, async (req, res) => {
+  // ❌ Missing: GM check
+  // ❌ Missing: Attribution check
+  // ❌ Missing: Estimator card check
+  const proposal = await generateProposal(req.body.leadId);
+  res.json(proposal);
+});
+// NEEDED: Add gatekeepers
+app.post("/api/proposals/generate", isAuthenticated, async (req, res) => {
+  const lead = await storage.getLead(req.body.leadId);
+  
+  // 🚫 GM Hard Gate
+  const pricing = calculatePricing(lead.cpqAreas, ...);
+  if (!passesMarginGate(pricing)) {
+    return res.status(403).json({
+      error: "GM_GATE_BLOCKED",
+      message: `Margin ${calculateMarginPercent(pricing)}% < 40% floor`,
+      marginPercent: calculateMarginPercent(pricing),
+    });
+  }
+  
+  // 🚫 Attribution Gate
+  if (!lead.source || !lead.leadAssist) {
+    return res.status(403).json({
+      error: "ATTRIBUTION_REQUIRED",
+      message: "leadSource and leadAssist must be set before proposal",
+    });
+  }
+  
+  // 🚫 Estimator Card Gate
+  if (!lead.estimatorCardId) {
+    return res.status(403).json({
+      error: "ESTIMATOR_CARD_REQUIRED",
+      message: "Estimator card must be uploaded before proposal",
+    });
+  }
+  
+  // ✅ All gates passed
+  const proposal = await generateProposal(lead.id);
+  res.json(proposal);
+});
+❌ What's MISSING
+// 4. Auto-Tier A Flagging Hook
+// NEEDED: Trigger on lead create/update
+app.post("/api/leads", async (req, res) => {
+  const leadData = req.body;
+  
+  // ❌ NEW: Auto-flag Tier A if >= 50K sqft
+  if (leadData.sqft >= 50000) {
+    leadData.abmTier = "Tier A";
+    leadData.leadPriority = 5; // High priority
+    
+    // Create notification for CEO
+    await storage.createNotification({
+      userId: "ceo",
+      type: "tier_a_lead",
+      title: "🎯 Tier A Lead Detected",
+      message: `${leadData.clientName} - ${leadData.sqft.toLocaleString()} sqft qualifies for Tier A pricing`,
+      leadId: lead.id,
+    });
+  }
+  
+  const lead = await storage.createLead(leadData);
+  res.json(lead);
+});
+Complexity: 🟢 LOW
+LOE: 2-4 hours (add server-side checks + notifications)
+
+3. Pricing SSOT Engine ("Rev C Rules")
+✅ What EXISTS (Strong Foundation)
+// In client/src/features/cpq/pricing.ts
+// ✅ Travel calculation EXISTS (lines 396-431 - Brooklyn tiered logic)
+export function calculateTravelCost(
+  distance: number,
+  dispatchLocation: string,
+  projectTotalSqft: number
+): number {
+  // ✅ Brooklyn Tier A/B/C logic ALREADY IMPLEMENTED
+  // ✅ Per-mile rates ALREADY IMPLEMENTED
+  // ✅ Other dispatch logic ALREADY IMPLEMENTED
+}
+// ✅ Risk multipliers EXIST (lines 245-252, applied lines 602-623)
+export const RISK_FACTORS = [
+  { id: "hazardous", premium: 0.25 },  // ✅ +25%
+  { id: "noPower", premium: 0.20 },    // ✅ +20%
+  { id: "occupied", premium: 0.15 },   // ✅ +15%
+  // ... already implemented correctly
+];
+// ✅ Scope discounts EXIST (lines 177-182)
+const SCOPE_MULTIPLIERS = {
+  interior: { interior: 0.75, exterior: 0 },  // ✅ -25%
+  exterior: { interior: 0, exterior: 0.5 },   // ✅ -50%
+  // ... applied to Arch + CAD lines only (line 496)
+};
+// ✅ Minimum threshold EXISTS (line 258)
+const MINIMUM_PROJECT_CHARGE = 3000;  // ✅ 3,000 floor enforced
+⚠️ What Needs FINE-TUNING
+Issue 1: Travel is shown as separate line item, not folded into Arch $/sf
+
+// CURRENT (line 663):
+items.push({
+  label: "Travel (...)",  // ❌ Shown separately
+  value: travelCost,
+});
+// NEEDED: Fold into Architecture line
+// Option A: Calculate travel $/sqft, add to arch rate
+const travelPerSqft = travelCost / totalSqft;
+const archRateWithTravel = archRate + travelPerSqft;
+// Option B: Show as Arch subtotal + travel folded
+items.push({
+  label: `Architecture (includes travel: $${travelCost})`,
+  value: archTotal + travelCost,
+});
+Issue 2: Minimum 3K is enforced project-wide, but needs per-area check
+
+// CURRENT (line 680): Applied to total
+if (subtotal < MINIMUM_PROJECT_CHARGE && subtotal > 0) {
+  // ... adjust to $3,000
+}
+// NEEDED: Per-area enforcement (line 493)
+const sqft = Math.max(inputValue, 3000);  // ✅ Already applied per-area
+// Just needs documentation that this IS the 3K floor
+Issue 3: milesOneWay should drive travel, not distance
+
+// CURRENT: Uses distance (integer field)
+calculateTravelCost(travel.distance, ...)
+// NEEDED: Use milesOneWay (new decimal field)
+calculateTravelCost(lead.milesOneWay, ...)
+Complexity: 🟡 MEDIUM
+LOE: 3-5 hours (refactor travel display + validation)
+
+4. Automated Intelligence & Geocoding
+✅ What EXISTS
+// In server/google-intel.ts (lines 125-153)
+// ✅ Geocoding function EXISTS
+async function geocodeAddress(address: string): Promise<GeocodeResult | null>
+// ✅ Distance calculation EXISTS  
+async function enrichLeadWithGoogleIntel(
+  projectAddress: string,
+  dispatchLocation?: string
+): Promise<GoogleIntel>
+// ✅ Already fetches:
+// - Building insights (Solar API)
+// - Travel distance (Distance Matrix API)
+// - Duration and scenario type (local/regional/flyout)
+⚠️ What Needs INTEGRATION
+// CURRENT: Manual trigger on lead GET (lines 401-411 in routes.ts)
+app.get("/api/leads/:id", async (req, res) => {
+  const lead = await storage.getLead(req.params.id);
+  
+  // ✅ Lazy enrichment EXISTS but only on GET
+  if (lead.projectAddress && !lead.googleIntel) {
+    enrichLeadWithGoogleIntel(lead.projectAddress)
+      .then(async (googleIntel) => {
+        await storage.updateLead(lead.id, { googleIntel });
+      });
+  }
+  
+  res.json(lead);
+});
+// NEEDED: Auto-trigger on lead CREATE (lines 417-482)
+app.post("/api/leads/create", async (req, res) => {
+  const lead = await storage.createLead(req.body);
+  
+  // ❌ NEW: Immediate geocoding + milesOneWay population
+  if (lead.projectAddress) {
+    const intel = await enrichLeadWithGoogleIntel(
+      lead.projectAddress,
+      lead.dispatchLocation || "Troy, NY"
+    );
+    
+    // Extract milesOneWay from travel insights
+    const milesOneWay = intel.travelInsights?.distanceMiles || null;
+    
+    await storage.updateLead(lead.id, {
+      googleIntel: intel,
+      milesOneWay,
+      sqft: sqft || intel.buildingInsights?.squareFeet, // Auto-populate if missing
+    });
+  }
+  
+  res.json(lead);
+});
+❌ What's COMPLETELY MISSING
+Intelligence Module Chain (5 AI modules):
+
+// NEEDED: Programmatic chain trigger on lead create
+async function runIntelligenceChain(leadId: number): Promise<void> {
+  const lead = await storage.getLead(leadId);
+  
+  // Module 1: Client Research (MISSING)
+  const clientResearch = await aiClient.chat({
+    messages: [{
+      role: "user",
+      content: `Research company: ${lead.clientName}. Return: firmSize, discipline, focusSector, clientTier`
+    }],
+    responseFormat: "json_object",
+  });
+  
+  // Module 2: Property Research (MISSING)
+  const propertyResearch = await aiClient.chat({
+    messages: [{
+      role: "user",
+      content: `Analyze property: ${lead.projectAddress}. Return: mepComplexityScore, buildingType`
+    }],
+    responseFormat: "json_object",
+  });
+  
+  // Module 3: Competitor Analysis (MISSING)
+  // Module 4: Regulatory Risk (PARTIALLY EXISTS as regulatoryRisks field)
+  // Module 5: Portfolio Expansion (MISSING)
+  
+  // Update lead with all intelligence
+  await storage.updateLead(leadId, {
+    ...clientResearch,
+    ...propertyResearch,
+    aiInsightsUpdatedAt: new Date(),
+  });
+}
+// Call on lead create
+app.post("/api/leads/create", async (req, res) => {
+  const lead = await storage.createLead(req.body);
+  
+  // ❌ NEW: Fire intelligence chain in background
+  runIntelligenceChain(lead.id).catch(err => {
+    console.error(`Intelligence chain failed for lead ${lead.id}:`, err);
+  });
+  
+  res.json(lead);
+});
+Complexity: 🔴 HIGH
+LOE: 8-12 hours (build 5 AI research modules + chain orchestration)
+
+5. Frontend UI Enforcement
+✅ What EXISTS
+// In client/src/pages/DealWorkspace.tsx (line 295)
+// ✅ Component exists, needs gatekeeper UI enhancements
+❌ What's MISSING
+Visual Gate Feedback:
+
+// NEEDED in DealWorkspace.tsx:
+const GenerateProposalButton = ({ lead, pricing }: Props) => {
+  const passesGM = passesMarginGate(pricing);
+  const hasAttribution = lead.source && lead.leadAssist;
+  const hasEstimatorCard = lead.estimatorCardId;
+  
+  const isBlocked = !passesGM || !hasAttribution || !hasEstimatorCard;
+  
+  const getTooltip = () => {
+    if (!passesGM) return `❌ Margin ${calculateMarginPercent(pricing)}% < 40% floor`;
+    if (!hasAttribution) return "❌ Missing lead source or assist";
+    if (!hasEstimatorCard) return "❌ Estimator card required";
+    return "✅ Ready to generate proposal";
+  };
+  
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          disabled={isBlocked}
+          variant={isBlocked ? "outline" : "default"}
+          onClick={handleGenerate}
+        >
+          {isBlocked && <Lock className="h-4 w-4 mr-2" />}
+          Generate Proposal
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        {getTooltip()}
+      </TooltipContent>
+    </Tooltip>
+  );
+};
+Scope Audit Checklist:
+
+// NEEDED: Pre-flight checklist before stage advancement
+const ScopeAuditChecklist = ({ lead }: Props) => {
+  const [checks, setChecks] = useState({
+    siteVisit: false,
+    clientConfirmation: false,
+    hazardsIdentified: false,
+    accessVerified: false,
+  });
+  
+  const allChecked = Object.values(checks).every(Boolean);
+  
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Scope Audit Checklist</CardTitle>
+        <CardDescription>Complete before advancing to Proposal</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <Checkbox
+          checked={checks.siteVisit}
+          onCheckedChange={(v) => setChecks({...checks, siteVisit: !!v})}
+          label="Site visit completed or waived"
+        />
+        <Checkbox
+          checked={checks.clientConfirmation}
+          label="Client confirmed sqft and scope"
+        />
+        <Checkbox
+          checked={checks.hazardsIdentified}
+          label="Hazards/risks identified"
+        />
+        <Checkbox
+          checked={checks.accessVerified}
+          label="Access and logistics verified"
+        />
+      </CardContent>
+      <CardFooter>
+        <Button disabled={!allChecked} onClick={advanceStage}>
+          Advance to Proposal
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+};
+Complexity: 🟢 LOW
+LOE: 3-4 hours (UI components + tooltips)
+
+Implementation Roadmap
+Phase 1: Quick Wins (1-2 days) ⚡
+✅ Server-side gatekeeper enforcement (2-3 hrs)
+
+Add GM/attribution/estimator card checks to /api/proposals/generate
+Return structured 403 errors with gate details
+✅ Auto Tier A flagging (1-2 hrs)
+
+Hook into lead create/update
+Auto-set abmTier = "Tier A" if sqft >= 50000
+✅ UI gate feedback (3-4 hrs)
+
+Disable button with tooltip
+Show red/yellow/green margin indicator
+Phase 2: Schema & Geocoding (2-3 days) 🗄️
+✅ Database schema additions (2-3 hrs)
+
+Add UTM, profitability, milesOneWay, estimatorCard fields
+Add vault_analytics table
+Generate and run migration
+✅ Auto-geocoding on lead create (2-3 hrs)
+
+Move intel enrichment from GET to POST
+Extract and save milesOneWay from Distance Matrix API
+Auto-populate sqft from Solar API if missing
+Phase 3: Pricing Refinements (1-2 days) 💰
+✅ Travel fold-in display (3-4 hrs)
+
+Refactor line item display to fold travel into Arch
+Update proposal templates
+✅ Scope audit checklist UI (2-3 hrs)
+
+Build checklist component
+Block stage advancement until complete
+Phase 4: Intelligence Automation (3-4 days) 🤖
+🔴 Build 5 AI research modules (8-12 hrs)
+
+Client research (firmSize, discipline, tier)
+Property research (mepComplexity, buildingType)
+Competitor analysis
+Regulatory risk assessment
+Portfolio expansion scoring
+🔴 Chain orchestration (2-3 hrs)
+
+Trigger all 5 on lead create
+Store results in lead record
+Show progress in UI
+Risk Assessment
+Risk	Impact	Mitigation
+Breaking existing CPQ	🔴 HIGH	Maintain backward compatibility, add feature flags
+API rate limits (Google)	🟡 MEDIUM	Cache results 24hrs, batch requests
+AI module hallucinations	🟡 MEDIUM	Require manual review before proposal
+Schema migration downtime	🟢 LOW	Run migration off-peak, test in staging
+User resistance to gates	🟡 MEDIUM	CEO override mechanism for edge cases
+Bottom Line
+Status: ✅ ~50% of requirements already exist
+
+GM Hard Gate: ✅ Logic exists, needs server enforcement
+Geocoding: ✅ Function exists, needs auto-trigger on create
+Travel/Risk/Scope: ✅ 85% complete, needs display tweaks
+Schema: ⚠️ 60% complete, needs profitability + UTM fields
+Intelligence: ❌ 20% complete, needs 5-module chain build
+Recommendation: Start with Phase 1 (Quick Wins) to get immediate gatekeeper value, then tackle Phase 2 (Schema) and Phase 3 (Pricing). Save Phase 4 (AI Intelligence) for dedicated sprint.
+
+Total LOE: 5-7 days for Phases 1-3, +3-4 days for Phase 4
+
+The transition from "passive ledger" to "active flight computer" is highly achievable — you've already built 50% of the infrastructure. The remaining work is targeted enhancements, not ground-up rebuilds. 🚀

@@ -1,0 +1,190 @@
+Here's a comprehensive documentation of the Scan2Plan BIM Pricing Calculator that you can share with other Replit agents:
+
+Scan2Plan BIM Pricing Calculator - Integration Documentation
+1. Application Overview
+Purpose: A professional B2B pricing calculator for Scan-to-BIM (Building Information Modeling) services. It enables sales staff to generate detailed quotes for architectural scanning and 3D modeling projects.
+
+Target Users: Internal sales team at Scan2Plan who need to create, manage, and export project quotes for clients.
+
+Live URL: The application runs as a web app accessible via Replit deployment.
+
+2. Core Features
+Quote Creation & Management
+Create multi-area project quotes with building types, square footage, and disciplines
+Support for 15 building types including special landscape pricing (per-acre vs per-sqft)
+Four disciplines: Architecture, Structure, MEPF (MEP + Fire Protection), Site/Topography
+Five Level of Detail (LoD) options: 100, 200, 300, 350, 400
+Pricing Calculation
+Database-driven pricing matrices (client rates and vendor/Upteam costs)
+Automatic scope discounts for multiple disciplines
+Risk factor premiums (8 configurable risk types)
+Travel cost calculation with Mapbox integration
+Custom travel cost override capability
+CAD deliverable add-ons (2D CAD, RCP, Elevations, Sections packages)
+Additional services (Matterport, ACT Ceiling)
+Version Control
+Create linked versions of quotes with custom naming
+Switch between versions with full data persistence
+Version numbering with parent-child relationships
+Export Capabilities
+Scope Document (PDF): Professional project scope summary
+PandaDoc Proposal: Webhook integration for proposal generation
+QuickBooks CSV: Invoice export matching QB import template
+Full Package (ZIP): Bundled deliverables
+3. Data Model
+Primary Entity: quotes
+{
+  id: string (UUID),
+  quoteNumber: string (unique, auto-generated),
+  
+  // Project Details
+  clientName: string,
+  projectName: string,
+  projectAddress: string,
+  specificBuilding: string,
+  typeOfBuilding: string,
+  hasBasement: boolean,
+  hasAttic: boolean,
+  notes: string,
+  
+  // Areas (JSONB array)
+  areas: [{
+    id: string,
+    name: string,
+    buildingType: string (1-15),
+    squareFeet: string,
+    disciplines: { arch: boolean, struct: boolean, mepf: boolean, site: boolean },
+    lod: string ("100" | "200" | "300" | "350" | "400")
+  }],
+  
+  // Risk Factors (JSONB array)
+  risks: string[] (e.g., ["occupied", "historic", "hazmat"]),
+  
+  // Travel
+  dispatchLocation: string ("troy" | "woodstock" | "brooklyn"),
+  distance: number (miles),
+  customTravelCost: number (optional override),
+  
+  // Additional Services (JSONB)
+  services: {
+    matterport: boolean,
+    actCeiling: boolean,
+    cadPackages: string[],
+    matterportDetails: { areas, pricePerArea }
+  },
+  
+  // Calculated Pricing
+  totalPrice: decimal,
+  pricingBreakdown: JSONB,
+  
+  // Version Control
+  parentQuoteId: string (links to original quote),
+  versionNumber: number,
+  versionName: string,
+  
+  // Timestamps
+  createdAt: timestamp,
+  updatedAt: timestamp
+}
+Pricing Tables
+pricing_matrix: Client-facing rates by building type, area tier, discipline, LoD
+upteam_pricing_matrix: Vendor/internal costs (same structure)
+cad_pricing_matrix: CAD package rates by building type and area tier
+pricing_parameters: Configurable values (risk premiums, travel rates, discounts)
+4. REST API Endpoints
+Quote CRUD
+Method	Endpoint	Description
+GET	/api/quotes	List all quotes
+GET	/api/quotes/:id	Get single quote
+POST	/api/quotes	Create new quote
+PATCH	/api/quotes/:id	Update quote
+DELETE	/api/quotes/:id	Delete quote
+Version Control
+Method	Endpoint	Description
+GET	/api/quotes/:id/versions	Get all versions of a quote family
+POST	/api/quotes/:id/versions	Create new version (body: { versionName })
+Pricing Data
+Method	Endpoint	Description
+GET	/api/pricing-matrix	Get all client pricing rates
+PATCH	/api/pricing-matrix/:id	Update a rate
+GET	/api/upteam-pricing-matrix	Get vendor cost rates
+PATCH	/api/upteam-pricing-matrix/:id	Update vendor rate
+GET	/api/cad-pricing-matrix	Get CAD package rates
+GET	/api/pricing-parameters	Get all configurable parameters
+PATCH	/api/pricing-parameters/:id	Update parameter value
+Travel Calculation
+Method	Endpoint	Description
+POST	/api/calculate-distance	Calculate driving distance (body: { origin, destination })
+Exports & Integrations
+Method	Endpoint	Description
+POST	/api/pandadoc/create	Create PandaDoc proposal via webhook
+GET	/api/quickbooks/auth	Initiate QuickBooks OAuth
+GET	/api/quickbooks/callback	OAuth callback handler
+GET	/api/quickbooks/status	Check QB connection status
+POST	/api/quickbooks/create-invoice	Create invoice in QuickBooks
+POST	/api/quickbooks/disconnect	Disconnect QuickBooks
+5. Pricing Calculation Logic
+The pricing algorithm layers multiple factors:
+
+Base Rate Lookup: For each area, lookup rate from pricing_matrix using:
+
+Building Type (1-15)
+Area Tier (based on sqft: 0-5K, 5-10K, 10-25K, 25-50K, 50-100K, 100K+)
+Discipline (arch, struct, mepf, site)
+Level of Detail (100-400)
+Scope Discounts: When multiple disciplines selected:
+
+2 disciplines: 10% discount
+3 disciplines: 15% discount
+4 disciplines: 20% discount
+Risk Premiums: Added as percentage (e.g., occupied building +5%, historic +10%)
+
+Travel Costs: Based on distance and configurable rates per mile
+
+Additional Services: Matterport, ACT Ceiling, CAD packages added as line items
+
+Vendor Costs: Parallel calculation using upteam_pricing_matrix for profit margin reporting
+
+6. Technology Stack
+Layer	Technology
+Frontend	React 18 + TypeScript, Vite, Tailwind CSS
+UI Components	shadcn/ui (Radix primitives), Lucide icons
+Routing	Wouter
+State/Data	TanStack Query v5
+Backend	Express.js + TypeScript
+Database	PostgreSQL (Neon serverless)
+ORM	Drizzle ORM + drizzle-zod
+APIs	Mapbox (distance), PandaDoc (proposals), QuickBooks (invoicing)
+PDF Generation	jsPDF + jspdf-autotable
+File Export	JSZip
+7. Key Files Reference
+File	Purpose
+shared/schema.ts	Database schema, Zod validation, TypeScript types
+server/routes.ts	All REST API endpoints
+server/storage.ts	Database access layer (IStorage interface)
+client/src/pages/Calculator.tsx	Main quote builder UI and pricing logic
+client/src/components/VersionControl.tsx	Version management UI
+client/src/components/TravelCalculator.tsx	Travel cost calculation UI
+client/src/components/PricingSummary.tsx	Price breakdown display
+client/src/components/AreaInput.tsx	Area entry form component
+client/src/lib/pdfExport.ts	PDF generation utilities
+8. Integration Points
+For Other Sales Pipeline Apps:
+Quote Data Access: Use GET /api/quotes/:id to retrieve full quote data including pricing breakdown
+
+Create Quotes Programmatically: POST /api/quotes with the required fields
+
+Listen for Quote Updates: Poll GET /api/quotes or implement webhooks (would need to add)
+
+Shared Data Format: The areas JSONB structure is the core data model other apps should understand
+
+PandaDoc Integration: Uses Make.com webhook - payload includes all quote details for proposal generation
+
+QuickBooks Integration: OAuth-based, stores tokens in quickbooks_tokens table
+
+Environment Variables Required:
+DATABASE_URL - PostgreSQL connection string
+MAPBOX_ACCESS_TOKEN - For distance calculations
+PANDADOC_WEBHOOK_URL - Make.com webhook for PandaDoc
+QuickBooks OAuth credentials (if using QB integration)
+This should give other Replit agents a complete picture of how the application works and how to integrate with it!

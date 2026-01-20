@@ -1,0 +1,730 @@
+---
+
+**Mission Brief Generator**
+
+Generate a one-page briefing for field techs that compiles everything they need to know before arriving on-site. This pulls from the project's inherited quote data, site readiness answers, and client contact info.
+
+**Part 1: Create Mission Brief Data Structure**
+
+Create `shared/missionBrief.ts`:
+
+```typescript
+export interface MissionBrief {
+  // Header
+  projectId: number;
+  universalProjectId: string;
+  generatedAt: Date;
+  
+  // Location
+  projectAddress: string;
+  clientName: string;
+  projectName: string;
+  
+  // Client Contact
+  contact: {
+    name: string;
+    phone: string;
+    email: string;
+  };
+  
+  // Dispatch
+  dispatchLocation: string;
+  distance: number | null;
+  estimatedDriveTime: string | null;
+  
+  // Scope Overview
+  scopeSummary: string;
+  totalSqft: number;
+  areaCount: number;
+  
+  // Areas Detail
+  areas: {
+    name: string;
+    buildingType: string;
+    sqft: number;
+    disciplines: string[];
+    lod: string;
+    scope?: string;
+  }[];
+  
+  // Site Conditions (from Site Readiness)
+  siteConditions: {
+    occupied: boolean | null;
+    accessRestrictions: string | null;
+    dropCeilings: string | null;
+    hazardousMaterials: string | null;
+    activeConstruction: boolean | null;
+    parkingAccess: string | null;
+    additionalNotes: string | null;
+  };
+  
+  // Risk Factors
+  risks: string[];
+  
+  // Special Requirements
+  requirements: {
+    actScanning: boolean;
+    georeferencing: boolean;
+    matterport: boolean;
+    scanningOnly: string | null;
+  };
+  
+  // Equipment Checklist (derived from scope)
+  suggestedEquipment: string[];
+  
+  // Notes
+  projectNotes: string | null;
+}
+```
+
+**Part 2: Create Mission Brief Generator Function**
+
+Create `server/missionBrief.ts`:
+
+```typescript
+import { MissionBrief } from '../shared/missionBrief';
+import { BUILDING_TYPES } from '../client/src/features/cpq/pricing';
+
+const BUILDING_TYPE_NAMES: Record<string, string> = {
+  "1": "Commercial - Simple",
+  "2": "Residential - Standard",
+  "3": "Residential - Luxury",
+  "4": "Commercial / Office",
+  "5": "Retail / Restaurant",
+  "6": "Kitchen / Catering",
+  "7": "Education",
+  "8": "Hotel / Theatre / Museum",
+  "9": "Hospital / Mixed Use",
+  "10": "Mechanical / Utility",
+  "11": "Warehouse / Storage",
+  "12": "Religious Building",
+  "13": "Infrastructure / Roads",
+  "14": "Built Landscape",
+  "15": "Natural Landscape",
+  "16": "ACT (Above Ceiling)",
+};
+
+const RISK_LABELS: Record<string, string> = {
+  "occupied": "Occupied Building",
+  "hazardous": "Hazardous Conditions",
+  "noPower": "No Power/HVAC",
+  "remote": "Remote Location",
+  "fastTrack": "Fast Track",
+  "complexGeometry": "Complex Geometry",
+  "difficultAccess": "Difficult Access",
+  "multiPhase": "Multi-Phase",
+  "unionSite": "Union Site",
+  "security": "Security Requirements",
+};
+
+export function generateMissionBrief(project: any): MissionBrief {
+  const areas = project.quotedAreas || [];
+  const siteReadiness = project.siteReadiness || {};
+  const services = project.quotedServices || {};
+  const risks = project.quotedRisks || [];
+  const travel = project.quotedTravel || {};
+
+  // Calculate totals
+  const totalSqft = areas.reduce((sum: number, area: any) => {
+    const sqft = parseInt(area.squareFeet) || 0;
+    return sum + sqft;
+  }, 0);
+
+  // Map areas to brief format
+  const mappedAreas = areas.map((area: any, index: number) => {
+    // Get highest LOD from disciplines
+    let maxLod = "200";
+    if (area.disciplineLods) {
+      const lods = Object.values(area.disciplineLods).map((d: any) => parseInt(d.lod) || 200);
+      maxLod = String(Math.max(...lods));
+    } else if (area.lod) {
+      maxLod = area.lod;
+    }
+
+    return {
+      name: area.name || `Area ${index + 1}`,
+      buildingType: BUILDING_TYPE_NAMES[area.buildingType] || `Type ${area.buildingType}`,
+      sqft: parseInt(area.squareFeet) || 0,
+      disciplines: area.disciplines || [],
+      lod: maxLod,
+      scope: area.scope,
+    };
+  });
+
+  // Map risks to readable labels
+  const riskLabels = (Array.isArray(risks) ? risks : [])
+    .map((r: string) => RISK_LABELS[r] || r)
+    .filter(Boolean);
+
+  // Extract site conditions
+  const siteConditions = {
+    occupied: siteReadiness.occupied ?? null,
+    accessRestrictions: siteReadiness.accessRestrictions || null,
+    dropCeilings: siteReadiness.dropCeilings || null,
+    hazardousMaterials: siteReadiness.hazardousMaterials || null,
+    activeConstruction: siteReadiness.activeConstruction ?? null,
+    parkingAccess: siteReadiness.parkingAccess || null,
+    additionalNotes: siteReadiness.additionalNotes || null,
+  };
+
+  // Derive suggested equipment based on scope
+  const suggestedEquipment = deriveSuggestedEquipment(mappedAreas, services, siteConditions);
+
+  // Estimate drive time (rough: 1 hour per 50 miles)
+  const estimatedDriveTime = project.distance 
+    ? `~${Math.ceil(project.distance / 50)} hours` 
+    : null;
+
+  return {
+    projectId: project.id,
+    universalProjectId: project.universalProjectId,
+    generatedAt: new Date(),
+
+    projectAddress: project.projectAddress || '',
+    clientName: project.clientName || '',
+    projectName: project.name || '',
+
+    contact: {
+      name: project.clientContact || '',
+      phone: project.clientPhone || '',
+      email: project.clientEmail || '',
+    },
+
+    dispatchLocation: project.dispatchLocation || '',
+    distance: project.distance,
+    estimatedDriveTime,
+
+    scopeSummary: project.scopeSummary || '',
+    totalSqft,
+    areaCount: areas.length,
+
+    areas: mappedAreas,
+    siteConditions,
+    risks: riskLabels,
+
+    requirements: {
+      actScanning: services.actScanning === 'yes',
+      georeferencing: services.georeferencing === true,
+      matterport: services.matterport === true,
+      scanningOnly: services.scanningOnly || null,
+    },
+
+    suggestedEquipment,
+    projectNotes: project.notes || null,
+  };
+}
+
+function deriveSuggestedEquipment(
+  areas: any[], 
+  services: any, 
+  siteConditions: any
+): string[] {
+  const equipment: string[] = [];
+
+  // Base equipment
+  equipment.push("Leica RTC360 or BLK360");
+  equipment.push("Tripod");
+  equipment.push("Targets (minimum 6)");
+  equipment.push("Tablet with field software");
+
+  // ACT scanning
+  if (services.actScanning) {
+    equipment.push("Ladder (8ft minimum)");
+    equipment.push("Ceiling tile lifter");
+    equipment.push("Flashlight / headlamp");
+  }
+
+  // Large area
+  const totalSqft = areas.reduce((sum, a) => sum + (a.sqft || 0), 0);
+  if (totalSqft > 50000) {
+    equipment.push("Extra batteries (2+)");
+    equipment.push("Backup SD cards");
+  }
+
+  // No power
+  if (siteConditions.occupied === false || siteConditions.noPower) {
+    equipment.push("Portable power bank");
+    equipment.push("Battery-powered lights");
+  }
+
+  // Exterior / Site work
+  const hasExterior = areas.some(a => 
+    a.scope === 'exterior' || 
+    a.disciplines?.includes('site') ||
+    a.buildingType.includes('Landscape')
+  );
+  if (hasExterior) {
+    equipment.push("GPS unit");
+    equipment.push("Survey stakes / markers");
+  }
+
+  // Matterport
+  if (services.matterport) {
+    equipment.push("Matterport Pro2 or Pro3");
+  }
+
+  return [...new Set(equipment)]; // Dedupe
+}
+```
+
+**Part 3: Add API Endpoint**
+
+In `server/routes.ts`:
+
+```typescript
+import { generateMissionBrief } from './missionBrief';
+
+// GET /api/projects/:id/mission-brief
+app.get("/api/projects/:id/mission-brief", isAuthenticated, async (req, res) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    const project = await storage.getProject(projectId);
+
+    if (!project) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+
+    const brief = generateMissionBrief(project);
+    res.json(brief);
+
+  } catch (error) {
+    console.error("Mission brief generation error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/projects/:id/mission-brief/pdf
+app.get("/api/projects/:id/mission-brief/pdf", isAuthenticated, async (req, res) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    const project = await storage.getProject(projectId);
+
+    if (!project) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+
+    const brief = generateMissionBrief(project);
+    const pdfBuffer = await generateMissionBriefPdf(brief);
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="Mission-Brief-${project.universalProjectId}.pdf"`);
+    res.send(pdfBuffer);
+
+  } catch (error) {
+    console.error("Mission brief PDF error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+```
+
+**Part 4: Create Mission Brief UI Component**
+
+Create `client/src/components/MissionBrief.tsx`:
+
+```tsx
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { 
+  MapPin, Phone, Mail, Clock, Car, AlertTriangle, 
+  CheckSquare, Package, FileText, Download, Printer 
+} from "lucide-react";
+import type { MissionBrief } from "@shared/missionBrief";
+
+interface MissionBriefProps {
+  projectId: number;
+}
+
+export function MissionBriefView({ projectId }: MissionBriefProps) {
+  const { data: brief, isLoading } = useQuery<MissionBrief>({
+    queryKey: ["/api/projects", projectId, "mission-brief"],
+  });
+
+  if (isLoading) return <div>Loading mission brief...</div>;
+  if (!brief) return <div>Unable to generate mission brief</div>;
+
+  const handlePrint = () => window.print();
+  const handleDownloadPdf = () => {
+    window.open(`/api/projects/${projectId}/mission-brief/pdf`, '_blank');
+  };
+
+  return (
+    <div className="space-y-6 max-w-4xl mx-auto print:max-w-none">
+      {/* Header */}
+      <div className="flex justify-between items-start print:hidden">
+        <div>
+          <h1 className="text-2xl font-bold">Mission Brief</h1>
+          <p className="text-muted-foreground">{brief.universalProjectId}</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handlePrint}>
+            <Printer className="w-4 h-4 mr-2" />
+            Print
+          </Button>
+          <Button onClick={handleDownloadPdf}>
+            <Download className="w-4 h-4 mr-2" />
+            Download PDF
+          </Button>
+        </div>
+      </div>
+
+      {/* Print Header */}
+      <div className="hidden print:block mb-6">
+        <h1 className="text-2xl font-bold">MISSION BRIEF</h1>
+        <p className="text-lg">{brief.universalProjectId}</p>
+        <p className="text-sm text-gray-500">Generated: {new Date(brief.generatedAt).toLocaleString()}</p>
+      </div>
+
+      {/* Location & Contact */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <MapPin className="w-5 h-5" />
+              Location
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="font-semibold">{brief.clientName}</p>
+            <p>{brief.projectName}</p>
+            <p className="mt-2">{brief.projectAddress}</p>
+            {brief.distance && (
+              <p className="text-sm text-muted-foreground mt-2">
+                <Car className="w-4 h-4 inline mr-1" />
+                {brief.distance} miles from {brief.dispatchLocation}
+                {brief.estimatedDriveTime && ` • ${brief.estimatedDriveTime}`}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Phone className="w-5 h-5" />
+              Client Contact
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="font-semibold">{brief.contact.name || "No contact specified"}</p>
+            {brief.contact.phone && (
+              <p className="flex items-center gap-2 mt-1">
+                <Phone className="w-4 h-4" />
+                <a href={`tel:${brief.contact.phone}`} className="text-blue-500 hover:underline">
+                  {brief.contact.phone}
+                </a>
+              </p>
+            )}
+            {brief.contact.email && (
+              <p className="flex items-center gap-2 mt-1">
+                <Mail className="w-4 h-4" />
+                <a href={`mailto:${brief.contact.email}`} className="text-blue-500 hover:underline">
+                  {brief.contact.email}
+                </a>
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Scope Summary */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <FileText className="w-5 h-5" />
+            Scope Overview
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-3">{brief.scopeSummary}</p>
+          <div className="flex gap-4 text-sm">
+            <span><strong>{brief.areaCount}</strong> area{brief.areaCount !== 1 ? 's' : ''}</span>
+            <span><strong>{brief.totalSqft.toLocaleString()}</strong> sqft total</span>
+          </div>
+
+          {/* Areas Table */}
+          <div className="mt-4 border rounded-lg overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="text-left p-2">Area</th>
+                  <th className="text-left p-2">Type</th>
+                  <th className="text-right p-2">Sqft</th>
+                  <th className="text-left p-2">Disciplines</th>
+                  <th className="text-center p-2">LOD</th>
+                </tr>
+              </thead>
+              <tbody>
+                {brief.areas.map((area, i) => (
+                  <tr key={i} className="border-t">
+                    <td className="p-2 font-medium">{area.name}</td>
+                    <td className="p-2">{area.buildingType}</td>
+                    <td className="p-2 text-right">{area.sqft.toLocaleString()}</td>
+                    <td className="p-2">
+                      {area.disciplines.map(d => (
+                        <Badge key={d} variant="outline" className="mr-1 text-xs">
+                          {d}
+                        </Badge>
+                      ))}
+                    </td>
+                    <td className="p-2 text-center">{area.lod}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Site Conditions */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5" />
+            Site Conditions
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+            <div>
+              <span className="text-muted-foreground">Occupied:</span>{' '}
+              <strong>{brief.siteConditions.occupied === null ? 'Unknown' : brief.siteConditions.occupied ? 'Yes' : 'No'}</strong>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Drop Ceilings:</span>{' '}
+              <strong>{brief.siteConditions.dropCeilings || 'Unknown'}</strong>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Hazardous Materials:</span>{' '}
+              <strong>{brief.siteConditions.hazardousMaterials || 'Unknown'}</strong>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Active Construction:</span>{' '}
+              <strong>{brief.siteConditions.activeConstruction === null ? 'Unknown' : brief.siteConditions.activeConstruction ? 'Yes' : 'No'}</strong>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Parking:</span>{' '}
+              <strong>{brief.siteConditions.parkingAccess || 'Unknown'}</strong>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Access Restrictions:</span>{' '}
+              <strong>{brief.siteConditions.accessRestrictions || 'None noted'}</strong>
+            </div>
+          </div>
+
+          {brief.siteConditions.additionalNotes && (
+            <div className="mt-3 p-2 bg-muted rounded">
+              <p className="text-sm"><strong>Additional Notes:</strong> {brief.siteConditions.additionalNotes}</p>
+            </div>
+          )}
+
+          {/* Risk Factors */}
+          {brief.risks.length > 0 && (
+            <div className="mt-4">
+              <p className="text-sm font-medium mb-2">Risk Factors:</p>
+              <div className="flex flex-wrap gap-2">
+                {brief.risks.map((risk, i) => (
+                  <Badge key={i} variant="destructive">{risk}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Special Requirements */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <CheckSquare className="w-5 h-5" />
+            Special Requirements
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-3">
+            {brief.requirements.actScanning && (
+              <Badge>ACT Scanning Required</Badge>
+            )}
+            {brief.requirements.georeferencing && (
+              <Badge>Georeferencing Required</Badge>
+            )}
+            {brief.requirements.matterport && (
+              <Badge>Matterport Capture</Badge>
+            )}
+            {brief.requirements.scanningOnly && (
+              <Badge variant="outline">Scanning Only: {brief.requirements.scanningOnly}</Badge>
+            )}
+            {!brief.requirements.actScanning && 
+             !brief.requirements.georeferencing && 
+             !brief.requirements.matterport && 
+             !brief.requirements.scanningOnly && (
+              <span className="text-muted-foreground">Standard scan job</span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Equipment Checklist */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Package className="w-5 h-5" />
+            Suggested Equipment
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            {brief.suggestedEquipment.map((item, i) => (
+              <label key={i} className="flex items-center gap-2 text-sm">
+                <input type="checkbox" className="rounded" />
+                {item}
+              </label>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Project Notes */}
+      {brief.projectNotes && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Notes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm">{brief.projectNotes}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Footer - Print Only */}
+      <div className="hidden print:block mt-8 pt-4 border-t text-center text-sm text-gray-500">
+        <p>Scan2Plan • {brief.universalProjectId} • Generated {new Date(brief.generatedAt).toLocaleDateString()}</p>
+      </div>
+    </div>
+  );
+}
+```
+
+**Part 5: Add Mission Brief Button to Production UI**
+
+In the project detail view or Production Kanban:
+
+```tsx
+<Button 
+  variant="outline" 
+  onClick={() => navigate(`/projects/${project.id}/mission-brief`)}
+>
+  <FileText className="w-4 h-4 mr-2" />
+  Mission Brief
+</Button>
+```
+
+**Part 6: Add Route**
+
+In `client/src/App.tsx`:
+
+```tsx
+<Route path="/projects/:id/mission-brief" element={<MissionBriefPage />} />
+```
+
+Create `client/src/pages/MissionBriefPage.tsx`:
+
+```tsx
+import { useParams } from "react-router-dom";
+import { MissionBriefView } from "@/components/MissionBrief";
+
+export default function MissionBriefPage() {
+  const { id } = useParams();
+  return <MissionBriefView projectId={parseInt(id!)} />;
+}
+```
+
+**Part 7: PDF Generation (Optional Enhancement)**
+
+For PDF export, use a library like `pdf-lib` or `puppeteer`. Simple approach with `pdf-lib`:
+
+```typescript
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+
+export async function generateMissionBriefPdf(brief: MissionBrief): Promise<Buffer> {
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([612, 792]); // Letter size
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const boldFont = await doc.embedFont(StandardFonts.HelveticaBold);
+
+  let y = 750;
+  const lineHeight = 18;
+  const margin = 50;
+
+  // Title
+  page.drawText('MISSION BRIEF', { x: margin, y, font: boldFont, size: 24 });
+  y -= 30;
+  page.drawText(brief.universalProjectId, { x: margin, y, font, size: 14 });
+  y -= 40;
+
+  // Location
+  page.drawText('LOCATION', { x: margin, y, font: boldFont, size: 12 });
+  y -= lineHeight;
+  page.drawText(brief.clientName, { x: margin, y, font, size: 11 });
+  y -= lineHeight;
+  page.drawText(brief.projectAddress, { x: margin, y, font, size: 11 });
+  y -= 30;
+
+  // Contact
+  page.drawText('CLIENT CONTACT', { x: margin, y, font: boldFont, size: 12 });
+  y -= lineHeight;
+  page.drawText(`${brief.contact.name} • ${brief.contact.phone}`, { x: margin, y, font, size: 11 });
+  y -= 30;
+
+  // Scope
+  page.drawText('SCOPE', { x: margin, y, font: boldFont, size: 12 });
+  y -= lineHeight;
+  page.drawText(brief.scopeSummary, { x: margin, y, font, size: 10, maxWidth: 500 });
+  y -= 40;
+
+  // Areas
+  page.drawText('AREAS', { x: margin, y, font: boldFont, size: 12 });
+  y -= lineHeight;
+  for (const area of brief.areas) {
+    page.drawText(
+      `• ${area.name}: ${area.sqft.toLocaleString()} sqft, ${area.buildingType}, LOD ${area.lod}`,
+      { x: margin, y, font, size: 10 }
+    );
+    y -= lineHeight;
+  }
+  y -= 20;
+
+  // Equipment
+  page.drawText('EQUIPMENT CHECKLIST', { x: margin, y, font: boldFont, size: 12 });
+  y -= lineHeight;
+  for (const item of brief.suggestedEquipment) {
+    page.drawText(`☐ ${item}`, { x: margin, y, font, size: 10 });
+    y -= lineHeight;
+  }
+
+  const pdfBytes = await doc.save();
+  return Buffer.from(pdfBytes);
+}
+```
+
+---
+
+**Summary:**
+
+| File | Change |
+|------|--------|
+| `shared/missionBrief.ts` | Type definitions |
+| `server/missionBrief.ts` | Generator function + equipment derivation |
+| `server/routes.ts` | API endpoints (JSON + PDF) |
+| `client/src/components/MissionBrief.tsx` | Full UI component |
+| `client/src/pages/MissionBriefPage.tsx` | Page wrapper |
+| `client/src/App.tsx` | Route |
+| Production UI | Add "Mission Brief" button |
+
+**Result:** One-click generates a printable/downloadable briefing with everything the tech needs: location, contact, scope, site conditions, risks, and equipment checklist.
+
+---
+
+Let me know when this lands and we can move to PandaDoc or QBO integration next.

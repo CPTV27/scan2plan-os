@@ -1,0 +1,28 @@
+Based on your progress and the technical capabilities revealed in the new sources, here is the recommended priority order for the next phase of development. These suggestions align with your mission to deliver **trust, confidence, and integrity** while mitigating the high costs of construction rework, which typically range from **5% to 12% of total project budgets**.
+
+### **Priority 1: QC 3-Stage Enforcement (Risk Mitigation)**
+**Why:** This is the most critical operational update to protect your margins. The sources emphasize that **22% to 26% of rework** is caused by inaccurate or inaccessible information. 
+*   **Implementation Note:** You should hard-code "Gates" between the **Scanning → Registration → Modeling** stages.
+*   **Logic:** A project should not be accessible to the modeling team until the registration has passed **B-Validation (cross-scan alignment)** and, if applicable, **C-Validation (control point alignment)** to ensure the **LoA 40 (1/4") measured accuracy** is met. This ensures the "Measure of Excellence" is enforced before expensive human modeling hours are spent.
+
+### **Priority 2: 5 AI Intelligence Modules (Sales Strategy & Growth)**
+**Why:** You now have the exact system prompts for the remaining three modules: **Competitor, Regulatory, and Expansion Intelligence**. 
+*   **Regulatory Intelligence:** This is vital for the "Risk-Averse General Contractor" and "Sustainability Architect" personas. Automating the research of **local building codes (ADA, seismic, fire)** for a specific address allows you to identify "Complexity Drivers" early.
+*   **Expansion Intelligence:** This supports the **Enterprise Facility Manager** by finding other properties owned by the client or parent companies. This directly feeds your goal of **asset-centric stewardship** rather than one-off project delivery.
+
+### **Priority 3: LEED v5 / Embodied Carbon Tracking (Brand Positioning)**
+**Why:** The new **LEED v5 (MRp2)** prerequisite makes it mandatory for project teams to **quantify and assess embodied carbon** in the building's structure, enclosure, and hardscape.
+*   **Technical Requirement:** Adding a **Bill of Materials (BoM)** field that calculates the **Global Warming Potential (GWP)** for A1–A3 (cradle-to-gate) emissions is essential.
+*   **Strategic Impact:** This allows you to market S2P as a high-value compliance partner for the **Sustainability-Driven Architect**. It moves your model from a "3D drawing" to a **"Carbon Audit"**.
+
+### **Priority 4: LoD 350+ (HBIM) Defaults (Efficiency)**
+**Why:** You have defined **LoD 350+** as the standard for **Historic Building Information Modeling (HBIM)**, capturing intricate details like carvings, frescoes, and custom joinery.
+*   **Automation Logic:** If a lead is categorized under the **"Religious Buildings"** or **"Hotel / Theatre / Museum"** building types, the OS should automatically default the target **LoD to 350+** to ensure the quoting and production teams are aligned on the specialized "White Glove" precision required for these "time capsules".
+
+***
+
+**Strategic "Human in the Loop" Check:**
+Regarding the **CPQ PDF Export**, since you cannot modify the external tool, you may want to create a **"Proposal Staging Area"** in the OS. This would allow you to upload the raw data from the CPQ and then have the OS generate a unified, formatted PDF that pulls in the **Universal Project ID** and the **full unique address (including zip code)** to serve as the definitive "Single Source of Truth" cover page.
+
+**Analogy for Understanding:**
+Upgrading the OS in this order is like **transitioning from a standard workshop to an ISO-certified lab**. Priority 1 (QC Gates) ensures the **quality of the instruments** (data) is perfect; Priority 2 (AI) acts as a **market radar** to find more samples; and Priority 3 (LEED) provides the **specialized certifications** that allow you to charge premium rates for elite scientific results.

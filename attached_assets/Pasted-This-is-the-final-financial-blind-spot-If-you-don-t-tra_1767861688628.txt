@@ -1,0 +1,199 @@
+This is the final financial blind spot. If you don't track commissions and overhead at the project level, you might think a job has a 40% margin when it actually has a 12% margin after paying the sales rep and the office rent.
+
+We will implement a **"True Net" Calculator**.
+
+This logic layers costs in this specific order:
+
+1. **Gross Revenue** (Contract Value)
+2. **COGS** (Scanning Labor + Modeling Vendors + Hard Costs)
+3. **Variable Comp** (Commission % of Gross)
+4. **Fixed Overhead** (Flat % allocation for operations)
+5. **= True Net Profit**
+
+Here is the prompt to build the **Variable Compensation & Overhead Module**.
+
+**Copy and paste this into Replit.**
+
+---
+
+**Role:** Senior Financial Architect
+**Objective:** Implement variable compensation (commissions) and overhead allocation into the project profitability logic.
+
+**1. DATABASE: UPDATE USER & SETTINGS SCHEMA (`shared/schema.ts`)**
+
+* **Action:**
+1. Add `commission_rate` to `users` (e.g., 0.05 for 5%).
+2. Add `overhead_rate` to a new `system_settings` table (or hardcode it in config for now, let's use a simple distinct table for scalability).
+
+
+* **Code:**
+```typescript
+// Update 'users' table
+// commissionRate: decimal("commission_rate").default("0.00"), // % of Gross Sales
+
+// Create 'system_settings' table (Singleton)
+export const systemSettings = pgTable("system_settings", {
+  id: serial("id").primaryKey(),
+  overheadRate: decimal("overhead_rate").default("0.15"), // e.g., 15% for Ops/Rent/Software
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+```
+
+
+
+**2. SERVICE: THE PROFITABILITY ENGINE (`server/services/financial.ts`)**
+
+* **Action:** Create a function that calculates the *True Net* for a project.
+* **Code:**
+```typescript
+import { db } from '../db';
+import { projects, timeEntries, users, systemSettings } from '@shared/schema';
+import { eq, sum } from 'drizzle-orm';
+
+export async function calculateProjectProfitability(projectId: number) {
+  // 1. Fetch Project & Revenue
+  const project = await db.query.projects.findFirst({
+    where: eq(projects.id, projectId),
+    with: { lead: true } // To get the Sales Rep (owner)
+  });
+
+  if (!project) throw new Error("Project not found");
+  const revenue = parseFloat(project.contractValue || "0");
+
+  // 2. Calculate Direct Labor (COGS)
+  const labor = await db
+    .select({ total: sum(timeEntries.cost) })
+    .from(timeEntries)
+    .where(eq(timeEntries.projectId, projectId));
+  const laborCost = parseFloat(labor[0]?.total || "0");
+
+  // 3. Calculate Vendor Costs (COGS)
+  const vendorCost = parseFloat(project.vendorCost || "0"); // Assuming this field exists from previous steps
+
+  // 4. Calculate Commission (Variable)
+  // Get the Sales Rep's specific rate
+  const salesRep = await db.query.users.findFirst({
+    where: eq(users.id, project.lead.ownerId)
+  });
+  const commissionRate = parseFloat(salesRep?.commissionRate || "0");
+  const commissionCost = revenue * (commissionRate / 100);
+
+  // 5. Calculate Overhead (Fixed Allocation)
+  // Fetch global overhead rate (default 15% if not set)
+  const settings = await db.query.systemSettings.findFirst();
+  const overheadRate = parseFloat(settings?.overheadRate || "0.15");
+  const overheadCost = revenue * overheadRate;
+
+  // 6. The Bottom Line
+  const totalCost = laborCost + vendorCost + commissionCost + overheadCost;
+  const netProfit = revenue - totalCost;
+  const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
+
+  return {
+    revenue,
+    costs: {
+      labor: laborCost,
+      vendor: vendorCost,
+      commission: commissionCost,
+      overhead: overheadCost,
+      total: totalCost
+    },
+    profit: {
+      netDollar: netProfit,
+      netPercent: netMargin
+    }
+  };
+}
+
+```
+
+
+
+**3. UI: THE MARGIN WATERFALL (`client/src/components/ProjectFinancials.tsx`)**
+
+* **Action:** Create a component to visualize this breakdown.
+* **Code:**
+```tsx
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+
+export function ProjectFinancials({ data }) {
+  // data comes from the API we just built
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Profitability Waterfall</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Top Line */}
+        <div className="flex justify-between font-bold text-lg">
+          <span>Gross Revenue</span>
+          <span>${data.revenue.toLocaleString()}</span>
+        </div>
+
+        <div className="border-t pt-2 space-y-2 text-sm">
+          {/* COGS */}
+          <div className="flex justify-between text-slate-600">
+            <span>- Labor & Vendors (COGS)</span>
+            <span>${(data.costs.labor + data.costs.vendor).toLocaleString()}</span>
+          </div>
+
+          {/* Commission */}
+          <div className="flex justify-between text-orange-600">
+            <span>- Sales Commission</span>
+            <span>${data.costs.commission.toLocaleString()}</span>
+          </div>
+
+          {/* Overhead */}
+          <div className="flex justify-between text-slate-400">
+            <span>- Overhead Allocation</span>
+            <span>${data.costs.overhead.toLocaleString()}</span>
+          </div>
+        </div>
+
+        {/* Bottom Line */}
+        <div className="border-t pt-2 mt-2">
+          <div className="flex justify-between font-bold text-xl text-green-700">
+            <span>True Net Profit</span>
+            <span>${data.profit.netDollar.toLocaleString()}</span>
+          </div>
+          <div className="mt-2">
+             <div className="flex justify-between text-xs mb-1">
+               <span>Net Margin Target: 20%</span>
+               <span className={data.profit.netPercent < 20 ? "text-red-500" : "text-green-600"}>
+                 Current: {data.profit.netPercent.toFixed(1)}%
+               </span>
+             </div>
+             <Progress value={data.profit.netPercent} max={40} className="h-2" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+```
+
+
+
+**4. API: CONNECT THE ENDPOINT (`server/routes.ts`)**
+
+* **Action:** Add `GET /api/projects/:id/financials` to call the logic.
+
+---
+
+### **How this helps you:**
+
+Now, when you look at a project, you won't just see **"Gross Margin: 50%."**
+You will see:
+
+* Gross Margin: 50%
+* *Less Commission (10%)*
+* *Less Overhead (15%)*
+* **True Net: 25%**
+
+This stops you from accidentally celebrating a project that actually lost money after you paid the sales rep and the rent.
+
+**Run this prompt.** It completes the financial reality of your OS.

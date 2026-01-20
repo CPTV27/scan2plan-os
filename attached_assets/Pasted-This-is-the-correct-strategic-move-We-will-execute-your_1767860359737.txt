@@ -1,0 +1,180 @@
+This is the correct strategic move.
+
+We will execute your **Recommended Priority Order**. We start with **HubSpot** because without it, your "Growth Engine" is just a fancy database with no voice. You have the Personas and the Evidence, but HubSpot is the cannon that fires them.
+
+Here is the **HubSpot Implementation Prompt**.
+
+This code does two critical things:
+
+1. **Bi-Directional Sync:** When you add a Lead in S2P, it creates/updates the Contact in HubSpot.
+2. **The "Trojan Horse" Injection:** It pushes your **S2P Persona Code** and the specific **Evidence Hook** (the "Hero Stat") into custom HubSpot fields. This allows your HubSpot email templates to say: *"Hey [Name], we saw you are an Architect. We just saved a historic lodge..."*
+
+**Pre-requisite:**
+You must go to HubSpot Settings > Properties and create two custom Contact properties:
+
+1. `s2p_persona` (Text)
+2. `s2p_evidence_hook` (Text)
+
+**Copy and paste this into Replit.**
+
+---
+
+**Role:** Senior Integration Engineer
+**Objective:** Implement the full HubSpot Sync Logic to power the Growth Engine.
+
+**1. DEPENDENCIES**
+
+* **Action:** Install the official client.
+* **Command:** `npm install @hubspot/api-client`
+
+**2. SERVICE: THE HUBSPOT SYNC ENGINE (`server/services/hubspot.ts`)**
+
+* **Action:** Replace the existing placeholder file with this robust logic.
+* **Code:**
+
+```typescript
+import { Client } from '@hubspot/api-client';
+import { db } from '../db';
+import { leads, evidenceVault } from '@shared/schema';
+import { eq, desc } from 'drizzle-orm';
+
+// Initialize Client
+const hubspotClient = new Client({ accessToken: process.env.HUBSPOT_TOKEN });
+
+export async function syncLeadToHubspot(leadId: number) {
+  if (!process.env.HUBSPOT_TOKEN) {
+    console.warn("⚠️ HubSpot Token missing. Skipping sync.");
+    return;
+  }
+
+  try {
+    // 1. Fetch Lead Data
+    const lead = await db.query.leads.findFirst({
+      where: eq(leads.id, leadId)
+    });
+
+    if (!lead) throw new Error(`Lead ${leadId} not found`);
+
+    // 2. Fetch Best Evidence Hook (The "Ammo")
+    // We look for the highest rated hook for this lead's assigned persona
+    let hookContent = "";
+    if (lead.persona) {
+      const evidence = await db.query.evidenceVault.findFirst({
+        where: eq(evidenceVault.personaCode, lead.persona),
+        orderBy: [desc(evidenceVault.ewsScore)]
+      });
+      if (evidence) hookContent = evidence.hookContent;
+    }
+
+    // 3. Map to HubSpot Properties
+    const properties = {
+      email: lead.email,
+      firstname: lead.firstName,
+      lastname: lead.lastName,
+      company: lead.companyName,
+      phone: lead.phone,
+      lifecyclestage: "lead", // Default stage
+      
+      // CUSTOM S2P FIELDS (The Magic)
+      s2p_persona: lead.persona, // "BP1", "BP5", etc.
+      s2p_evidence_hook: hookContent, // "Saved $50k on Masonic Lodge..."
+      s2p_project_type: lead.projectType
+    };
+
+    // 4. Upsert (Create or Update)
+    // We try to create first. If 409 (Conflict), we update.
+    try {
+      const createResponse = await hubspotClient.crm.contacts.basicApi.create({
+        properties,
+        associations: []
+      });
+      console.log(`✅ HubSpot: Created contact ${createResponse.id}`);
+      return createResponse.id;
+    } catch (e: any) {
+      if (e.code === 409) {
+        // Contact exists, update it by email search
+        const searchResponse = await hubspotClient.crm.contacts.searchApi.doSearch({
+          filterGroups: [{ filters: [{ propertyName: 'email', operator: 'EQ', value: lead.email }] }],
+          sorts: [],
+          properties: ['id'],
+          limit: 1,
+          after: 0
+        });
+
+        if (searchResponse.results.length > 0) {
+          const contactId = searchResponse.results[0].id;
+          await hubspotClient.crm.contacts.basicApi.update(contactId, { properties });
+          console.log(`🔄 HubSpot: Updated contact ${contactId}`);
+          return contactId;
+        }
+      } else {
+        throw e;
+      }
+    }
+  } catch (error) {
+    console.error("❌ HubSpot Sync Failed:", error);
+    // Don't crash the app, just log the error so the UI can continue
+  }
+}
+
+```
+
+**3. INTEGRATION: TRIGGER THE SYNC (`server/routes.ts`)**
+
+* **Action:** Hook this function into the Lead Create/Update route.
+* **Code:**
+
+```typescript
+import { syncLeadToHubspot } from './services/hubspot';
+
+// ... Inside your POST /api/leads route ...
+
+// After db.insert(leads)...
+const [newLead] = await db.insert(leads).values(data).returning();
+
+// Fire and Forget (Don't await, let it run in background)
+syncLeadToHubspot(newLead.id);
+
+res.json(newLead);
+
+// ... Do the same for your PATCH /api/leads/:id route ...
+
+```
+
+**4. WEBHOOK: ENGAGEMENT TRACKING STUB (`server/routes.ts`)**
+
+* **Action:** Create the listener endpoint for when HubSpot calls *us* (e.g., "Email Opened").
+* **Code:**
+
+```typescript
+// ... Add this new route ...
+app.post('/api/webhooks/hubspot', async (req, res) => {
+  // 1. Verify Signature (Security Step - Placeholder)
+  // const signature = req.headers['x-hubspot-signature'];
+  
+  // 2. Parse Event
+  const events = req.body;
+  console.log("📨 HubSpot Webhook Received:", events);
+
+  // Future Logic: If event === "email.opened", update Lead Score in S2P DB
+
+  res.status(200).send("OK");
+});
+
+```
+
+---
+
+### **How to verify this works:**
+
+1. **Get your Token:** Go to HubSpot > Settings > Integrations > Private Apps. Create one named "Scan2Plan OS". Scopes needed: `crm.contacts`, `crm.schemas.contacts.read`. Copy the Access Token.
+2. **Add Secret:** Add `HUBSPOT_TOKEN` to your Replit Secrets.
+3. **Test:**
+* Create a Lead in S2P named "Tony Stark".
+* Set Persona to **BP1 (Engineer)**.
+* Click Save.
+* Go to HubSpot. You should see "Tony Stark" created, and the `s2p_evidence_hook` field should contain your top-rated Engineer case study.
+
+
+
+**Shall we proceed with this HubSpot integration first?**

@@ -1,0 +1,172 @@
+Got it. That's exactly right then. Let me look at what you've already got...
+From your schema, cpq_quotes already has:
+
+client_token
+client_token_expires_at
+client_status
+RFI fields: site_status, mep_scope, act_scanning, scanning_only, act_scanning_notes
+
+So the bones are there. Just need to wire it up properly.
+
+Replit Prompt:
+
+Build Magic Link Site Readiness Questionnaire
+The CEO fills out what he knows during a sales call. Any unanswered site/property questions get bundled into a magic link the client can fill out.
+Part 1: Define Site Readiness Questions
+Create a shared/siteReadinessQuestions.ts file:
+typescriptexport interface SiteReadinessQuestion {
+  id: string;
+  question: string;           // Client-friendly wording
+  type: "boolean" | "select" | "text" | "number";
+  options?: string[];         // For select type
+  mapsTo?: string;            // CPQ field it affects (optional)
+  pricingImpact?: string;     // Human-readable impact note
+}
+
+export const SITE_READINESS_QUESTIONS: SiteReadinessQuestion[] = [
+  {
+    id: "occupied",
+    question: "Is the building currently occupied?",
+    type: "boolean",
+    pricingImpact: "May require after-hours scanning"
+  },
+  {
+    id: "accessRestrictions",
+    question: "Are there access restrictions? (security badges, escorts, limited hours)",
+    type: "text",
+    pricingImpact: "Affects scheduling and site time"
+  },
+  {
+    id: "separateStructures",
+    question: "How many separate buildings/structures need to be scanned?",
+    type: "number",
+    pricingImpact: "Each structure is priced separately"
+  },
+  {
+    id: "hasBasement",
+    question: "Does the building have a basement?",
+    type: "boolean",
+    mapsTo: "hasBasement"
+  },
+  {
+    id: "hasAttic",
+    question: "Does the building have an attic or crawl space that needs scanning?",
+    type: "boolean",
+    mapsTo: "hasAttic"
+  },
+  {
+    id: "dropCeilings",
+    question: "Are there drop ceilings/ceiling tiles?",
+    type: "select",
+    options: ["No drop ceilings", "Yes - tiles can be moved", "Yes - tiles cannot be moved", "Unknown"],
+    pricingImpact: "Above-ceiling scanning is additional scope"
+  },
+  {
+    id: "hazardousMaterials",
+    question: "Are there any known hazardous materials? (asbestos, lead paint, etc.)",
+    type: "select",
+    options: ["None known", "Yes - remediated", "Yes - still present", "Unknown"]
+  },
+  {
+    id: "activeConstruction",
+    question: "Is there active construction happening on-site?",
+    type: "boolean",
+    pricingImpact: "May affect site access and safety protocols"
+  },
+  {
+    id: "parkingAccess",
+    question: "Is there parking available near the building for our equipment vehicle?",
+    type: "select",
+    options: ["Yes - on-site parking", "Street parking nearby", "Limited/difficult parking", "Unknown"]
+  },
+  {
+    id: "existingDrawings",
+    question: "Do you have any existing drawings or floor plans you can share?",
+    type: "select",
+    options: ["Yes - CAD/BIM files", "Yes - PDF drawings", "Yes - paper only", "No existing drawings"]
+  },
+  {
+    id: "additionalNotes",
+    question: "Anything else we should know about the site?",
+    type: "text"
+  }
+];
+Part 2: Add Site Readiness to Lead/Quote
+Add to cpq_quotes or leads table (whichever makes more sense—probably leads since it's property info):
+typescript// In schema, add to leads table:
+siteReadiness: jsonb("site_readiness").$type<Record<string, any>>(),
+siteReadinessStatus: text("site_readiness_status").default("pending"), // "pending" | "sent" | "completed"
+siteReadinessSentAt: timestamp("site_readiness_sent_at"),
+siteReadinessCompletedAt: timestamp("site_readiness_completed_at"),
+Part 3: CEO-Side UI in DealWorkspace
+Add a "Site Readiness" section in DealWorkspace.tsx:
+tsx// Show each question with input + "Send to Client" checkbox
+{SITE_READINESS_QUESTIONS.map((q) => (
+  <div key={q.id} className="flex items-start gap-3 py-2 border-b">
+    <Checkbox
+      id={`send-${q.id}`}
+      checked={questionsToSend.includes(q.id)}
+      onCheckedChange={(checked) => toggleQuestionToSend(q.id, checked)}
+      disabled={!!siteReadiness[q.id]} // Already answered
+    />
+    <div className="flex-1">
+      <Label htmlFor={`send-${q.id}`}>{q.question}</Label>
+      {/* Render input based on q.type */}
+      {/* Show current value if answered */}
+    </div>
+  </div>
+))}
+
+<Button 
+  onClick={generateMagicLink}
+  disabled={questionsToSend.length === 0}
+>
+  Send {questionsToSend.length} Questions to Client
+</Button>
+Part 4: Generate Magic Link Endpoint
+The endpoint /api/cpq-quotes/:id/generate-link already exists. Update it to:
+typescript// POST /api/leads/:id/site-readiness-link
+app.post("/api/leads/:id/site-readiness-link", async (req, res) => {
+  const { questionIds } = req.body; // Which questions to include
+  
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  
+  await storage.updateLead(leadId, {
+    clientToken: token,
+    clientTokenExpiresAt: expiresAt,
+    siteReadinessStatus: "sent",
+    siteReadinessSentAt: new Date(),
+  });
+  
+  // Store which questions were sent (so we know what to render)
+  await storage.updateLead(leadId, {
+    siteReadinessQuestionsSent: questionIds,
+  });
+  
+  const magicLink = `${process.env.APP_URL}/site-readiness/${token}`;
+  
+  res.json({ success: true, magicLink, expiresAt });
+});
+Part 5: Public Site Readiness Form
+Create a public route (no auth required):
+typescript// GET /site-readiness/:token - Render form
+// POST /site-readiness/:token - Submit answers
+Create client/src/pages/SiteReadinessForm.tsx:
+tsx// Public page - no auth
+// 1. Fetch lead by token (only returns question IDs + project name, no sensitive data)
+// 2. Render only the questions that were sent
+// 3. On submit, save answers back to lead.siteReadiness
+// 4. Update siteReadinessStatus to "completed"
+// 5. Show "Thanks! Your answers have been submitted" confirmation
+Part 6: Notification When Completed
+When client submits:
+
+Update lead.siteReadinessStatus = "completed"
+Update lead.siteReadinessCompletedAt = new Date()
+Optionally: Send email/notification to CEO
+In DealWorkspace, show a badge: "Site Readiness Completed ✓"
+
+
+Summary of new files/changes:
+FileActionshared/siteReadinessQuestions.tsCreate - question definitionsshared/schema.tsAdd siteReadiness fields to leadsserver/routes.tsAdd magic link generation + public form endpointsclient/src/pages/DealWorkspace.tsxAdd Site Readiness sectionclient/src/pages/SiteReadinessForm.tsxCreate - public client formclient/src/App.tsxAdd public route for /site-readiness/:token

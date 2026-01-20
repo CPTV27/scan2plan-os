@@ -1,0 +1,263 @@
+Wire PandaDoc Integration for Proposal Signature
+The app already generates proposal PDFs and can send them to clients. Now we need to add a "Send for Signature via PandaDoc" option that:
+
+Uploads the proposal PDF to PandaDoc
+Creates a document with signature fields
+Sends to the client
+Receives webhook when signed
+Updates the lead/deal status
+
+Part 1: PandaDoc API - Create Document from PDF
+Create server/pandadoc.ts:
+typescriptimport fetch from 'node-fetch';
+import FormData from 'form-data';
+
+const PANDADOC_API_KEY = process.env.PANDADOC_API_KEY;
+const PANDADOC_BASE_URL = 'https://api.pandadoc.com/public/v1';
+
+interface CreateDocumentOptions {
+  name: string;
+  pdfBuffer: Buffer;
+  recipientEmail: string;
+  recipientName: string;
+  recipientRole?: string;
+}
+
+export async function createDocumentFromPdf(options: CreateDocumentOptions) {
+  const { name, pdfBuffer, recipientEmail, recipientName, recipientRole = 'signer' } = options;
+
+  // Step 1: Upload the PDF
+  const formData = new FormData();
+  formData.append('file', pdfBuffer, { filename: `${name}.pdf`, contentType: 'application/pdf' });
+  formData.append('name', name);
+  formData.append('recipients', JSON.stringify([
+    {
+      email: recipientEmail,
+      first_name: recipientName.split(' ')[0],
+      last_name: recipientName.split(' ').slice(1).join(' ') || '',
+      role: recipientRole,
+    }
+  ]));
+  formData.append('parse_form_fields', 'false');
+
+  const response = await fetch(`${PANDADOC_BASE_URL}/documents`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `API-Key ${PANDADOC_API_KEY}`,
+      ...formData.getHeaders(),
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`PandaDoc create document failed: ${error}`);
+  }
+
+  const document = await response.json();
+  return document; // { id, name, status, ... }
+}
+
+export async function sendDocument(documentId: string, message?: string, subject?: string) {
+  const response = await fetch(`${PANDADOC_BASE_URL}/documents/${documentId}/send`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `API-Key ${PANDADOC_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      message: message || 'Please review and sign the attached proposal.',
+      subject: subject || 'Proposal Ready for Signature',
+      silent: false, // Send email notification
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`PandaDoc send failed: ${error}`);
+  }
+
+  return response.json();
+}
+
+export async function getDocumentStatus(documentId: string) {
+  const response = await fetch(`${PANDADOC_BASE_URL}/documents/${documentId}`, {
+    headers: {
+      'Authorization': `API-Key ${PANDADOC_API_KEY}`,
+    },
+  });
+
+  return response.json();
+}
+Part 2: Add Endpoint to Send Quote via PandaDoc
+In server/routes.ts or server/routes/cpq.ts:
+typescriptimport { createDocumentFromPdf, sendDocument } from './pandadoc';
+
+// POST /api/cpq-quotes/:id/send-pandadoc
+app.post("/api/cpq-quotes/:id/send-pandadoc", isAuthenticated, requireRole("ceo", "sales"), async (req, res) => {
+  try {
+    const quoteId = parseInt(req.params.id);
+    const { message, subject } = req.body;
+
+    // Get the quote
+    const quote = await storage.getCpqQuote(quoteId);
+    if (!quote) {
+      return res.status(404).json({ error: "Quote not found" });
+    }
+
+    // Get the associated lead for contact info
+    const lead = quote.leadId ? await storage.getLead(quote.leadId) : null;
+    
+    const recipientEmail = lead?.contactEmail || req.body.recipientEmail;
+    const recipientName = lead?.contactName || req.body.recipientName;
+
+    if (!recipientEmail || !recipientName) {
+      return res.status(400).json({ error: "Recipient email and name required" });
+    }
+
+    // Generate the proposal PDF (assuming this function exists)
+    const pdfBuffer = await generateProposalPdf(quote, lead);
+
+    // Create document in PandaDoc
+    const document = await createDocumentFromPdf({
+      name: `Proposal - ${quote.projectName || lead?.projectName || 'Quote'}`,
+      pdfBuffer,
+      recipientEmail,
+      recipientName,
+    });
+
+    // Wait for document to be ready (PandaDoc processes async)
+    // In production, you might want to poll or use webhooks
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // Send the document
+    await sendDocument(document.id, message, subject);
+
+    // Store PandaDoc reference on quote
+    await storage.updateCpqQuote(quoteId, {
+      pandadocDocumentId: document.id,
+      pandadocStatus: 'sent',
+      pandadocSentAt: new Date(),
+    });
+
+    // Update lead status if applicable
+    if (lead) {
+      await storage.updateLead(lead.id, {
+        dealStage: 'Proposal', // Or keep current stage
+        lastContactDate: new Date(),
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      documentId: document.id,
+      message: 'Proposal sent via PandaDoc' 
+    });
+
+  } catch (error) {
+    console.error('PandaDoc send error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+Part 3: Add PandaDoc Fields to Schema
+In shared/schema.ts, add to cpq_quotes table:
+typescriptpandadocDocumentId: text("pandadoc_document_id"),
+pandadocStatus: text("pandadoc_status"), // "draft" | "sent" | "viewed" | "completed"
+pandadocSentAt: timestamp("pandadoc_sent_at"),
+pandadocCompletedAt: timestamp("pandadoc_completed_at"),
+pandadocSignedBy: text("pandadoc_signed_by"),
+Part 4: PandaDoc Webhook Handler
+typescript// POST /api/webhooks/pandadoc
+app.post("/api/webhooks/pandadoc", async (req, res) => {
+  try {
+    const event = req.body;
+    
+    // Verify webhook signature if PandaDoc provides one
+    // const signature = req.headers['x-pandadoc-signature'];
+    
+    const documentId = event.data?.id;
+    const status = event.event; // 'document_state_changed', etc.
+
+    if (!documentId) {
+      return res.status(400).json({ error: 'Missing document ID' });
+    }
+
+    // Find quote by PandaDoc document ID
+    const quote = await storage.getCpqQuoteByPandadocId(documentId);
+    if (!quote) {
+      console.log(`No quote found for PandaDoc document ${documentId}`);
+      return res.status(200).json({ received: true });
+    }
+
+    // Handle different events
+    if (event.event === 'document_state_changed') {
+      const newStatus = event.data?.status;
+      
+      await storage.updateCpqQuote(quote.id, {
+        pandadocStatus: newStatus,
+      });
+
+      // If completed (signed), update lead to Closed Won
+      if (newStatus === 'completed' || newStatus === 'document.completed') {
+        await storage.updateCpqQuote(quote.id, {
+          pandadocCompletedAt: new Date(),
+        });
+
+        if (quote.leadId) {
+          await storage.updateLead(quote.leadId, {
+            dealStage: 'Closed Won',
+          });
+          // This will trigger the Closed Won logic (project creation, etc.)
+        }
+      }
+    }
+
+    res.status(200).json({ received: true });
+
+  } catch (error) {
+    console.error('PandaDoc webhook error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+Part 5: Add UI Button
+In Calculator.tsx or DealWorkspace.tsx, add a "Send for Signature" button:
+tsxconst sendToPandadoc = useMutation({
+  mutationFn: async () => {
+    const response = await apiRequest("POST", `/api/cpq-quotes/${quoteId}/send-pandadoc`, {
+      message: "Please review and sign the attached proposal.",
+      subject: `Proposal: ${projectName}`,
+    });
+    return response.json();
+  },
+  onSuccess: () => {
+    toast({
+      title: "Proposal Sent",
+      description: "The proposal has been sent via PandaDoc for signature.",
+    });
+    queryClient.invalidateQueries({ queryKey: ["/api/cpq-quotes", quoteId] });
+  },
+});
+
+// In the UI:
+<Button
+  onClick={() => sendToPandadoc.mutate()}
+  disabled={sendToPandadoc.isPending || !quote.contactEmail}
+>
+  {sendToPandadoc.isPending ? (
+    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+  ) : (
+    <Send className="w-4 h-4 mr-2" />
+  )}
+  Send for Signature
+</Button>
+Part 6: Configure PandaDoc Webhook in Dashboard
+In the PandaDoc dashboard:
+
+Go to Settings → Integrations → Webhooks
+Add webhook URL: https://your-app.replit.app/api/webhooks/pandadoc
+Subscribe to events: document_state_changed
+
+
+Summary:
+FileChangeserver/pandadoc.tsCreate - API wrapperserver/routes.tsAdd send endpoint + webhook handlershared/schema.tsAdd PandaDoc fields to cpq_quotesCalculator/DealWorkspaceAdd "Send for Signature" buttonPandaDoc DashboardConfigure webhook URL
+Result: One-click sends proposal to PandaDoc → Client signs → Webhook fires → Deal auto-closes.

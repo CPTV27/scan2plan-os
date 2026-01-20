@@ -1,0 +1,70 @@
+Role: Senior Database Architect Objective: Implement strict Attribution Tracking (Source & Influence) based on the CEO's new definitions. Upgrade the leads table and create a new deal_attributions table.
+
+1. DATABASE: SCHEMA UPGRADE (shared/schema.ts)
+
+Action:
+
+Update leads with the strict source enum and the referrer Foreign Keys.
+
+Create deal_attributions to track the "Assist" influences (Many-to-Many).
+
+Code:
+
+TypeScript
+
+import { relations } from "drizzle-orm";
+
+// 1. UPDATE LEADS TABLE
+// Add these fields to your existing 'leads' definition:
+export const leads = pgTable("leads", {
+  // ... existing fields ...
+
+  // THE CANONICAL SOURCE (Strict Enum)
+  source: text("source").notNull().default("cold_outreach"), 
+  // Values: 'abm', 'cold_outreach', 'referral_client', 'referral_partner', 
+  // 'existing_customer', 'ceu', 'proof_vault', 'spec_standards', 'podcast', 
+  // 'site_seo', 'permit_trigger', 'compliance_trigger', 'procurement_trigger', 
+  // 'event_conference', 'social', 'vendor_onboarding'
+
+  // THE NETWORK EFFECT (Foreign Keys)
+  referrerCompanyId: integer("referrer_company_id"), // Link to Companies table
+  referrerContactId: integer("referrer_contact_id"), // Link to Contacts table
+});
+
+// 2. CREATE ATTRIBUTION TABLE (The "Assist" Tracker)
+export const dealAttributions = pgTable("deal_attributions", {
+  id: serial("id").primaryKey(),
+  dealId: integer("deal_id").notNull(),
+
+  // THE INFLUENCE CHANNEL
+  touchpoint: text("touchpoint").notNull(), 
+  // Values: 'proof_vault', 'spec_standards', 'castle', 'deck_library', 
+  // 'ceu', 'case_study', 'site_page', 'podcast', 'social'
+
+  recordedAt: timestamp("recorded_at").defaultNow(),
+});
+
+// 3. DEFINE RELATIONS
+export const dealAttributionsRelations = relations(dealAttributions, ({ one }) => ({
+  deal: one(deals, {
+    fields: [dealAttributions.dealId],
+    references: [deals.id],
+  }),
+}));
+2. UI: LEAD FORM UPDATE (client/src/components/LeadForm.tsx)
+
+Action: Update the Source dropdown to use the new canonical list. Add conditional fields for "Referrer" if a Referral source is picked.
+
+Logic:
+
+If source contains "referral", show the "Referrer Company" and "Referrer Contact" search boxes.
+
+Otherwise, hide them.
+
+3. UI: DEAL "INFLUENCE" WIDGET (client/src/pages/DealDetail.tsx)
+
+Action: Add a "Marketing Influence" card to the Deal view.
+
+Feature: A multi-select checklist where Sales can check off "Assisted By: [x] Proof Vault [x] Podcast".
+
+Data Flow: Saves to the deal_attributions table.

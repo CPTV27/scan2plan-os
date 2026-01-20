@@ -1,0 +1,49 @@
+The "Field Mission Hub" Master Prompt
+Role: Senior Full-Stack Engineer & AI Solutions Architect
+
+Objective: Finalize the standalone, mobile-optimized "Field Hub" at /field with dynamic scope checklists, logistics timestamping, and AI-powered mission support.
+
+1. Mission Layout & Access Control
+Standalone UI: Use the FieldHubLayout for all routes under /field. This must be mobile-first: no desktop sidebar, bottom-docked navigation (Missions, Support, Settings), and high-contrast buttons.
+
+Role Guard: Ensure users with the production role are forced into /field and blocked from /dashboard, /sales, or /financials.
+
+Deep Linking: Enable mission-specific views at /field/[universalId]. When a tech opens this link, the header should display the UPID and the Corrected Site Address.
+
+2. Four-Point Logistics Engine
+Timestamp UI: Replace the current "Clock In" with a 4-button sequence: [Start Travel], [Arrive Site], [Leave Site], [Arrive Home].
+
+Logic: * Buttons must capture the current server time on tap.
+
+Add a "Pencil" icon for Manual Override (time-picker) in case a tech forgets to tap.
+
+Automatically calculate and display Total Travel Time and Total Scan Time for the session summary.
+
+3. Dynamic Scope Checklist
+Logic: Generate a checklist that pulls directly from the project's areas and disciplines (from the CPQ data).
+
+Generation Rules:
+
+If "Mechanical" is in scope: Add "Capture all HVAC nameplates & detail MEP overhead."
+
+If "Electrical" is in scope: Add "Detail all panel schedules & transformer tags."
+
+If LoD 350 is specified: Add "Verify hanger locations & secondary supports."
+
+Hard Gate: The [Leave Site] button remains disabled until all checklist items are ticked.
+
+4. AI Support & Escalation
+Mission-Aware KB: Inside the Support tab, implement a Chat interface using RAG.
+
+Grounding: The AI must have access to:
+
+The /knowledge_base folder (SOPs, Equipment Manuals).
+
+The current project’s Universal ID and Scoping Notes.
+
+Escalation: If the tech types "Help" or the AI confidence is low, trigger a Google Chat Webhook to the project's space with the alert: "⚠️ HELP REQUESTED: [Tech Name] at [UPID] - [Last Question]."
+
+5. Technical Resiliency
+Autosave: Store all progress (timestamps, notes, checklist states) in localStorage so data survives a page refresh or signal loss.
+
+Voice-to-Text: Implement a microphone button in the "Notes" section that uses OpenAI Whisper for instant site-note transcription.

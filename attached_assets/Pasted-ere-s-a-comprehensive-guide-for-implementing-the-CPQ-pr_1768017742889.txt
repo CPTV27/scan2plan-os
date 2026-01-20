@@ -1,0 +1,170 @@
+ere's a comprehensive guide for implementing the CPQ pricing logic in your CRM application:
+
+CRM Pricing Summary Integration Guide
+Architecture Overview
+┌─────────────────────────┐     postMessage      ┌─────────────────────────┐
+│   Scan2Plan-OS (CRM)    │ ──────────────────→  │      CPQ Calculator     │
+│   - Hosts scoping form  │                      │   - Receives payload    │
+│   - Collects all data   │                      │   - Runs calculations   │
+│   - Embeds CPQ iframe   │ ←────────────────── │   - Creates quotes      │
+│   - Stores quote refs   │     CPQ_QUOTE_SAVED  │   - Exports documents   │
+└─────────────────────────┘                      └─────────────────────────┘
+Step 1: Core Pricing Constants
+These are the values your CRM pricing engine must match:
+
+Constant	Value	Description
+MIN_SQFT_FLOOR	3,000	Minimum billable sqft (areas < 3k priced as 3k)
+UPTEAM_MULTIPLIER_FALLBACK	0.65	Default vendor cost when no DB rate
+ACT_RATE_PER_SQFT	$2.00	Above Ceiling Tile rate
+MATTERPORT_RATE_PER_SQFT	$0.10	Virtual tour rate
+SQFT_PER_ACRE	43,560	Landscape conversion
+Step 2: Default Base Rates (Fallback when no DB lookup)
+Discipline	Rate/sqft
+Architecture (arch)	$2.50
+MEPF (mepf)	$3.00
+Structure (structure)	$2.00
+Site (site)	$1.50
+LoD Multipliers applied to base rates:
+
+LoD	Multiplier
+200	1.0×
+300	1.3×
+350	1.5×
+Step 3: Area Pricing Calculation
+Standard Areas (non-landscape)
+function calculateAreaPricing(
+  sqft: number,
+  discipline: string,
+  lod: string,
+  scope: string,
+  clientRatePerSqft: number,  // From DB or fallback
+  upteamRatePerSqft?: number  // From DB or fallback
+) {
+  // Apply 3k minimum
+  const effectiveSqft = Math.max(sqft, 3000);
+  
+  // Scope portion (not discount!)
+  const scopePortion = scope === 'interior' ? 0.65 
+                     : scope === 'exterior' ? 0.35 
+                     : 1.0;
+  
+  // Calculate costs
+  const clientPrice = effectiveSqft * clientRatePerSqft * scopePortion;
+  const upteamCost = upteamRatePerSqft 
+    ? effectiveSqft * upteamRatePerSqft * scopePortion
+    : clientPrice * 0.65;  // Fallback
+  
+  return { clientPrice, upteamCost };
+}
+Landscape Areas (Building Types 14, 15)
+Type	Name	LoD 200	LoD 300	LoD 350
+14	Built Landscape	$875/ac	$1,000/ac	$1,250/ac
+15	Natural Landscape	$625/ac	$750/ac	$1,000/ac
+Tiered rates by acreage:
+
+Tier	Acres	Built LoD 300	Natural LoD 300
+0	< 5	$1,000/ac	$750/ac
+1	5-20	$750/ac	$625/ac
+2	20-50	$625/ac	$500/ac
+3	50-100	$500/ac	$375/ac
+4	100+	$375/ac	$275/ac
+Step 4: Risk Premium Application
+IMPORTANT: Risk premiums apply ONLY to Architecture discipline.
+
+Risk Factor	Premium
+occupied	+15%
+hazardous	+25%
+no_power	+20%
+function applyRiskPremium(discipline: string, basePrice: number, risks: string[]): number {
+  if (discipline !== 'arch') return basePrice;  // Only arch gets risk premium
+  
+  let multiplier = 1.0;
+  if (risks.includes('occupied')) multiplier += 0.15;
+  if (risks.includes('hazardous')) multiplier += 0.25;
+  if (risks.includes('no_power')) multiplier += 0.20;
+  
+  return basePrice * multiplier;
+}
+Step 5: Travel Calculation
+Standard Dispatch (Troy/Woodstock/Boise)
+const STANDARD_RATE = 3;  // $/mile
+const SCAN_DAY_THRESHOLD = 75;  // miles
+const SCAN_DAY_FEE = 300;  // $
+function calculateStandardTravel(miles: number) {
+  const baseCost = miles * STANDARD_RATE;
+  const scanDayFee = miles >= SCAN_DAY_THRESHOLD ? SCAN_DAY_FEE : 0;
+  return { baseCost, scanDayFee, totalCost: baseCost + scanDayFee };
+}
+Brooklyn Dispatch (Tiered by project size)
+Tier	Sqft Range	Base Fee	Extra Miles Rate
+Tier C	< 10k	$150	$4/mile over 20mi
+Tier B	10k-50k	$300	$4/mile over 20mi
+Tier A	50k+	$0	$4/mile over 20mi
+function calculateBrooklynTravel(miles: number, totalSqft: number) {
+  const tier = totalSqft >= 50000 ? 'tierA' 
+             : totalSqft >= 10000 ? 'tierB' 
+             : 'tierC';
+  
+  const baseFees = { tierA: 0, tierB: 300, tierC: 150 };
+  const baseCost = baseFees[tier];
+  const extraMiles = Math.max(0, miles - 20);
+  const extraMilesCost = extraMiles * 4;
+  
+  return { baseCost, extraMilesCost, totalCost: baseCost + extraMilesCost };
+}
+Step 6: Tier A Projects (50k+ sqft)
+Projects ≥50,000 total sqft use manual pricing:
+
+function isTierAProject(totalSqft: number): boolean {
+  return totalSqft >= 50000;
+}
+function calculateTierAPrice(scanningCost: number, modelingCost: number, margin: number): number {
+  // Total = (Scanning + Modeling) × Margin Multiplier
+  return (scanningCost + modelingCost) * margin;
+}
+Sqft Range	Scanning Range	Margin Range
+50k-75k	$3,500-$10,500	2.352X-3X
+75k-100k	$7,000-$14,000	2.5X-3.5X
+100k+	$14,000-$18,500	3X-4X
+Step 7: Payment Term Premiums
+Term	Premium
+Partner	0%
+Owner	0%
+Net 30	+5%
+Net 60	+10%
+Net 90	+15%
+Step 8: Sending the Payload
+const payload = {
+  type: "CPQ_SCOPING_PAYLOAD",
+  leadId: 123,
+  projectDetails: {
+    clientName: "Acme Corp",
+    projectName: "Office Renovation",
+    projectAddress: "123 Main St"
+  },
+  areas: [{
+    id: "1",
+    name: "Main Building",
+    buildingType: "4",      // Commercial/Office
+    squareFeet: "25000",
+    scope: "full",
+    disciplines: ["arch", "mepf"],
+    disciplineLods: { arch: "300", mepf: "300" }
+  }],
+  risks: ["occupied"],
+  travel: {
+    dispatchLocation: "troy",
+    distance: 30
+  },
+  scopingData: {
+    paymentTerms: "net30",
+    accountContact: "John Doe",
+    accountContactEmail: "john@acme.com"
+  }
+};
+iframeRef.current.contentWindow.postMessage(payload, "*");
+Step 9: Validation Tests
+Run the golden tests to verify your implementation matches:
+
+npx tsx scripts/validate-pricing-tests.ts --json
+This outputs 85 test cases with expected results in JSON format that your CRM can use to validate its calculations.

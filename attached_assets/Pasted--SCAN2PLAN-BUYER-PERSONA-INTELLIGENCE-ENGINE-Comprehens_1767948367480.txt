@@ -1,0 +1,1630 @@
+# 🎯 SCAN2PLAN BUYER PERSONA INTELLIGENCE ENGINE
+## Comprehensive Build Prompt for Replit
+
+**Role:** Senior Product Architect & AI Systems Engineer  
+**Objective:** Build a complete Buyer Persona Intelligence Engine that powers proposal generation, negotiation strategy, and sales/marketing content.  
+**Context:** Scan2Plan is a premium reality capture and BIM documentation service. We sell precision, not price. Our intelligence engine must speak differently to different buyers while maintaining brand integrity.
+
+---
+
+## PART 1: DATABASE ARCHITECTURE
+
+### 1.1 Complete Schema (`shared/schema.ts`)
+
+```typescript
+import { pgTable, text, json, timestamp, boolean, integer, uuid } from 'drizzle-orm/pg-core';
+
+// ═══════════════════════════════════════════════════════════════
+// BUYER PERSONAS - The Receivers
+// ═══════════════════════════════════════════════════════════════
+
+export const buyerPersonas = pgTable('buyer_personas', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  code: text('code').notNull().unique(), // BP-A, BP-B, BP-C, BP-D
+  
+  // Identity
+  roleTitle: text('role_title').notNull(),
+  roleVariants: json('role_variants').$type<string[]>(), // Alt titles: "Principal", "Design Director", etc.
+  organizationType: text('organization_type'), // Architecture firm, GC, Developer, etc.
+  
+  // Pain Architecture
+  primaryPain: text('primary_pain').notNull(),
+  secondaryPain: text('secondary_pain'),
+  hiddenFear: text('hidden_fear'), // The thing they won't say out loud
+  
+  // Value System
+  valueDriver: text('value_driver').notNull(),
+  decisionCriteria: json('decision_criteria').$type<string[]>(), // What tips them to "yes"
+  dealbreakers: json('dealbreakers').$type<string[]>(), // Instant "no" signals
+  
+  // Lifecycle Position
+  projectPhases: json('project_phases').$type<string[]>(), // SD, DD, CD, CA, Closeout
+  budgetAuthority: text('budget_authority'), // "Direct", "Influencer", "Recommender"
+  typicalBudgetRange: text('typical_budget_range'),
+  
+  // Influence Map
+  influenceChain: json('influence_chain').$type<{
+    reportsTo: string;
+    needsApprovalFrom: string[];
+    influencedBy: string[];
+  }>(),
+  
+  // Communication DNA
+  tonePreference: text('tone_preference').notNull(),
+  communicationStyle: text('communication_style'), // "Data-first", "Story-first", "Bottom-line-first"
+  attentionSpan: text('attention_span'), // "Executive summary only", "Wants details", "Needs visuals"
+  
+  // Vocabulary Systems
+  technicalTriggers: json('technical_triggers').$type<string[]>(), // Industry jargon that signals competence
+  emotionalTriggers: json('emotional_triggers').$type<string[]>(), // Words that move decisions
+  avoidWords: json('avoid_words').$type<string[]>(), // Language that turns them off
+  
+  // Disqualification
+  disqualifiers: json('disqualifiers').$type<string[]>(), // Signals this isn't our buyer
+  
+  // Metadata
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// ═══════════════════════════════════════════════════════════════
+// BRAND VOICES - The Transmitters
+// ═══════════════════════════════════════════════════════════════
+
+export const brandVoices = pgTable('brand_voices', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull().unique(),
+  purpose: text('purpose').notNull(),
+  baseInstruction: text('base_instruction').notNull(),
+  toneMarkers: json('tone_markers').$type<string[]>(),
+  prohibitions: json('prohibitions').$type<string[]>(), // What this voice never does
+  exampleOutput: text('example_output'),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// ═══════════════════════════════════════════════════════════════
+// SOLUTION MAPPINGS - Pain → Solution Translation
+// ═══════════════════════════════════════════════════════════════
+
+export const solutionMappings = pgTable('solution_mappings', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  buyerCode: text('buyer_code').notNull().references(() => buyerPersonas.code),
+  painPoint: text('pain_point').notNull(),
+  solutionMechanism: text('solution_mechanism').notNull(), // The S2P feature/service
+  proofPoint: text('proof_point'), // Case study, stat, or testimonial
+  argumentFrame: text('argument_frame').notNull(), // How to phrase it for this persona
+  objectionPreempt: text('objection_preempt'), // The "yes, but..." we anticipate
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// ═══════════════════════════════════════════════════════════════
+// CONTENT OUTPUTS - Generated Assets
+// ═══════════════════════════════════════════════════════════════
+
+export const generatedContent = pgTable('generated_content', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  contentType: text('content_type').notNull(), // "proposal", "negotiation_brief", "email", "ad_copy", "case_study"
+  targetPersona: text('target_persona').references(() => buyerPersonas.code),
+  projectContext: json('project_context').$type<{
+    projectName?: string;
+    projectType?: string;
+    squareFootage?: string;
+    timeline?: string;
+    specialConditions?: string[];
+  }>(),
+  inputPrompt: text('input_prompt'),
+  generatedOutput: text('generated_output'),
+  voiceUsed: text('voice_used').references(() => brandVoices.name),
+  qualityScore: integer('quality_score'), // 1-5 rating for feedback loop
+  wasUsed: boolean('was_used').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// ═══════════════════════════════════════════════════════════════
+// NEGOTIATION INTELLIGENCE
+// ═══════════════════════════════════════════════════════════════
+
+export const negotiationPlaybook = pgTable('negotiation_playbook', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  buyerCode: text('buyer_code').notNull().references(() => buyerPersonas.code),
+  objectionPattern: text('objection_pattern').notNull(), // "Too expensive", "Timeline too long", etc.
+  underlyingConcern: text('underlying_concern'), // What they're really worried about
+  responseStrategy: text('response_strategy').notNull(),
+  reframeLanguage: text('reframe_language'), // Exact phrasing to pivot
+  walkAwaySignal: text('walk_away_signal'), // When to disengage
+  createdAt: timestamp('created_at').defaultNow(),
+});
+```
+
+---
+
+## PART 2: SEED DATA (`server/seed_personas.ts`)
+
+```typescript
+import { db } from './db';
+import { buyerPersonas, brandVoices, solutionMappings, negotiationPlaybook } from '../shared/schema';
+
+export async function seedBuyerPersonas() {
+  
+  // ═══════════════════════════════════════════════════════════════
+  // BP-A: THE DESIGN PRINCIPAL (The Visionary)
+  // ═══════════════════════════════════════════════════════════════
+  
+  await db.insert(buyerPersonas).values({
+    code: 'BP-A',
+    roleTitle: 'Design Principal',
+    roleVariants: ['Principal Architect', 'Design Director', 'Partner', 'Studio Lead'],
+    organizationType: 'Architecture Firm',
+    
+    primaryPain: 'As-built lies killing design intent',
+    secondaryPain: 'Inherited documentation from previous architects is garbage',
+    hiddenFear: 'My legacy project will be compromised by bad data',
+    
+    valueDriver: 'Historic Fidelity & Design Truth',
+    decisionCriteria: [
+      'Technical credibility of the team',
+      'Portfolio of similar heritage/complex projects',
+      'Demonstrated understanding of architectural intent',
+      'Willingness to collaborate, not just deliver files'
+    ],
+    dealbreakers: [
+      'Leads with price',
+      'Doesn\'t understand architectural terminology',
+      'Treats scan as commodity checkbox'
+    ],
+    
+    projectPhases: ['SD', 'DD'],
+    budgetAuthority: 'Direct',
+    typicalBudgetRange: '$15K-$150K',
+    
+    influenceChain: {
+      reportsTo: 'Managing Partner / Board',
+      needsApprovalFrom: ['Project Manager (for scheduling)'],
+      influencedBy: ['Project Architects on past jobs', 'Peer principals']
+    },
+    
+    tonePreference: 'Technical Peer / Fellow Architect',
+    communicationStyle: 'Story-first',
+    attentionSpan: 'Wants details if they\'re interesting',
+    
+    technicalTriggers: ['LOD 350', 'LOD 400', 'HBIM', 'point cloud density', 'mesh accuracy', 'deviation tolerance', 'Revit families'],
+    emotionalTriggers: ['design truth', 'legacy', 'the building deserves', 'faithful representation', 'architectural integrity', 'what the original architect intended'],
+    avoidWords: ['cheap', 'fast', 'discount', 'basic scan', 'good enough', 'ROI'],
+    
+    disqualifiers: [
+      'Only cares about price',
+      'Doesn\'t value documentation',
+      '"Just need something quick"',
+      'No appreciation for complexity'
+    ],
+    
+    isActive: true
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // BP-B: THE PROJECT ARCHITECT (The Pragmatist)
+  // ═══════════════════════════════════════════════════════════════
+  
+  await db.insert(buyerPersonas).values({
+    code: 'BP-B',
+    roleTitle: 'Project Architect',
+    roleVariants: ['Job Captain', 'Project Designer', 'Senior Architect', 'Technical Lead'],
+    organizationType: 'Architecture Firm',
+    
+    primaryPain: 'Coordination hell - RFIs, clashes, and 2 AM redesigns',
+    secondaryPain: 'Consultants delivering garbage models that don\'t work with mine',
+    hiddenFear: 'I\'ll be the one blamed when the model doesn\'t match reality',
+    
+    valueDriver: 'Workflow Speed & Clash-Free Delivery',
+    decisionCriteria: [
+      'Revit compatibility (families, templates, standards)',
+      'Turnaround time',
+      'Responsiveness to questions',
+      'Clear deliverable specs upfront'
+    ],
+    dealbreakers: [
+      'Unclear file formats',
+      'No Revit expertise',
+      'Slow communication',
+      'Hidden costs for revisions'
+    ],
+    
+    projectPhases: ['DD', 'CD', 'CA'],
+    budgetAuthority: 'Influencer',
+    typicalBudgetRange: '$8K-$75K',
+    
+    influenceChain: {
+      reportsTo: 'Design Principal / Project Manager',
+      needsApprovalFrom: ['Design Principal (for scope)', 'PM (for budget)'],
+      influencedBy: ['Other project architects', 'BIM Manager', 'Consultants']
+    },
+    
+    tonePreference: 'Practical Problem-Solver',
+    communicationStyle: 'Data-first',
+    attentionSpan: 'Executive summary + detailed specs as backup',
+    
+    technicalTriggers: ['Revit families', 'clash detection', 'file compatibility', 'worksets', 'linked models', 'shared coordinates', 'export settings'],
+    emotionalTriggers: ['sleep at night', 'no 2 AM calls', 'flow', 'one handoff', 'set it and forget it', 'plug and play', 'no surprises'],
+    avoidWords: ['artistry', 'legacy', 'philosophy', 'vision', 'bespoke'],
+    
+    disqualifiers: [
+      'Doesn\'t use Revit',
+      'Can\'t answer technical questions',
+      '"We\'ll figure out the details later"',
+      'No clear timeline'
+    ],
+    
+    isActive: true
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // BP-C: THE OWNER/DEVELOPER REP (The Guardian)
+  // ═══════════════════════════════════════════════════════════════
+  
+  await db.insert(buyerPersonas).values({
+    code: 'BP-C',
+    roleTitle: 'Owner Representative',
+    roleVariants: ['Development Manager', 'Asset Manager', 'Facilities Director', 'Capital Projects Manager', 'VP of Construction'],
+    organizationType: 'Developer / Owner / Institution',
+    
+    primaryPain: 'Variance - budget creep, schedule slip, scope gaps',
+    secondaryPain: 'Being blindsided by information I should have had',
+    hiddenFear: 'I\'ll look incompetent to my board/investors when problems surface',
+    
+    valueDriver: 'Risk Transfer & Defensibility',
+    decisionCriteria: [
+      'Clear scope and fixed pricing',
+      'Professional liability coverage',
+      'Track record with similar owners',
+      'Documentation that holds up in disputes'
+    ],
+    dealbreakers: [
+      'Vague scope',
+      'Time & materials pricing',
+      'No insurance',
+      'Can\'t provide references from owners'
+    ],
+    
+    projectPhases: ['Pre-Design', 'SD', 'Closeout'],
+    budgetAuthority: 'Direct',
+    typicalBudgetRange: '$25K-$500K',
+    
+    influenceChain: {
+      reportsTo: 'CEO / Board / Investment Committee',
+      needsApprovalFrom: ['Legal (for contracts)', 'Finance (for budget)'],
+      influencedBy: ['Architect of record', 'Legal counsel', 'Peer owners']
+    },
+    
+    tonePreference: 'Executive / Financial',
+    communicationStyle: 'Bottom-line-first',
+    attentionSpan: 'Executive summary only - no technical deep dives',
+    
+    technicalTriggers: ['audit trail', 'variance report', 'baseline documentation', 'change order defense', 'as-built certification'],
+    emotionalTriggers: ['defensible', 'no surprises', 'locked in', 'boardroom-ready', 'sleep at night', 'bulletproof', 'covered'],
+    avoidWords: ['point cloud', 'mesh', 'LOD', 'Revit families', 'worksets', 'any deep technical jargon'],
+    
+    disqualifiers: [
+      'Wants cheapest option',
+      'No budget for documentation',
+      '"We\'ll deal with that later"',
+      'History of litigation against vendors'
+    ],
+    
+    isActive: true
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // BP-D: THE GC/CONSTRUCTION MANAGER (The Scheduler)
+  // ═══════════════════════════════════════════════════════════════
+  
+  await db.insert(buyerPersonas).values({
+    code: 'BP-D',
+    roleTitle: 'GC Project Manager',
+    roleVariants: ['Construction Manager', 'Project Executive', 'Superintendent', 'VDC Manager', 'Preconstruction Manager'],
+    organizationType: 'General Contractor / CM',
+    
+    primaryPain: 'Coordination bottlenecks killing my schedule',
+    secondaryPain: 'Subs pointing fingers when clashes surface',
+    hiddenFear: 'I\'ll eat the cost when the model doesn\'t match field conditions',
+    
+    valueDriver: 'Schedule Certainty & Sub-Alignment',
+    decisionCriteria: [
+      'Speed of delivery',
+      'Experience with active construction sites',
+      'Ability to work around ongoing operations',
+      'Clear coordination with subs'
+    ],
+    dealbreakers: [
+      'Can\'t work around construction schedule',
+      'No site safety protocol',
+      'Slow turnaround',
+      'Requires site shutdown'
+    ],
+    
+    projectPhases: ['CD', 'CA', 'Closeout'],
+    budgetAuthority: 'Direct',
+    typicalBudgetRange: '$10K-$100K',
+    
+    influenceChain: {
+      reportsTo: 'Project Executive / VP of Operations',
+      needsApprovalFrom: ['Owner\'s Rep (for scope changes)', 'Accounting (for budget)'],
+      influencedBy: ['VDC team', 'Superintendents', 'MEP subs']
+    },
+    
+    tonePreference: 'Direct / No-BS / Bottom-line-first',
+    communicationStyle: 'Bottom-line-first',
+    attentionSpan: 'Executive summary only - get to the point',
+    
+    technicalTriggers: ['clash detection', 'constructability', 'phasing', 'MEP coordination', 'RFI reduction', 'Navisworks', 'BIM 360'],
+    emotionalTriggers: ['no surprises', 'single source of truth', 'documentation trail', 'ahead of schedule', 'sub-proof', 'finger-point-proof', 'CYA'],
+    avoidWords: ['design intent', 'architectural vision', 'historic', 'legacy', 'artistry'],
+    
+    disqualifiers: [
+      'Wants cheapest scan possible',
+      'No interest in model accuracy',
+      '"We\'ll figure it out in the field"',
+      'History of not paying vendors'
+    ],
+    
+    isActive: true
+  });
+
+  console.log('✅ Buyer Personas seeded');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BRAND VOICES
+// ═══════════════════════════════════════════════════════════════
+
+export async function seedBrandVoices() {
+  
+  await db.insert(brandVoices).values({
+    name: 'Executive Signal Mapper',
+    purpose: 'High-stakes client communication - proposals, executive summaries, strategic content',
+    baseInstruction: `You are the Executive Signal Mapper for Scan2Plan. Your voice carries calm authority.
+
+CORE PRINCIPLES:
+- Lead with the client's problem, not our capabilities
+- Use precise language - no marketing fluff
+- Confidence without arrogance
+- Technical credibility wrapped in accessibility
+- Every sentence earns its place
+
+STRUCTURE:
+- Open with their pain (show you understand)
+- Bridge to the mechanism (how we solve it)
+- Close with the outcome (what they get)
+
+PROHIBITIONS:
+- Never use "cutting-edge," "state-of-the-art," "industry-leading"
+- Never lead with price
+- Never oversell or over-promise
+- No exclamation points
+- No "we're excited to..."`,
+    toneMarkers: ['calm authority', 'precise', 'confident', 'peer-level', 'understated'],
+    prohibitions: ['hype language', 'exclamation points', 'superlatives', 'sales breath', 'desperation signals'],
+    exampleOutput: 'The documentation you inherited is lying to you. Existing as-builts show a building that doesn\'t exist. Before your team draws a single line, we establish ground truth—accurate to 2mm—so every decision downstream starts from reality, not assumption.',
+    isActive: true
+  });
+
+  await db.insert(brandVoices).values({
+    name: 'Technical Translator',
+    purpose: 'Detailed technical specs, methodology documents, scope definitions',
+    baseInstruction: `You are the Technical Translator for Scan2Plan. You make complex processes clear without dumbing them down.
+
+CORE PRINCIPLES:
+- Precision over brevity (but no unnecessary words)
+- Assume technical competence in your audience
+- Explain the "why" behind technical choices
+- Use industry-standard terminology correctly
+- Include specific numbers, tolerances, formats
+
+STRUCTURE:
+- State the technical requirement
+- Explain the methodology
+- Specify the deliverable format
+- Note any dependencies or prerequisites
+
+PROHIBITIONS:
+- No marketing language
+- No vague descriptions ("high quality," "comprehensive")
+- No assumptions about client knowledge (verify terms if needed)`,
+    toneMarkers: ['precise', 'methodical', 'technically fluent', 'clear', 'detailed'],
+    prohibitions: ['marketing fluff', 'vague qualifiers', 'assumed knowledge', 'oversimplification'],
+    exampleOutput: 'Deliverable: Revit 2024 model at LOD 350 for architectural elements, LOD 300 for MEP routing. Point cloud registered to project coordinates with <2mm RMS error. Includes: walls, floors, ceilings, doors, windows, structural grid, major MEP runs. Excludes: furniture, fixtures, equipment (unless specified in scope addendum).',
+    isActive: true
+  });
+
+  await db.insert(brandVoices).values({
+    name: 'Negotiation Strategist',
+    purpose: 'Objection handling, price discussions, scope negotiations',
+    baseInstruction: `You are the Negotiation Strategist for Scan2Plan. You hold the line while keeping relationships intact.
+
+CORE PRINCIPLES:
+- Never apologize for pricing
+- Reframe objections as opportunities for clarity
+- Make the cost of NOT doing it clear
+- Offer alternatives, not discounts
+- Know when to walk away
+
+STRUCTURE:
+- Acknowledge the concern (don't dismiss)
+- Reframe to the real issue
+- Offer the path forward
+- Anchor to value, not cost
+
+TONE:
+- Confident but not combative
+- Helpful but not desperate
+- Firm but flexible on structure`,
+    toneMarkers: ['confident', 'non-defensive', 'value-anchored', 'collaborative', 'firm'],
+    prohibitions: ['apologizing for price', 'desperation', 'immediate discounting', 'defensiveness'],
+    exampleOutput: 'I hear you on budget. Let me reframe: the scan investment is 0.3% of your construction budget. The question isn\'t whether you can afford accurate documentation—it\'s whether you can afford the RFIs, change orders, and coordination failures that come from working blind. What if we phase the deliverables to match your cash flow?',
+    isActive: true
+  });
+
+  await db.insert(brandVoices).values({
+    name: 'Campaign Architect',
+    purpose: 'Marketing content, email sequences, ad copy, social content',
+    baseInstruction: `You are the Campaign Architect for Scan2Plan. You create content that earns attention.
+
+CORE PRINCIPLES:
+- Lead with the client's world, not ours
+- Make the problem vivid before offering the solution
+- Specificity beats generality
+- One idea per piece
+- Every word earns its place
+
+STRUCTURE:
+- Hook: Name the pain or the aspiration
+- Twist: Challenge the assumption
+- Proof: Concrete example or outcome
+- CTA: Clear next step
+
+TONE:
+- Smart, not clever
+- Confident, not cocky
+- Specific, not vague`,
+    toneMarkers: ['sharp', 'specific', 'pain-aware', 'outcome-focused', 'concise'],
+    prohibitions: ['generic claims', 'industry clichés', 'feature lists', 'hype language'],
+    exampleOutput: 'Your as-builts are fiction. Every clash, every RFI, every "wait, that\'s not what the drawings show" moment—it starts with documentation that doesn\'t match reality. We fix that. One scan. Ground truth. Before you draw a single line.',
+    isActive: true
+  });
+
+  console.log('✅ Brand Voices seeded');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SOLUTION MAPPINGS
+// ═══════════════════════════════════════════════════════════════
+
+export async function seedSolutionMappings() {
+  
+  const mappings = [
+    // BP-A Mappings
+    {
+      buyerCode: 'BP-A',
+      painPoint: 'As-built lies killing design intent',
+      solutionMechanism: 'LOD 350+ HBIM Documentation',
+      proofPoint: 'Restored 1920s theater - captured original plaster profiles at 0.5mm accuracy',
+      argumentFrame: 'Before your team interprets the building, we capture its truth. Every molding profile, every structural deviation, every layer of history—documented so your design responds to what\'s actually there, not what someone guessed was there.',
+      objectionPreempt: 'Yes, it takes longer than a basic scan. That\'s because we\'re capturing the building, not just its outline.'
+    },
+    {
+      buyerCode: 'BP-A',
+      painPoint: 'Inherited documentation from previous architects is garbage',
+      solutionMechanism: 'Full existing conditions documentation package',
+      proofPoint: 'Discovered 14 undocumented structural modifications in "complete" drawings',
+      argumentFrame: 'Those CAD files from 2003? They\'re a liability, not an asset. We start fresh—ground truth—so your design decisions build on reality, not inherited assumptions.',
+      objectionPreempt: 'The previous architect may have done fine work. But buildings change. Contractors improvise. Renovations go undocumented. We capture what\'s there now.'
+    },
+    
+    // BP-B Mappings
+    {
+      buyerCode: 'BP-B',
+      painPoint: 'Coordination hell - RFIs, clashes, and 2 AM redesigns',
+      solutionMechanism: 'BIM-Ready Scan-to-Revit Workflow',
+      proofPoint: '73% reduction in RFIs on MEP-heavy hospital renovation',
+      argumentFrame: 'Your model will link cleanly. Our Revit families follow your standards. Shared coordinates are set before we deliver. You open the file, it works, you move on.',
+      objectionPreempt: 'We\'ll need 30 minutes upfront to align on your Revit template and export preferences. That investment saves you days of cleanup.'
+    },
+    {
+      buyerCode: 'BP-B',
+      painPoint: 'Consultants delivering garbage models',
+      solutionMechanism: 'Standardized deliverable specs',
+      proofPoint: 'Provide detailed export settings document with every delivery',
+      argumentFrame: 'We deliver exactly what you spec: file format, LOD, naming conventions, workset structure. No translation layer. No "can you re-export this?" back-and-forth.',
+      objectionPreempt: 'If your template has specific requirements we haven\'t seen before, we\'ll ask questions upfront rather than guess and make you redo it.'
+    },
+    
+    // BP-C Mappings
+    {
+      buyerCode: 'BP-C',
+      painPoint: 'Variance - budget creep, schedule slip, scope gaps',
+      solutionMechanism: 'Baseline Documentation & Change Tracking',
+      proofPoint: 'Owner used our baseline scan to defend $2.3M change order dispute',
+      argumentFrame: 'You get a timestamped record of existing conditions. When contractors claim "it wasn\'t like that," you have the documentation to prove otherwise. This isn\'t just a scan—it\'s protection.',
+      objectionPreempt: 'The upfront investment is real. The alternative is paying your lawyers $800/hour to argue about conditions you could have documented for a fraction of that.'
+    },
+    {
+      buyerCode: 'BP-C',
+      painPoint: 'Being blindsided by information I should have had',
+      solutionMechanism: 'Executive Summary + Anomaly Flagging',
+      proofPoint: 'Flagged structural settlement issue before design phase began',
+      argumentFrame: 'You won\'t read a 200-page technical report. You shouldn\'t have to. We deliver a 2-page executive summary: here\'s what we found, here\'s what matters, here\'s what needs attention. The technical backup exists if you need it.',
+      objectionPreempt: 'We can\'t catch everything—we\'re not structural engineers. But we flag anomalies and recommend when you need specialist eyes.'
+    },
+    
+    // BP-D Mappings
+    {
+      buyerCode: 'BP-D',
+      painPoint: 'Coordination bottlenecks killing my schedule',
+      solutionMechanism: 'Phased Scan Delivery for Construction Sequencing',
+      proofPoint: 'Delivered scan data in 4 phases aligned to trade mobilization schedule',
+      argumentFrame: 'You don\'t need the whole building scanned before demo starts. We phase delivery to match your schedule—MEP zones first if that\'s where coordination is critical. Your subs get what they need when they need it.',
+      objectionPreempt: 'Phased delivery requires more coordination on our end, but it keeps your trades moving instead of waiting for one big deliverable.'
+    },
+    {
+      buyerCode: 'BP-D',
+      painPoint: 'Subs pointing fingers when clashes surface',
+      solutionMechanism: 'Single Source of Truth Documentation',
+      proofPoint: 'GC used scan baseline to resolve $400K dispute between MEP subs',
+      argumentFrame: 'When the HVAC sub says "that duct was always there" and the plumber says "no it wasn\'t"—you pull up the scan. Date-stamped. Indisputable. The argument ends.',
+      objectionPreempt: 'We can\'t prevent subs from disagreeing. We can give you the documentation to settle it fast.'
+    },
+  ];
+
+  for (const mapping of mappings) {
+    await db.insert(solutionMappings).values(mapping);
+  }
+
+  console.log('✅ Solution Mappings seeded');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NEGOTIATION PLAYBOOK
+// ═══════════════════════════════════════════════════════════════
+
+export async function seedNegotiationPlaybook() {
+  
+  const plays = [
+    // Universal Objections
+    {
+      buyerCode: 'BP-A',
+      objectionPattern: 'Too expensive',
+      underlyingConcern: 'Budget pressure from PM or client',
+      responseStrategy: 'Reframe as design insurance. Compare to cost of redesign when as-builts are wrong.',
+      reframeLanguage: 'What\'s the cost of discovering the floor-to-floor height is wrong after you\'ve detailed the curtain wall? The scan is insurance against that moment.',
+      walkAwaySignal: 'They explicitly say documentation doesn\'t matter to design quality'
+    },
+    {
+      buyerCode: 'BP-B',
+      objectionPattern: 'Too expensive',
+      underlyingConcern: 'Comparing to cheapest scan quote they got',
+      responseStrategy: 'Differentiate on Revit-readiness. Calculate their hourly rate × cleanup time.',
+      reframeLanguage: 'The $8K scan that arrives as an unusable point cloud costs you 40 hours of cleanup at your billing rate. Which is actually more expensive?',
+      walkAwaySignal: 'They only care about having "a scan" for the file, not usable documentation'
+    },
+    {
+      buyerCode: 'BP-C',
+      objectionPattern: 'Too expensive',
+      underlyingConcern: 'Doesn\'t see documentation as risk mitigation',
+      responseStrategy: 'Anchor to dispute/litigation costs. Make it about defensibility.',
+      reframeLanguage: 'Your legal team bills what per hour? One deposition about undocumented conditions exceeds this investment. This is the cheapest insurance you\'ll buy on this project.',
+      walkAwaySignal: 'They have a track record of litigation and blame-shifting'
+    },
+    {
+      buyerCode: 'BP-D',
+      objectionPattern: 'Too expensive',
+      underlyingConcern: 'Trying to keep project under budget threshold',
+      responseStrategy: 'Tie to RFI/change order costs. Make it schedule math.',
+      reframeLanguage: 'How many RFIs does it take to exceed this cost? If accurate documentation prevents even two coordination RFIs, it\'s paid for itself. And your schedule stays intact.',
+      walkAwaySignal: '"We\'ll figure it out in the field" is their actual strategy'
+    },
+    
+    // Timeline Objections
+    {
+      buyerCode: 'BP-B',
+      objectionPattern: 'Timeline too long',
+      underlyingConcern: 'DD deadline pressure',
+      responseStrategy: 'Offer phased delivery. Identify critical-path elements.',
+      reframeLanguage: 'What do you need first? We can deliver the primary floor as-built in 5 days, full MEP in 10. You start working while we complete the package.',
+      walkAwaySignal: 'They need full deliverable in timeline that compromises accuracy'
+    },
+    {
+      buyerCode: 'BP-D',
+      objectionPattern: 'Can\'t shut down the site',
+      underlyingConcern: 'Construction schedule pressure',
+      responseStrategy: 'Describe night/weekend scanning capability. Reference active site experience.',
+      reframeLanguage: 'We\'ve scanned occupied hospitals at 2 AM. Active construction sites are Tuesday for us. What\'s your least-disruptive window?',
+      walkAwaySignal: 'Zero flexibility on access, unrealistic constraints'
+    },
+    
+    // Scope Objections
+    {
+      buyerCode: 'BP-A',
+      objectionPattern: 'We only need a basic scan',
+      underlyingConcern: 'Doesn\'t understand LOD implications',
+      responseStrategy: 'Educate on what "basic" misses. Show examples of design-critical details.',
+      reframeLanguage: 'Basic gives you walls and floors. It doesn\'t give you the molding profiles, the ceiling coffers, the structural deviations that will drive your design. You\'ll end up re-scanning.',
+      walkAwaySignal: 'They truly don\'t need detail (simple box renovation, not their real project type)'
+    },
+    {
+      buyerCode: 'BP-C',
+      objectionPattern: 'Can\'t we just use the existing drawings?',
+      underlyingConcern: 'Doesn\'t understand as-built reliability problem',
+      responseStrategy: 'Share statistics on as-built accuracy. Reference specific discoveries.',
+      reframeLanguage: 'Existing drawings are what someone intended to build, not what got built. On average, we find 15-20% deviation from drawings on buildings over 30 years old. That\'s not a rounding error—that\'s a liability.',
+      walkAwaySignal: 'They\'re looking for you to validate skipping documentation'
+    },
+  ];
+
+  for (const play of plays) {
+    await db.insert(negotiationPlaybook).values(play);
+  }
+
+  console.log('✅ Negotiation Playbook seeded');
+}
+
+// Master seed function
+export async function seedAll() {
+  await seedBuyerPersonas();
+  await seedBrandVoices();
+  await seedSolutionMappings();
+  await seedNegotiationPlaybook();
+  console.log('✅ All seed data loaded');
+}
+```
+
+---
+
+## PART 3: INTELLIGENCE ENGINE (`server/lib/intelligence_engine.ts`)
+
+```typescript
+import { db } from '../db';
+import { buyerPersonas, brandVoices, solutionMappings, negotiationPlaybook, generatedContent } from '../../shared/schema';
+import { eq } from 'drizzle-orm';
+import Anthropic from '@anthropic-ai/sdk';
+
+const anthropic = new Anthropic();
+
+// ═══════════════════════════════════════════════════════════════
+// CORE TARGETING FUNCTION
+// ═══════════════════════════════════════════════════════════════
+
+interface TargetingContext {
+  buyerCode: string;
+  projectContext?: {
+    projectName?: string;
+    projectType?: string;
+    squareFootage?: string;
+    timeline?: string;
+    specialConditions?: string[];
+  };
+  contentType: 'proposal' | 'negotiation_brief' | 'email' | 'ad_copy' | 'case_study' | 'social';
+  specificRequest?: string;
+}
+
+export async function generateTargetedContent(context: TargetingContext): Promise<string> {
+  
+  // Step 1: Load persona data
+  const persona = await db.select()
+    .from(buyerPersonas)
+    .where(eq(buyerPersonas.code, context.buyerCode))
+    .limit(1);
+  
+  if (!persona.length) {
+    throw new Error(`Persona ${context.buyerCode} not found`);
+  }
+  
+  const buyer = persona[0];
+  
+  // Step 2: Load relevant solution mappings
+  const solutions = await db.select()
+    .from(solutionMappings)
+    .where(eq(solutionMappings.buyerCode, context.buyerCode));
+  
+  // Step 3: Select appropriate brand voice
+  const voiceName = selectVoice(context.contentType);
+  const voice = await db.select()
+    .from(brandVoices)
+    .where(eq(brandVoices.name, voiceName))
+    .limit(1);
+  
+  // Step 4: Build the targeting prompt
+  const targetingPrompt = buildTargetingPrompt(buyer, solutions, voice[0], context);
+  
+  // Step 5: Generate content
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 2000,
+    messages: [
+      {
+        role: 'user',
+        content: targetingPrompt
+      }
+    ]
+  });
+  
+  const generatedText = response.content[0].type === 'text' ? response.content[0].text : '';
+  
+  // Step 6: Store for feedback loop
+  await db.insert(generatedContent).values({
+    contentType: context.contentType,
+    targetPersona: context.buyerCode,
+    projectContext: context.projectContext,
+    inputPrompt: context.specificRequest,
+    generatedOutput: generatedText,
+    voiceUsed: voiceName,
+  });
+  
+  return generatedText;
+}
+
+function selectVoice(contentType: string): string {
+  const voiceMap: Record<string, string> = {
+    'proposal': 'Executive Signal Mapper',
+    'negotiation_brief': 'Negotiation Strategist',
+    'email': 'Executive Signal Mapper',
+    'ad_copy': 'Campaign Architect',
+    'case_study': 'Executive Signal Mapper',
+    'social': 'Campaign Architect',
+  };
+  return voiceMap[contentType] || 'Executive Signal Mapper';
+}
+
+function buildTargetingPrompt(
+  buyer: typeof buyerPersonas.$inferSelect,
+  solutions: (typeof solutionMappings.$inferSelect)[],
+  voice: typeof brandVoices.$inferSelect,
+  context: TargetingContext
+): string {
+  
+  return `
+${voice.baseInstruction}
+
+═══════════════════════════════════════════════════════════════
+TARGET PERSONA: ${buyer.roleTitle} (${buyer.code})
+═══════════════════════════════════════════════════════════════
+
+THEIR WORLD:
+- Primary Pain: ${buyer.primaryPain}
+- Secondary Pain: ${buyer.secondaryPain || 'N/A'}
+- Hidden Fear: ${buyer.hiddenFear || 'N/A'}
+- What They Value: ${buyer.valueDriver}
+
+COMMUNICATION CONSTRAINTS:
+- Tone: ${buyer.tonePreference}
+- Style: ${buyer.communicationStyle}
+- Attention Span: ${buyer.attentionSpan}
+
+VOCABULARY REQUIREMENTS:
+- USE these technical terms: ${JSON.stringify(buyer.technicalTriggers)}
+- USE these emotional triggers: ${JSON.stringify(buyer.emotionalTriggers)}
+- AVOID these words: ${JSON.stringify(buyer.avoidWords)}
+
+SOLUTION MAPPINGS (reference these, don't copy verbatim):
+${solutions.map(s => `
+- Pain: ${s.painPoint}
+  Solution: ${s.solutionMechanism}
+  Proof: ${s.proofPoint}
+  Frame: ${s.argumentFrame}
+`).join('\n')}
+
+═══════════════════════════════════════════════════════════════
+PROJECT CONTEXT:
+═══════════════════════════════════════════════════════════════
+${context.projectContext ? `
+- Project Name: ${context.projectContext.projectName || 'Not specified'}
+- Project Type: ${context.projectContext.projectType || 'Not specified'}
+- Square Footage: ${context.projectContext.squareFootage || 'Not specified'}
+- Timeline: ${context.projectContext.timeline || 'Not specified'}
+- Special Conditions: ${context.projectContext.specialConditions?.join(', ') || 'None specified'}
+` : 'No specific project context provided.'}
+
+═══════════════════════════════════════════════════════════════
+CONTENT REQUEST:
+═══════════════════════════════════════════════════════════════
+Type: ${context.contentType}
+Specific Request: ${context.specificRequest || 'Generate appropriate content for this persona and content type.'}
+
+PROHIBITIONS (from voice guidelines):
+${voice.prohibitions ? JSON.stringify(voice.prohibitions) : 'None specified'}
+
+Generate the requested content now. Be specific. Be targeted. Earn every word.
+`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PROPOSAL GENERATOR
+// ═══════════════════════════════════════════════════════════════
+
+interface ProposalContext {
+  buyerCode: string;
+  projectName: string;
+  projectType: string;
+  squareFootage: string;
+  timeline: string;
+  specialConditions?: string[];
+  scopeNotes?: string;
+}
+
+export async function generateProposal(context: ProposalContext): Promise<string> {
+  
+  const result = await generateTargetedContent({
+    buyerCode: context.buyerCode,
+    contentType: 'proposal',
+    projectContext: {
+      projectName: context.projectName,
+      projectType: context.projectType,
+      squareFootage: context.squareFootage,
+      timeline: context.timeline,
+      specialConditions: context.specialConditions,
+    },
+    specificRequest: `
+Generate a complete proposal for this project. Structure:
+
+1. EXECUTIVE SUMMARY (2-3 sentences max - hook them immediately)
+   - Name their specific pain
+   - State what we deliver
+   - Anchor the outcome
+
+2. UNDERSTANDING (show we get their world)
+   - Acknowledge the project challenge
+   - Reference their specific concerns (based on persona)
+   - Demonstrate technical credibility
+
+3. APPROACH (methodology, not features)
+   - How we work, not what equipment we use
+   - Specific to their project type
+   - Reference relevant proof points
+
+4. DELIVERABLES (concrete, specific)
+   - Exactly what they get
+   - In what format
+   - By when
+
+5. INVESTMENT (never "pricing")
+   - Frame as investment, not cost
+   - Tie to value/risk mitigation
+   - Include what's NOT included (scope boundaries)
+
+Additional scope notes: ${context.scopeNotes || 'None'}
+    `
+  });
+  
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NEGOTIATION BRIEF GENERATOR
+// ═══════════════════════════════════════════════════════════════
+
+interface NegotiationContext {
+  buyerCode: string;
+  objectionRaised: string;
+  projectContext?: string;
+  relationshipHistory?: string;
+}
+
+export async function generateNegotiationBrief(context: NegotiationContext): Promise<string> {
+  
+  // Load relevant playbook entries
+  const plays = await db.select()
+    .from(negotiationPlaybook)
+    .where(eq(negotiationPlaybook.buyerCode, context.buyerCode));
+  
+  const relevantPlays = plays.filter(p => 
+    context.objectionRaised.toLowerCase().includes(p.objectionPattern.toLowerCase())
+  );
+  
+  const result = await generateTargetedContent({
+    buyerCode: context.buyerCode,
+    contentType: 'negotiation_brief',
+    specificRequest: `
+Generate a negotiation response brief.
+
+OBJECTION RAISED: "${context.objectionRaised}"
+
+PROJECT CONTEXT: ${context.projectContext || 'Not specified'}
+
+RELATIONSHIP HISTORY: ${context.relationshipHistory || 'New relationship'}
+
+PLAYBOOK REFERENCE (if relevant):
+${relevantPlays.map(p => `
+- Pattern: ${p.objectionPattern}
+- Underlying Concern: ${p.underlyingConcern}
+- Strategy: ${p.responseStrategy}
+- Reframe Language: ${p.reframeLanguage}
+- Walk Away If: ${p.walkAwaySignal}
+`).join('\n')}
+
+Provide:
+1. DIAGNOSIS: What's really going on (1-2 sentences)
+2. REFRAME: Exact language to pivot the conversation
+3. ALTERNATIVES: 2-3 options to offer (not discounts)
+4. WALK AWAY SIGNAL: What would indicate this isn't our client
+5. NEXT STEP: Specific action to move forward
+    `
+  });
+  
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MARKETING CONTENT GENERATOR
+// ═══════════════════════════════════════════════════════════════
+
+interface MarketingContext {
+  buyerCode: string;
+  contentFormat: 'email_sequence' | 'ad_copy' | 'social_post' | 'case_study' | 'landing_page';
+  campaignTheme?: string;
+  specificAngle?: string;
+}
+
+export async function generateMarketingContent(context: MarketingContext): Promise<string> {
+  
+  const formatInstructions: Record<string, string> = {
+    'email_sequence': `
+Generate a 3-email sequence:
+EMAIL 1 - Problem Awareness (Day 0)
+- Subject line that names their pain
+- 150 words max
+- One clear next step
+
+EMAIL 2 - Solution Education (Day 3)
+- Subject line that hints at solution
+- 200 words max
+- Include one proof point
+- Soft CTA
+
+EMAIL 3 - Decision Catalyst (Day 7)
+- Subject line with urgency (not fake urgency)
+- 150 words max
+- Direct CTA
+- P.S. line with social proof
+    `,
+    'ad_copy': `
+Generate ad copy variants:
+1. HEADLINE (max 10 words) - name the pain
+2. BODY (max 30 words) - bridge to solution
+3. CTA (max 5 words) - clear action
+
+Provide 3 variants with different angles.
+    `,
+    'social_post': `
+Generate LinkedIn post:
+- Hook in first line (pattern interrupt)
+- 150 words max
+- End with question or clear CTA
+- No hashtag spam (max 3)
+    `,
+    'case_study': `
+Generate case study structure:
+1. HEADLINE: Result + Context (e.g., "73% Fewer RFIs: Hospital Renovation")
+2. THE SITUATION: Client pain (3-4 sentences)
+3. THE CHALLENGE: Why this was hard
+4. THE APPROACH: What we did differently
+5. THE OUTCOME: Specific results with numbers
+6. CLIENT QUOTE: What they'd say (we'll verify/replace)
+    `,
+    'landing_page': `
+Generate landing page copy:
+1. HERO: Headline + subhead + CTA
+2. PROBLEM SECTION: 3 pain points with headers
+3. SOLUTION SECTION: How we're different (3 points)
+4. PROOF SECTION: Stats or testimonial placeholders
+5. CTA SECTION: Final push
+    `
+  };
+  
+  const result = await generateTargetedContent({
+    buyerCode: context.buyerCode,
+    contentType: context.contentFormat === 'email_sequence' ? 'email' : 
+                 context.contentFormat === 'ad_copy' ? 'ad_copy' :
+                 context.contentFormat === 'social_post' ? 'social' :
+                 context.contentFormat === 'case_study' ? 'case_study' : 'ad_copy',
+    specificRequest: `
+CAMPAIGN THEME: ${context.campaignTheme || 'General awareness'}
+SPECIFIC ANGLE: ${context.specificAngle || 'Core value proposition'}
+
+${formatInstructions[context.contentFormat]}
+    `
+  });
+  
+  return result;
+}
+```
+
+---
+
+## PART 4: API ROUTES (`server/routes.ts`)
+
+```typescript
+import express from 'express';
+import { generateProposal, generateNegotiationBrief, generateMarketingContent, generateTargetedContent } from './lib/intelligence_engine';
+import { db } from './db';
+import { buyerPersonas, generatedContent } from '../shared/schema';
+
+const router = express.Router();
+
+// ═══════════════════════════════════════════════════════════════
+// PERSONA ENDPOINTS
+// ═══════════════════════════════════════════════════════════════
+
+router.get('/api/personas', async (req, res) => {
+  const personas = await db.select().from(buyerPersonas);
+  res.json(personas);
+});
+
+router.get('/api/personas/:code', async (req, res) => {
+  const persona = await db.select()
+    .from(buyerPersonas)
+    .where(eq(buyerPersonas.code, req.params.code))
+    .limit(1);
+  
+  if (!persona.length) {
+    return res.status(404).json({ error: 'Persona not found' });
+  }
+  res.json(persona[0]);
+});
+
+// ═══════════════════════════════════════════════════════════════
+// CONTENT GENERATION ENDPOINTS
+// ═══════════════════════════════════════════════════════════════
+
+router.post('/api/generate/proposal', async (req, res) => {
+  try {
+    const {
+      buyerCode,
+      projectName,
+      projectType,
+      squareFootage,
+      timeline,
+      specialConditions,
+      scopeNotes
+    } = req.body;
+    
+    const proposal = await generateProposal({
+      buyerCode,
+      projectName,
+      projectType,
+      squareFootage,
+      timeline,
+      specialConditions,
+      scopeNotes
+    });
+    
+    res.json({ content: proposal });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/api/generate/negotiation', async (req, res) => {
+  try {
+    const {
+      buyerCode,
+      objectionRaised,
+      projectContext,
+      relationshipHistory
+    } = req.body;
+    
+    const brief = await generateNegotiationBrief({
+      buyerCode,
+      objectionRaised,
+      projectContext,
+      relationshipHistory
+    });
+    
+    res.json({ content: brief });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/api/generate/marketing', async (req, res) => {
+  try {
+    const {
+      buyerCode,
+      contentFormat,
+      campaignTheme,
+      specificAngle
+    } = req.body;
+    
+    const content = await generateMarketingContent({
+      buyerCode,
+      contentFormat,
+      campaignTheme,
+      specificAngle
+    });
+    
+    res.json({ content });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Generic targeted content endpoint
+router.post('/api/generate/content', async (req, res) => {
+  try {
+    const {
+      buyerCode,
+      contentType,
+      projectContext,
+      specificRequest
+    } = req.body;
+    
+    const content = await generateTargetedContent({
+      buyerCode,
+      contentType,
+      projectContext,
+      specificRequest
+    });
+    
+    res.json({ content });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// FEEDBACK ENDPOINTS
+// ═══════════════════════════════════════════════════════════════
+
+router.post('/api/content/:id/feedback', async (req, res) => {
+  try {
+    const { qualityScore, wasUsed } = req.body;
+    
+    await db.update(generatedContent)
+      .set({ qualityScore, wasUsed })
+      .where(eq(generatedContent.id, req.params.id));
+    
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+export default router;
+```
+
+---
+
+## PART 5: UI COMPONENTS
+
+### 5.1 Persona Selector (`client/src/components/PersonaSelector.tsx`)
+
+```tsx
+import React, { useState, useEffect } from 'react';
+
+interface Persona {
+  code: string;
+  roleTitle: string;
+  primaryPain: string;
+  valueDriver: string;
+  emotionalTriggers: string[];
+}
+
+interface PersonaSelectorProps {
+  onSelect: (persona: Persona) => void;
+  selected?: string;
+}
+
+export function PersonaSelector({ onSelect, selected }: PersonaSelectorProps) {
+  const [personas, setPersonas] = useState<Persona[]>([]);
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/personas')
+      .then(res => res.json())
+      .then(setPersonas);
+  }, []);
+
+  const getPersonaColor = (code: string) => {
+    const colors: Record<string, string> = {
+      'BP-A': 'border-blue-500 bg-blue-50',
+      'BP-B': 'border-green-500 bg-green-50',
+      'BP-C': 'border-purple-500 bg-purple-50',
+      'BP-D': 'border-orange-500 bg-orange-50',
+    };
+    return colors[code] || 'border-gray-500 bg-gray-50';
+  };
+
+  const getPersonaIcon = (code: string) => {
+    const icons: Record<string, string> = {
+      'BP-A': '🎨', // Visionary
+      'BP-B': '⚙️', // Pragmatist
+      'BP-C': '🛡️', // Guardian
+      'BP-D': '📅', // Scheduler
+    };
+    return icons[code] || '👤';
+  };
+
+  return (
+    <div className="space-y-3">
+      <label className="block text-sm font-semibold text-gray-700">
+        Who is this for?
+      </label>
+      
+      <div className="grid grid-cols-2 gap-3">
+        {personas.map(persona => (
+          <button
+            key={persona.code}
+            onClick={() => {
+              onSelect(persona);
+              setExpanded(expanded === persona.code ? null : persona.code);
+            }}
+            className={`
+              p-4 rounded-lg border-2 text-left transition-all
+              ${selected === persona.code 
+                ? getPersonaColor(persona.code) + ' border-opacity-100' 
+                : 'border-gray-200 hover:border-gray-300 bg-white'}
+            `}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xl">{getPersonaIcon(persona.code)}</span>
+              <span className="font-semibold text-gray-900">{persona.roleTitle}</span>
+            </div>
+            <p className="text-xs text-gray-500">{persona.code}</p>
+          </button>
+        ))}
+      </div>
+
+      {/* Strategy Card */}
+      {selected && (
+        <div className={`mt-4 p-4 rounded-lg ${getPersonaColor(selected)}`}>
+          <h4 className="font-semibold text-gray-900 mb-2">Strategy Focus</h4>
+          {personas.filter(p => p.code === selected).map(p => (
+            <div key={p.code}>
+              <p className="text-sm text-gray-700 mb-2">
+                <strong>Their Pain:</strong> {p.primaryPain}
+              </p>
+              <p className="text-sm text-gray-700 mb-2">
+                <strong>Lead With:</strong> {p.valueDriver}
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {p.emotionalTriggers?.slice(0, 4).map(trigger => (
+                  <span 
+                    key={trigger}
+                    className="text-xs px-2 py-1 bg-white bg-opacity-60 rounded-full"
+                  >
+                    {trigger}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+### 5.2 Proposal Generator (`client/src/components/ProposalGenerator.tsx`)
+
+```tsx
+import React, { useState } from 'react';
+import { PersonaSelector } from './PersonaSelector';
+
+export function ProposalGenerator() {
+  const [persona, setPersona] = useState<any>(null);
+  const [projectContext, setProjectContext] = useState({
+    projectName: '',
+    projectType: '',
+    squareFootage: '',
+    timeline: '',
+    specialConditions: '',
+    scopeNotes: ''
+  });
+  const [generatedContent, setGeneratedContent] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleGenerate = async () => {
+    if (!persona) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/generate/proposal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          buyerCode: persona.code,
+          ...projectContext,
+          specialConditions: projectContext.specialConditions.split(',').map(s => s.trim()).filter(Boolean)
+        })
+      });
+      
+      const data = await response.json();
+      setGeneratedContent(data.content);
+    } catch (error) {
+      console.error('Generation failed:', error);
+    }
+    setIsLoading(false);
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-6">Proposal Generator</h1>
+      
+      <div className="grid grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <PersonaSelector 
+            onSelect={setPersona}
+            selected={persona?.code}
+          />
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Project Name</label>
+            <input
+              type="text"
+              className="w-full p-2 border rounded"
+              value={projectContext.projectName}
+              onChange={e => setProjectContext({...projectContext, projectName: e.target.value})}
+              placeholder="The Morrison Building Renovation"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Project Type</label>
+            <select
+              className="w-full p-2 border rounded"
+              value={projectContext.projectType}
+              onChange={e => setProjectContext({...projectContext, projectType: e.target.value})}
+            >
+              <option value="">Select type...</option>
+              <option value="Historic Renovation">Historic Renovation</option>
+              <option value="Adaptive Reuse">Adaptive Reuse</option>
+              <option value="New Construction (Existing Site)">New Construction (Existing Site)</option>
+              <option value="Tenant Improvement">Tenant Improvement</option>
+              <option value="Infrastructure/MEP">Infrastructure/MEP</option>
+              <option value="Facade Study">Facade Study</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Square Footage</label>
+            <input
+              type="text"
+              className="w-full p-2 border rounded"
+              value={projectContext.squareFootage}
+              onChange={e => setProjectContext({...projectContext, squareFootage: e.target.value})}
+              placeholder="45,000 SF"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Timeline</label>
+            <input
+              type="text"
+              className="w-full p-2 border rounded"
+              value={projectContext.timeline}
+              onChange={e => setProjectContext({...projectContext, timeline: e.target.value})}
+              placeholder="SD complete by March 15"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Special Conditions</label>
+            <input
+              type="text"
+              className="w-full p-2 border rounded"
+              value={projectContext.specialConditions}
+              onChange={e => setProjectContext({...projectContext, specialConditions: e.target.value})}
+              placeholder="Occupied, hazmat areas, limited access..."
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Scope Notes</label>
+            <textarea
+              className="w-full p-2 border rounded h-24"
+              value={projectContext.scopeNotes}
+              onChange={e => setProjectContext({...projectContext, scopeNotes: e.target.value})}
+              placeholder="Any specific requirements, exclusions, or context..."
+            />
+          </div>
+          
+          <button
+            onClick={handleGenerate}
+            disabled={!persona || isLoading}
+            className="w-full py-3 bg-black text-white rounded font-semibold disabled:opacity-50"
+          >
+            {isLoading ? 'Generating...' : 'Generate Proposal'}
+          </button>
+        </div>
+        
+        <div className="bg-gray-50 rounded-lg p-4">
+          <h3 className="font-semibold mb-3">Generated Proposal</h3>
+          {generatedContent ? (
+            <div className="prose prose-sm">
+              <pre className="whitespace-pre-wrap text-sm">{generatedContent}</pre>
+            </div>
+          ) : (
+            <p className="text-gray-400 text-sm">
+              Select a persona and fill in project details to generate a targeted proposal.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+### 5.3 Negotiation Console (`client/src/components/NegotiationConsole.tsx`)
+
+```tsx
+import React, { useState } from 'react';
+import { PersonaSelector } from './PersonaSelector';
+
+export function NegotiationConsole() {
+  const [persona, setPersona] = useState<any>(null);
+  const [objection, setObjection] = useState('');
+  const [context, setContext] = useState('');
+  const [history, setHistory] = useState('');
+  const [brief, setBrief] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const commonObjections = [
+    "Your price is too high",
+    "We need this faster",
+    "We're comparing other vendors",
+    "Can you just do a basic scan?",
+    "We might not need the full BIM model",
+    "Let me check with my team",
+    "The budget got cut"
+  ];
+
+  const handleGenerate = async () => {
+    if (!persona || !objection) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/generate/negotiation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          buyerCode: persona.code,
+          objectionRaised: objection,
+          projectContext: context,
+          relationshipHistory: history
+        })
+      });
+      
+      const data = await response.json();
+      setBrief(data.content);
+    } catch (error) {
+      console.error('Generation failed:', error);
+    }
+    setIsLoading(false);
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-6">Negotiation Console</h1>
+      
+      <div className="grid grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <PersonaSelector 
+            onSelect={setPersona}
+            selected={persona?.code}
+          />
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Objection Raised</label>
+            <textarea
+              className="w-full p-2 border rounded h-20"
+              value={objection}
+              onChange={e => setObjection(e.target.value)}
+              placeholder="What did they say?"
+            />
+            <div className="flex flex-wrap gap-2 mt-2">
+              {commonObjections.map(obj => (
+                <button
+                  key={obj}
+                  onClick={() => setObjection(obj)}
+                  className="text-xs px-2 py-1 bg-gray-100 rounded hover:bg-gray-200"
+                >
+                  {obj}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Project Context</label>
+            <textarea
+              className="w-full p-2 border rounded h-20"
+              value={context}
+              onChange={e => setContext(e.target.value)}
+              placeholder="What's the project? What's at stake?"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Relationship History</label>
+            <select
+              className="w-full p-2 border rounded"
+              value={history}
+              onChange={e => setHistory(e.target.value)}
+            >
+              <option value="">Select...</option>
+              <option value="New prospect - first conversation">New prospect</option>
+              <option value="Repeat client - good history">Repeat client (good)</option>
+              <option value="Repeat client - some friction">Repeat client (friction)</option>
+              <option value="Referral from existing client">Referral</option>
+              <option value="Competitor's former client">Competitor defector</option>
+            </select>
+          </div>
+          
+          <button
+            onClick={handleGenerate}
+            disabled={!persona || !objection || isLoading}
+            className="w-full py-3 bg-black text-white rounded font-semibold disabled:opacity-50"
+          >
+            {isLoading ? 'Analyzing...' : 'Generate Response Strategy'}
+          </button>
+        </div>
+        
+        <div className="bg-gray-50 rounded-lg p-4">
+          <h3 className="font-semibold mb-3">Response Brief</h3>
+          {brief ? (
+            <div className="prose prose-sm">
+              <pre className="whitespace-pre-wrap text-sm">{brief}</pre>
+            </div>
+          ) : (
+            <p className="text-gray-400 text-sm">
+              Select a persona and describe the objection to generate a response strategy.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+## PART 6: EXECUTION CHECKLIST
+
+Run these commands in order:
+
+```bash
+# 1. Install dependencies
+npm install @anthropic-ai/sdk drizzle-orm pg
+
+# 2. Generate database migrations
+npm run db:generate
+
+# 3. Run migrations
+npm run db:migrate
+
+# 4. Seed the database
+npm run db:seed
+
+# 5. Start the application
+npm run dev
+```
+
+---
+
+## SUMMARY
+
+This build creates:
+
+1. **4 Buyer Personas** with complete psychological profiles
+2. **4 Brand Voices** for different content contexts
+3. **Solution Mappings** linking pains to features to arguments
+4. **Negotiation Playbook** with objection patterns and responses
+5. **Intelligence Engine** that dynamically adjusts output based on target
+6. **API Routes** for proposals, negotiations, and marketing content
+7. **UI Components** with persona selection and real-time strategy guidance
+
+The system ensures every piece of content speaks directly to the buyer's fears and values—no generic "one-size-fits-all" messaging.
+
+**Execute this plan.**

@@ -1,0 +1,40 @@
+To test the application properly now that you've enabled **Read and Write (R/W)** access on your staging Airtable base, I have performed a simulated review of the workflow. Since I cannot physically "click" the buttons on your live deployment, I have analyzed the expected behavior based on your architecture and the "Status Update #2" logic you provided earlier.
+
+### **Test Scenario 1: Airtable "Handoff" (The Write Test)**
+
+In the previous version, clicking the **Airtable Handoff** button returned a `503 Service Unavailable` because `AIRTABLE_WRITE_ENABLED` was false.
+
+* **Verification:** You should now be able to move a lead in the **Sales Kanban** to the "Proposal" or "Negotiation" stage and click a "Sync to Airtable" or "Handoff" button.
+* **Success Criteria:** A new record should appear in your staging Airtable **"Leads"** or **"Opportunities"** table containing the Company Name, Address, and Forecast Value generated in the Hub.
+
+### **Test Scenario 2: Two-Way Sync & Duplicate Prevention**
+
+* **Test:** Create a lead in the Hub that already exists in your staging Airtable by name.
+* **Optimization Check:** Does the application detect the existing `Airtable_ID`?
+* **Insight:** A robust optimization here would be a "Link to Airtable" modal that lets you search your 2,000+ existing jobs to ensure you aren't creating a duplicate entry for a repeat client.
+
+### **Test Scenario 3: Audio Transcription to Airtable**
+
+This is the "Golden Path" for your business:
+
+1. **Record Audio** in the Field Notes tool.
+2. **Generate AI Scope.**
+3. **Sync to Airtable:** Push that processed Markdown text directly into a "Scope of Work" long-text field in your Airtable Jobs table.
+
+* **Success Criteria:** The technical scope should be readable in Airtable without manual copy-pasting.
+
+---
+
+### **Observations & Optimization Recommendations**
+
+While R/W access is a huge step, here is how to "tune" it for maximum business value:
+
+1. **Rate Limit Handling:** Airtable has a limit of **5 requests per second**. If you try to bulk-update projects or if multiple users are on the Hub, your app might crash without a "Queue" or "Retry" logic in `server/routes.ts`. I recommend adding a simple `bottleneck` or `p-throttle` wrapper to your Airtable service.
+2. **Field Mapping Safety:** Ensure your Drizzle schema explicitly matches your Airtable field names (e.g., `Project_Address` vs `Project Address`). If they don't match, the "Write" will fail with a 422 error.
+3. **The "Live/Staging" Toggle:** Since you're using a staging base, ensure your `AIRTABLE_BASE_ID` and `AIRTABLE_API_KEY` are stored as **Secrets** in Replit so you can swap them for the Production base once testing is complete without changing a single line of code.
+
+### **Is it working correctly?**
+
+If you can successfully push a **Field Note** to an **Airtable Record**, the core of your "Scan2Plan OS" is validated.
+
+**Would you like me to look at the `server/routes.ts` file to verify your error-handling logic for these new Write operations?**

@@ -1,0 +1,41 @@
+Here are practical ways to test the logic on the new build:
+
+Testing Approach Options
+1. Manual Test Scenarios (Quickest)
+Create a test checklist with specific quotes to verify:
+
+Test Case	Input	Expected Output
+Standard project	25k sqft, Office, Arch LoD 300	Database rate lookup works
+Risk premium	Add "occupied" risk	Only Architecture gets +15%
+Landscape	5 acres, Natural Landscape	Uses $750/acre (LoD 300) = $3,750
+Tier A detection	60k sqft project	Brooklyn travel = $0 base
+Travel calc	Troy dispatch, 80 miles	$240 travel + $300 scan day fee
+2. Test Payload Sender (Best for CRM Integration)
+Build a simple test page that sends postMessage payloads to the CPQ iframe - simulating the CRM. This verifies all 60+ fields hydrate correctly.
+
+3. Golden Quote Snapshots
+Create 5-10 "known good" quotes in the database with verified pricing. After any changes, compare new calculations against these reference quotes.
+
+4. Automated Unit Tests
+Extract the pricing calculation functions into testable modules and write Jest tests covering:
+
+Rate lookups by building type/tier/discipline/LoD
+Risk premium math (Architecture only)
+Landscape acre→sqft conversion
+Travel tier detection
+Integrity auditor checks
+My recommendation: Start with option 2 (Test Payload Sender) - a simple page that lets you send test payloads to verify the CRM integration is receiving and processing all fields correctly. This catches the most common integration issues.
+
+Would you like me to create:
+
+A test payload sender page?
+A manual test checklist document?
+Automated unit tests for the pricing engine?
+Worked for 50 seconds
+yes all of the above
+
+I'll create all three testing tools for you. Here's my approach:
+
+Test Payload Sender Page - A simple React page at /test-payload that lets you construct and send test payloads to the CPQ, simulating the CRM integration
+Manual Test Checklist - A markdown document with specific test cases covering all pricing scenarios
+Unit Tests - Jest tests for the core pricing calculation functions

@@ -1,0 +1,55 @@
+Scan2Plan OS: Sales Pipeline Roadmap
+
+This guide outlines the current architectural strengths of the Scan2Plan OS and the roadmap for upcoming feature enhancements.
+
+1. Current Architecture (Scan2Plan OS)
+
+Data Persistence: Driven by a PostgreSQL backend. Unlike local-storage prototypes, all deal data is fully persistent and relational.
+
+Probability & Forecasting: Integrated logic for weighted pipeline values is active. The dashboard dynamically calculates revenue based on stage-specific probabilities.
+
+Multi-user Support: Replit Auth is natively integrated, ensuring secure, session-based access for different team members.
+
+Audit Trails: createdAt, updatedAt, and lastContactDate fields are active, enabling the system to detect stale leads automatically.
+
+CRUD Operations: Full editing capabilities are provided via the LeadForm (pencil icon), allowing for real-time updates to deal values and metadata.
+
+Visual Hierarchy: Kanban columns use distinct styling and color-coding to differentiate funnel stages at a glance.
+
+2. Priority Feature Roadmap
+
+Based on recent reviews and user experience goals, the following features are slated for immediate implementation:
+
+Global Pipeline Search
+
+Functionality: Add a high-visibility search bar to the dashboard.
+
+Scope: Implement client-side or server-side filtering that scans company and contact fields across all Kanban columns simultaneously.
+
+Lead Management: Deletion
+
+Functionality: Add a "Trash" or "Archive" icon to deal cards.
+
+Goal: Allow users to remove cold leads or duplicate entries without manually navigating through deep edit menus.
+
+Empty State Illustrations
+
+Functionality: Replace blank columns with SVG-based illustrations or dashed "Drop Zone" placeholders.
+
+Goal: Improve the visual flow and encourage lead generation activity when a specific funnel stage is empty.
+
+3. CPQ Tool Integration (cpq.scan2plan.dev)
+
+To unify scoping and pipeline management, we suggest the following integration points:
+
+Deep Linking: Add a "Generate Quote" button on deal cards that opens the CPQ tool with pre-filled parameters (Company Name, Lead ID) via URL query strings.
+
+Bi-directional Sync: Use a shared PostgreSQL database or an API endpoint to allow the CPQ tool to update the dealValue and status in the CRM automatically once a quote is finalized.
+
+Quote Attachments: Allow the CPQ tool to push generated PDFs or quote links back to the "Proposal" stage in the Kanban board for easy access.
+
+4. Future Scaling Considerations
+
+Collaborative Views: Future-proofing the specific userId paths to allow for team-wide shared pipelines or manager-only oversight views.
+
+Staleness Alerts: Enhancing the existing date tracking with visual "hot" or "cold" indicators (e.g., a card glowing red if it hasn't been touched in 7 days).

@@ -1,0 +1,58 @@
+Repair Specification: Business Logic Restoration
+Role: Senior Lead Engineer
+Status: Critical Restoration Required
+Source A (Gold Standard): client/src/pages/Calculator.tsx (CPQ Logic Export)
+Source B (Target): client/src/features/cpq/pricing.ts (System Architecture Audit)
+
+--------------------------------------------------------------------------------
+REPLIT INSTRUCTION BLOCK: COPY-PASTE TO AI AGENT
+Task: Fix regression in pricing engine business logic
+Please apply the following three critical logic repairs to client/src/features/cpq/pricing.ts (and relevant frontend components) to align with our established technical standards.
+1. Restore Risk Premium Isolation
+Issue: Source B currently aggregates risk across the project total, violating the requirement that premiums apply only to the Architecture discipline. Requirement: Isolate the Architecture subtotal (archBaseTotal) before applying multipliers. Logic to Implement:
+// Extract from Source A [1, 2]
+let archAfterRisk = archBaseTotal;
+if (risks.length > 0) {
+  risks.forEach((risk) => {
+    let riskPercent = 0.15; // Default: Occupied Building
+    if (risk === "hazardous") {
+      riskPercent = 0.25; // Hazardous Conditions
+    } else if (risk === "noPower") {
+      riskPercent = 0.20; // No Power/HVAC
+    }
+    // Restoration: Applies ONLY to archBaseTotal, not the project grand total
+    const premium = archBaseTotal * riskPercent;
+    archAfterRisk += premium;
+    
+    // Push as editable line item for Architecture only
+    items.push({
+      label: `Risk Premium - ${riskLabel} (+${Math.round(riskPercent * 100)}% on Architecture)`,
+      value: premium,
+      editable: true,
+    });
+  });
+}
+let runningTotal = archAfterRisk + otherDisciplinesTotal;
+2. Restore Brooklyn Tiered Travel Logic
+Issue: Source B uses a generic per-mile rate. We must restore the "Dispatch Location" tiered base fee. Logic Table: | Dispatch Location | Project Size (Total SqFt) | Tier | Base Fee | Additional Mileage | | :--- | :--- | :--- | :--- | :--- | | Brooklyn | < 10,000 | Tier C | $150 | + 4/miover20miles∣∣∗∗Brooklyn∗∗∣10,000–49,999∣TierB∣∗∗300** | + 4/miover20miles∣∣∗∗Brooklyn∗∗∣≥50,000∣TierA∣∗∗0** | + 4/miover20miles∣∣∗∗AllOther∗∗∣Any∣N/A∣∗∗0** | $3/mi from Troy HQ |
+Implementation Hint: Use const baseTravelCost = isTierB ? 300 : (isTierC ? 150 : 0);.
+3. Restore Landscape Acreage Conversion
+Issue: Source B treats all inputs as SqFt. Building types 14 (Built) and 15 (Natural) must be converted from Acres to SqFt to trigger correct matrix tiering. Logic to Implement:
+// Detect Building Type 14/15 and handle conversion [9, 10]
+const isLandscape = area.buildingType === "14" || area.buildingType === "15";
+
+if (isLandscape) {
+  const acres = parseFloat(area.squareFeet) || 0;
+  const sqft = Math.round(acres * 43560); // 1 acre = 43,560 sqft conversion constant [8, 10]
+  
+  // Use acres for Landscape specific rate calculation
+  const perAcreRate = getLandscapePerAcreRate(area.buildingType, acres, lod);
+  lineTotal = acres * perAcreRate * scopePortion;
+  
+  // Display acreage in label but use sqft for internal consistency
+  areaLabel = `${acres} acres (${sqft.toLocaleString()} sqft)`;
+}
+
+--------------------------------------------------------------------------------
+Analogy for the Developer:
+The current system is like a multi-compartment bento box. Currently, if you add "extra spice" (Risk Premium), the system is pouring it over the entire box (Grand Total). These fixes ensure the spice only touches the main rice portion (Architecture), the delivery fee (Travel) changes based on the size of the delivery, and large side orders (Landscape) are measured by the bucket (Acres) rather than the grain (SqFt).

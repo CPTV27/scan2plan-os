@@ -1,0 +1,334 @@
+Here's your Replit prompt:
+
+---
+
+**Add QuickBooks Expense Auto-Linking and Job Costing Analytics**
+
+Enhance the QuickBooks expense sync to automatically link expenses to leads/projects, add Bill sync, and create analytics endpoints for job-by-job profitability and overhead tracking.
+
+## 1. Enhance Expense Sync with Auto-Linking (server/quickbooks-client.ts)
+
+In the `syncExpenses()` method, after fetching each `QBExpense`, check if it has a `CustomerRef` and auto-link to the matching lead:
+
+```typescript
+// After building expenseData, before insert/update:
+if (qbExp.CustomerRef?.value) {
+  // Find lead with matching qboCustomerId
+  const matchedLead = await db.select()
+    .from(leads)
+    .where(eq(leads.qboCustomerId, qbExp.CustomerRef.value))
+    .limit(1);
+  
+  if (matchedLead.length > 0) {
+    expenseData.leadId = matchedLead[0].id;
+    // Also link to project if one exists
+    const project = await db.select()
+      .from(projects)
+      .where(eq(projects.leadId, matchedLead[0].id))
+      .limit(1);
+    if (project.length > 0) {
+      expenseData.projectId = project[0].id;
+    }
+  }
+}
+```
+
+Also update the `QBExpense` interface to include `CustomerRef`:
+```typescript
+interface QBExpense {
+  // ... existing fields
+  CustomerRef?: { name: string; value: string }; // Customer/Job reference
+}
+```
+
+## 2. Add Bill Sync (server/quickbooks-client.ts)
+
+Add methods to fetch and sync Bills (vendor invoices / accounts payable):
+
+```typescript
+async fetchBills(startDate?: Date, endDate?: Date): Promise<any[]> {
+  const token = await this.getValidToken();
+  if (!token) throw new Error("QuickBooks not connected");
+
+  const start = startDate || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+  const end = endDate || new Date();
+
+  const query = `SELECT * FROM Bill WHERE TxnDate >= '${start.toISOString().split("T")[0]}' AND TxnDate <= '${end.toISOString().split("T")[0]}' MAXRESULTS 1000`;
+
+  const response = await fetch(
+    `${QB_BASE_URL}/v3/company/${token.realmId}/query?query=${encodeURIComponent(query)}`,
+    {
+      headers: {
+        "Authorization": `Bearer ${token.accessToken}`,
+        "Accept": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to fetch bills: ${error}`);
+  }
+
+  const data = await response.json();
+  return data.QueryResponse?.Bill || [];
+}
+
+async syncBills(): Promise<{ synced: number; errors: string[] }> {
+  const qbBills = await this.fetchBills();
+  const results = { synced: 0, errors: [] as string[] };
+
+  for (const bill of qbBills) {
+    try {
+      const existing = await db.select()
+        .from(expenses)
+        .where(eq(expenses.qbExpenseId, `BILL-${bill.Id}`))
+        .limit(1);
+
+      const firstLine = bill.Line?.find((l: any) => l.DetailType === "AccountBasedExpenseLineDetail");
+      
+      const expenseData: InsertExpense = {
+        qbExpenseId: `BILL-${bill.Id}`,
+        vendorName: bill.VendorRef?.name || null,
+        description: firstLine?.Description || bill.PrivateNote || null,
+        amount: String(bill.TotalAmt),
+        expenseDate: new Date(bill.TxnDate),
+        category: this.categorizeExpense(firstLine?.AccountBasedExpenseLineDetail?.AccountRef?.name),
+        accountName: firstLine?.AccountBasedExpenseLineDetail?.AccountRef?.name || null,
+        source: "quickbooks",
+        isBillable: firstLine?.AccountBasedExpenseLineDetail?.BillableStatus === "Billable",
+      };
+
+      // Auto-link to lead/project via CustomerRef
+      if (bill.CustomerRef?.value) {
+        const matchedLead = await db.select()
+          .from(leads)
+          .where(eq(leads.qboCustomerId, bill.CustomerRef.value))
+          .limit(1);
+        
+        if (matchedLead.length > 0) {
+          expenseData.leadId = matchedLead[0].id;
+          const project = await db.select()
+            .from(projects)
+            .where(eq(projects.leadId, matchedLead[0].id))
+            .limit(1);
+          if (project.length > 0) {
+            expenseData.projectId = project[0].id;
+          }
+        }
+      }
+
+      if (existing.length > 0) {
+        await db.update(expenses)
+          .set({ ...expenseData, syncedAt: new Date() })
+          .where(eq(expenses.id, existing[0].id));
+      } else {
+        await db.insert(expenses).values(expenseData);
+      }
+      results.synced++;
+    } catch (err: any) {
+      results.errors.push(`Bill ${bill.Id}: ${err.message}`);
+    }
+  }
+
+  return results;
+}
+
+// Combined sync method
+async syncAllExpenses(): Promise<{ purchases: { synced: number; errors: string[] }; bills: { synced: number; errors: string[] } }> {
+  const purchases = await this.syncExpenses();
+  const bills = await this.syncBills();
+  return { purchases, bills };
+}
+```
+
+## 3. Add Job Costing Analytics Methods (server/quickbooks-client.ts)
+
+```typescript
+async getJobCostingAnalytics(): Promise<{
+  jobProfitability: Array<{
+    leadId: number;
+    projectId: number | null;
+    clientName: string;
+    projectName: string;
+    quotedPrice: number;
+    quotedMargin: number;
+    actualRevenue: number;
+    actualCosts: number;
+    actualProfit: number;
+    actualMargin: number;
+    marginVariance: number;
+    costsByCategory: Record<string, number>;
+  }>;
+  overhead: {
+    total: number;
+    byCategory: Record<string, number>;
+    byMonth: Array<{ month: string; amount: number }>;
+  };
+  summary: {
+    totalRevenue: number;
+    totalDirectCosts: number;
+    totalOverhead: number;
+    grossProfit: number;
+    netProfit: number;
+    averageJobMargin: number;
+  };
+}> {
+  const allExpenses = await db.select().from(expenses);
+  const allLeads = await db.select().from(leads).where(eq(leads.dealStage, "Closed Won"));
+  const allProjects = await db.select().from(projects);
+
+  // Group expenses by lead
+  const expensesByLead = new Map<number, typeof allExpenses>();
+  const overheadExpenses: typeof allExpenses = [];
+
+  for (const exp of allExpenses) {
+    if (exp.leadId) {
+      const existing = expensesByLead.get(exp.leadId) || [];
+      existing.push(exp);
+      expensesByLead.set(exp.leadId, existing);
+    } else {
+      overheadExpenses.push(exp);
+    }
+  }
+
+  // Calculate job profitability
+  const jobProfitability = allLeads.map(lead => {
+    const project = allProjects.find(p => p.leadId === lead.id);
+    const leadExpenses = expensesByLead.get(lead.id) || [];
+    
+    const actualRevenue = parseFloat(lead.value || "0");
+    const actualCosts = leadExpenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
+    const actualProfit = actualRevenue - actualCosts;
+    const actualMargin = actualRevenue > 0 ? (actualProfit / actualRevenue) * 100 : 0;
+    
+    // Get quoted margin from project or estimate from CPQ
+    const quotedPrice = project?.quotedPrice ? parseFloat(String(project.quotedPrice)) : actualRevenue;
+    const quotedMargin = project?.quotedMargin ? parseFloat(String(project.quotedMargin)) : 45; // Default 45%
+    
+    const marginVariance = actualMargin - quotedMargin;
+
+    // Group costs by category
+    const costsByCategory: Record<string, number> = {};
+    for (const exp of leadExpenses) {
+      const cat = exp.category || "Other";
+      costsByCategory[cat] = (costsByCategory[cat] || 0) + parseFloat(exp.amount);
+    }
+
+    return {
+      leadId: lead.id,
+      projectId: project?.id || null,
+      clientName: lead.clientName,
+      projectName: lead.projectName || lead.projectAddress || "Unknown",
+      quotedPrice,
+      quotedMargin,
+      actualRevenue,
+      actualCosts,
+      actualProfit,
+      actualMargin,
+      marginVariance,
+      costsByCategory,
+    };
+  }).sort((a, b) => b.actualProfit - a.actualProfit);
+
+  // Calculate overhead
+  const overheadByCategory: Record<string, number> = {};
+  const overheadByMonth: Record<string, number> = {};
+  let totalOverhead = 0;
+
+  for (const exp of overheadExpenses) {
+    const amount = parseFloat(exp.amount);
+    totalOverhead += amount;
+    
+    const cat = exp.category || "Other";
+    overheadByCategory[cat] = (overheadByCategory[cat] || 0) + amount;
+    
+    if (exp.expenseDate) {
+      const monthKey = exp.expenseDate.toISOString().slice(0, 7); // YYYY-MM
+      overheadByMonth[monthKey] = (overheadByMonth[monthKey] || 0) + amount;
+    }
+  }
+
+  const overheadByMonthArray = Object.entries(overheadByMonth)
+    .map(([month, amount]) => ({ month, amount }))
+    .sort((a, b) => a.month.localeCompare(b.month));
+
+  // Summary calculations
+  const totalRevenue = jobProfitability.reduce((sum, j) => sum + j.actualRevenue, 0);
+  const totalDirectCosts = jobProfitability.reduce((sum, j) => sum + j.actualCosts, 0);
+  const grossProfit = totalRevenue - totalDirectCosts;
+  const netProfit = grossProfit - totalOverhead;
+  const averageJobMargin = jobProfitability.length > 0
+    ? jobProfitability.reduce((sum, j) => sum + j.actualMargin, 0) / jobProfitability.length
+    : 0;
+
+  return {
+    jobProfitability,
+    overhead: {
+      total: totalOverhead,
+      byCategory: overheadByCategory,
+      byMonth: overheadByMonthArray,
+    },
+    summary: {
+      totalRevenue,
+      totalDirectCosts,
+      totalOverhead,
+      grossProfit,
+      netProfit,
+      averageJobMargin,
+    },
+  };
+}
+```
+
+## 4. Add API Routes (server/routes/quickbooks.ts or server/routes.ts)
+
+```typescript
+// Sync all expenses (purchases + bills)
+app.post("/api/quickbooks/sync-expenses", isAuthenticated, requireRole("ceo"), async (req, res) => {
+  try {
+    const result = await quickbooksClient.syncAllExpenses();
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get job costing analytics
+app.get("/api/analytics/job-costing", isAuthenticated, requireRole("ceo"), async (req, res) => {
+  try {
+    const analytics = await quickbooksClient.getJobCostingAnalytics();
+    res.json(analytics);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get overhead breakdown
+app.get("/api/analytics/overhead", isAuthenticated, requireRole("ceo"), async (req, res) => {
+  try {
+    const analytics = await quickbooksClient.getJobCostingAnalytics();
+    res.json(analytics.overhead);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+```
+
+## 5. Update Schema - Add source field default (shared/schema.ts)
+
+In the existing `expenses` table, make sure the `source` field properly distinguishes between field entries and QuickBooks synced items. The existing schema already has this but ensure it's being used:
+- `source: "field"` for manual/field entries
+- `source: "quickbooks"` for synced expenses
+
+## Testing
+
+After implementation:
+1. Go to QuickBooks settings and trigger expense sync
+2. Check that expenses with CustomerRef are automatically linked to leads
+3. Verify the `/api/analytics/job-costing` endpoint returns proper job P&L data
+4. Confirm overhead (unlinked expenses) shows in the overhead section
+
+---
+
+Copy this into Replit and let me know when it's done - then we can build the analytics dashboard UI.

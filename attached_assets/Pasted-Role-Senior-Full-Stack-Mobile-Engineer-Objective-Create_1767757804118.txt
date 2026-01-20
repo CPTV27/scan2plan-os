@@ -1,0 +1,47 @@
+Role: Senior Full-Stack & Mobile Engineer
+
+Objective: Create a "Scan Tech" mobile field module that automates time tracking, navigation, and site intelligence capture.
+
+1. Database Schema Additions:
+
+Add a time_logs table: id, project_id, tech_id, arrival_time, departure_time, total_site_minutes, type (Automatic/Manual).
+
+Add a site_intelligence table: id, project_id, video_url, transcript, ai_summary, created_at.
+
+Add a scantec_home field to the users table to store the technician's base address.
+
+2. Navigation & Geofencing Logic:
+
+"Start Mission" Button: Implement a button that triggers a deep link to Google Maps Navigation: google.navigation:q=PROJECT_ADDRESS.
+
+Automated Clock-In: Use the Geolocation API to monitor the tech's position. When the device is within 100 meters of the project_address, automatically POST an arrival_time to the time_logs table.
+
+Automated Clock-Out: When the device leaves the 100m radius and the tech clicks "Job Complete," log the departure_time and immediately trigger a deep link back to the scantec_home address.
+
+3. Site Intelligence Capture (The "Walkthrough"):
+
+Video Interface: Create a dedicated "Start Walkthrough" screen with a video recording interface.
+
+Audio Pipeline: Record audio simultaneously. On "Stop," send the audio to OpenAI Whisper for transcription.
+
+AI Analysis: Send the resulting transcript to GPT-4o-mini with this specific instruction:
+
+"Analyze this Scan Tech walkthrough. Extract: 1) Physical site obstructions, 2) Lighting conditions, 3) Specific rooms/areas confirmed for scanning, and 4) Any requested changes to the original scope. Format as a professional field report."
+
+Project Manager Sync: Save the transcript and AI summary to the project file so it appears instantly on the PM’s Dashboard.
+
+4. Field UI Requirements:
+
+Dashboard: Show "Today’s Mission" with a big "Navigate" button.
+
+Digital Scope: Display a "Checklist" of project details (e.g., "Scan Boiler Room," "Capture high-res photos of electrical panels").
+
+Contact Card: A "One-Tap" button to call the on-site contact.
+
+Visualizing the Scan Tech Flow
+Strategic Tips for Implementation:
+Battery Management: Geofencing can drain a phone battery. Tell the Replit AI to use "Significant Location Changes" or a lower-frequency GPS ping (every 1-2 minutes) until the technician is within 1 mile of the site.
+
+The "Scantec Home" Address: Make sure you go into your user settings in the app and save your home or office address. This is the "Anchor" the app uses to get you home at the end of the day.
+
+PWA vs. Native: For the best "Automatic" clock-in results while the phone is in a pocket, it is best to use the Expo workflow in Replit, which allows the app to run as a native process on your phone rather than just a tab in Chrome.

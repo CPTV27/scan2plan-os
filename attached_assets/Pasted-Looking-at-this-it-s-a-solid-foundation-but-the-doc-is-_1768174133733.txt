@@ -1,0 +1,247 @@
+Looking at this—it's a solid foundation but the doc is more "strategy deck" than "implementation spec." Let me distill it into an actionable Replit prompt that builds on your existing schema.
+
+---
+
+**Implement Dynamic Buyer Persona System with AI Enhancement**
+
+## Context
+Scan2Plan OS already has a `buyerPersona` field on leads (BP1-BP7). We're upgrading this from static labels to a full **editable persona engine** with AI-powered customization based on deal outcomes.
+
+## 1. Database Schema (shared/schema.ts)
+
+```typescript
+export const buyerPersonas = pgTable("buyer_personas", {
+  id: serial("id").primaryKey(),
+  code: varchar("code", { length: 10 }).notNull().unique(), // BP1, BP2, etc.
+  name: varchar("name", { length: 100 }).notNull(), // "The Architect"
+  icon: varchar("icon", { length: 50 }), // lucide icon name
+  
+  // Identity
+  description: text("description"),
+  typicalTitles: jsonb("typical_titles"), // ["Principal Architect", "Design Director"]
+  
+  // Cognitive Blueprint
+  coreValues: jsonb("core_values"), // ["Design Integrity", "Accuracy"]
+  primaryPains: jsonb("primary_pains"), // ["Field conditions don't match drawings"]
+  purchaseTriggers: jsonb("purchase_triggers"), // ["Renovation project kicks off"]
+  
+  // Sales Strategy
+  valueHook: text("value_hook"), // "Design with confidence..."
+  exactLanguage: jsonb("exact_language"), // phrases TO use
+  avoidLanguage: jsonb("avoid_language"), // phrases to NEVER use
+  
+  // Risk Profile
+  vetoPower: boolean("veto_power").default(false),
+  defaultRiskLevel: varchar("default_risk_level", { length: 20 }).default("medium"),
+  
+  // Buying Mode Overrides (Firefighter/Optimizer/Innovator tips)
+  buyingModeStrategies: jsonb("buying_mode_strategies"), 
+  // { firefighter: "Lead with speed...", optimizer: "Lead with ROI...", innovator: "Lead with tech..." }
+  
+  // Asset Mapping
+  requiredAssets: jsonb("required_assets"), // ["precision_validation_report", "technical_appendix"]
+  proposalSections: jsonb("proposal_sections"), // sections to auto-include in proposals
+  
+  // AI Learning
+  winRate: decimal("win_rate", { precision: 5, scale: 2 }),
+  avgDealSize: decimal("avg_deal_size", { precision: 12, scale: 2 }),
+  avgSalesCycle: integer("avg_sales_cycle_days"),
+  totalDeals: integer("total_deals").default(0),
+  
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Track which strategies actually work
+export const personaInsights = pgTable("persona_insights", {
+  id: serial("id").primaryKey(),
+  personaId: integer("persona_id").references(() => buyerPersonas.id),
+  leadId: integer("lead_id").references(() => leads.id),
+  
+  // What was used
+  buyingModeUsed: varchar("buying_mode_used", { length: 20 }),
+  strategyNotes: text("strategy_notes"),
+  assetsDelivered: jsonb("assets_delivered"),
+  
+  // Outcome
+  outcome: varchar("outcome", { length: 20 }), // won, lost, stalled
+  dealValue: decimal("deal_value", { precision: 12, scale: 2 }),
+  cycleLength: integer("cycle_length_days"),
+  lossReason: text("loss_reason"),
+  
+  // AI-generated learnings
+  aiAnalysis: text("ai_analysis"),
+  suggestedRefinements: jsonb("suggested_refinements"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+});
+```
+
+## 2. Backend API (server/routes/personas.ts)
+
+```typescript
+// CRUD endpoints
+GET    /api/personas              // List all personas
+GET    /api/personas/:id          // Get single persona with stats
+POST   /api/personas              // Create new persona
+PATCH  /api/personas/:id          // Update persona attributes
+DELETE /api/personas/:id          // Soft delete (set isActive=false)
+
+// AI Enhancement endpoints
+POST   /api/personas/:id/analyze  // Analyze win/loss data, generate insights
+POST   /api/personas/suggest      // AI suggests persona for a lead based on company data
+POST   /api/personas/:id/refine   // AI suggests attribute refinements based on outcomes
+
+// Deal Integration
+GET    /api/personas/:id/playbook?buyingMode=firefighter  // Get full playbook for deal context
+POST   /api/personas/insights     // Log a deal outcome for learning
+```
+
+## 3. AI Enhancement Logic (server/services/personaAI.ts)
+
+```typescript
+// When a deal closes (win or loss), analyze and learn
+async function analyzeOutcome(leadId: number, outcome: 'won' | 'lost' | 'stalled') {
+  const lead = await getLead(leadId);
+  const persona = await getPersona(lead.buyerPersona);
+  const communications = await getLeadCommunications(leadId);
+  
+  // Call Claude API to analyze
+  const analysis = await claude.messages.create({
+    model: "claude-sonnet-4-20250514",
+    messages: [{
+      role: "user",
+      content: `Analyze this ${outcome} deal for persona refinement:
+        
+        Persona: ${persona.name}
+        Buying Mode: ${lead.buyingMode}
+        Value Hook Used: ${persona.valueHook}
+        Deal Value: ${lead.estimatedValue}
+        Cycle Length: ${daysBetween(lead.createdAt, lead.closedAt)}
+        ${outcome === 'lost' ? `Loss Reason: ${lead.lossReason}` : ''}
+        
+        Communication snippets: ${communications.slice(0, 5).map(c => c.snippet).join('\n')}
+        
+        Suggest specific refinements to:
+        1. Value hook phrasing
+        2. Language to use/avoid
+        3. Buying mode strategy
+        Return as JSON.`
+    }]
+  });
+  
+  // Store insight and optionally auto-update persona
+  await storeInsight(persona.id, leadId, outcome, analysis);
+}
+
+// Suggest persona for new lead based on company intel
+async function suggestPersona(leadId: number) {
+  const lead = await getLead(leadId);
+  const research = await getLeadResearch(leadId); // from Evidence Vault
+  const personas = await getAllActivePersonas();
+  
+  const suggestion = await claude.messages.create({
+    model: "claude-sonnet-4-20250514",
+    messages: [{
+      role: "user", 
+      content: `Based on this lead data, which persona is the best fit?
+        
+        Company: ${lead.companyName}
+        Contact Title: ${lead.contactTitle}
+        Industry signals: ${research.client?.summary}
+        Property type: ${research.property?.summary}
+        
+        Available personas:
+        ${personas.map(p => `${p.code}: ${p.name} - ${p.description}`).join('\n')}
+        
+        Return: { personaCode, confidence, reasoning, suggestedBuyingMode }`
+    }]
+  });
+  
+  return suggestion;
+}
+```
+
+## 4. Frontend Components
+
+### PersonaManager.tsx (Settings page)
+- List view of all personas with win rate badges
+- Click to edit any attribute inline
+- "Add Custom Persona" button
+- Import/Export JSON for backup
+
+### PersonaEditor.tsx (Modal/Drawer)
+- Tabs: Identity | Strategy | Risk & Assets | AI Insights
+- Rich text for value hooks
+- Tag inputs for language arrays
+- Toggle for veto power
+- Asset checklist with PandaDoc section IDs
+
+### SalesCoPilot.tsx (Deal Workspace sidebar)
+```tsx
+// Renders live persona guidance in deal view
+const SalesCoPilot = ({ lead, persona, buyingMode }) => {
+  const playbook = usePersonaPlaybook(persona.id, buyingMode);
+  
+  return (
+    <Card>
+      <PersonaBadge persona={persona} />
+      <RiskIndicator level={persona.defaultRiskLevel} vetoPower={persona.vetoPower} />
+      
+      <Section title="Your Angle">
+        <p>{playbook.valueHook}</p>
+      </Section>
+      
+      <Section title="Mode: {buyingMode}">
+        <p>{playbook.buyingModeStrategies[buyingMode]}</p>
+      </Section>
+      
+      <Collapsible title="Language Guide">
+        <Do items={persona.exactLanguage} />
+        <Dont items={persona.avoidLanguage} />
+      </Collapsible>
+      
+      <AssetChecklist 
+        required={persona.requiredAssets} 
+        delivered={lead.deliveredAssets} 
+      />
+      
+      {persona.vetoPower && (
+        <Alert variant="warning">
+          High veto risk—send Precision Validation Report before proposal
+        </Alert>
+      )}
+    </Card>
+  );
+};
+```
+
+### PersonaSuggestion.tsx (New lead flow)
+- When lead is created without persona, show AI suggestion
+- "Accept" auto-tags lead, "Override" lets CEO pick manually
+- Confidence indicator + reasoning tooltip
+
+## 5. Seed Data
+Pre-populate with the 7 existing personas (BP1-BP7) including:
+- Owner/Developer, Architect, Engineer, GC, Property Manager, PropTech/Startup, Institutional Owner
+- Map existing `buyerPersona` field values to new persona IDs
+
+## 6. Learning Loop Integration
+- On deal status change to "won" or "lost", trigger `analyzeOutcome()`
+- Weekly cron job: recalculate `winRate`, `avgDealSize`, `avgSalesCycle` per persona
+- Monthly: AI reviews all insights and suggests bulk refinements for CEO approval
+
+## Files to create/modify:
+- `shared/schema.ts` - add persona tables
+- `server/routes/personas.ts` - new route file
+- `server/services/personaAI.ts` - AI logic
+- `client/src/pages/PersonaManager.tsx` - settings page
+- `client/src/components/PersonaEditor.tsx`
+- `client/src/components/SalesCoPilot.tsx`
+- `client/src/components/PersonaSuggestion.tsx`
+- `client/src/pages/DealWorkspace.tsx` - integrate SalesCoPilot sidebar
+
+---
+
+That should give Replit the full picture. The key differentiator from the original doc: this actually closes the learning loop—every deal outcome trains the system.

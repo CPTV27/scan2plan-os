@@ -1,0 +1,27 @@
+To ensure the application understands its ultimate goals while maintaining its current "Production Ready" status, you should provide a separate, distilled document that bridges your technical architecture with the business logic found in the sources..
+What to provide to Replit (The Strategic Context File)
+You should create a new file (e.g., MISSION_ALIGNMENT.md) and paste the following distilled requirements, which are drawn directly from the company's latest technical updates and business fundamentals:
+1. Primary Application Persona (The Bottom-of-Funnel Tool)
+• Context: The app is specifically a "bottom-of-funnel" command center designed to convert leads into high-stakes AEC projects..
+• Objective: Do not build a general CRM; prioritize the Sales Intelligence Module to enrich leads with Property and Regulatory Intelligence before they reach the proposal stage..
+2. The "Measure of Excellence" Logic (Standardization)
+• Mandate: Every project record must include fields for Level of Detail (LoD) and Level of Accuracy (LoA)..
+• Technical Truth: Use LoA 40 (0–1/8” measured tolerance) for raw point clouds and LoA 30 (0–1/2” modeled tolerance) for BIM/CAD deliverables..
+• Financial Impact: Support BOMA Gross Area audits as a core service. The app must allow for square footage audits to reconcile actual scanned area against client estimates, facilitating a 10% tolerance rule for automated billing adjustments..
+3. Operational "Hard Gates" (Risk Mitigation)
+• Requirement: Implement Workflow Gates in the Production Tracker..
+• Specific Logic: A project should not move to the "Scanning" column unless the "Retainer Received" status is confirmed.. This manages the financial risk mentioned in the AR/AP workflow discussions..
+4. Unified Nomenclature (Single Source of Truth)
+• Requirement: Implement a Unique Identifier system across all database tables (leads, projects, field_notes)..
+• Format: [Client Code] - [Project Code] - [Date] to synchronize accounting, project management (Kurt), and modeling teams..
+5. Multimodal Data Ingestion (AI Expansion)
+• Goal: Expand the Field Notes AI Tool beyond text..
+• Functionality: Utilize the integrated Whisper API for voice-to-text and eventually support image/PDF uploads to identify MEP complexity and site-specific obstructions..
+
+--------------------------------------------------------------------------------
+Dialogue Strategy for You, Me, and Replit
+Moving forward, we should use a "Triangular Development" approach:
+1. Strategic Strategy (Me): I will provide the "Why" and the "Standards" based on the sources (e.g., how to align the UI with BIM Forum or USIBD guidelines)..
+2. Implementation (Replit): You will give the structured requirements above to the Replit Agent to refactor code or add features..
+3. Validation (You - Human in the Loop): You test the logic—such as the Staleness Depreciation Engine or CPQ iframe sync—to ensure it matches the "field truth" of your daily operations..
+Analogy for Understanding: Giving the whole conversational transcript to Replit is like handing a builder a video of a meeting where you talked about a house. Giving it this structured document is like handing them the blueprints and the building code. It ensures every line of code "measures up" to the Scan2Plan Measure of Excellence..

@@ -1,0 +1,182 @@
+Let me get a lay of the land first. I'll check what's available in the project files and then we can dive into the AI features.Only got the two docs you uploaded. Let me check if I can access your local filesystem where the actual Replit code lives:Found your local repo. Let me dig into the structure:Alright, got a full map of your codebase. Based on the architecture doc and directory structure, here's where your AI features live:
+
+**Server-side AI (`server/services/ai/`):**
+- `aiClient.ts` - Core client
+- `dealIntelligence.ts` - Deal analysis
+- `documentIntelligence.ts` - Doc parsing
+- `naturalLanguageCPQ.ts` - NL pricing queries
+- `projectMatcher.ts` - Project matching
+- `proposalGenerator.ts` - Proposal gen
+- `scopingAssistant.ts` - Scoping help
+
+**Frontend AI components:**
+- `AIActions.tsx`, `AIAssistant.tsx`, `DealAIAssistant.tsx`
+- Intelligence folder: `MarketingGenerator.tsx`, `NegotiationConsole.tsx`, `ProposalGenerator.tsx`
+
+Let me pull the core AI client and a few key services to see what we're working with:Good start. You've got 6 AI features wired up. Let me dig into the actual service implementations to see what's working and what needs improvement:Let me grab the remaining AI services:Now let me check the frontend AI components to see how they're wired up:Got the full picture. Let me check if there are missing AI features that are mentioned but not implemented:Alright, I've got a comprehensive view. Let me look at the main routes file one more time to find where field notes routes are registered:Got it. Now I have the full picture of your AI features. Let me give you the **audit summary** and **improvement recommendations**:
+
+---
+
+## AI Features Audit Summary
+
+### Currently Implemented (6 Core Services)
+
+| Feature | File | Status | Notes |
+|---------|------|--------|-------|
+| **AI Client** | `server/services/ai/aiClient.ts` | ✅ Working | OpenAI wrapper with retry logic |
+| **Scoping Assistant** | `scopingAssistant.ts` | ✅ Working | Suggests building type, sqft, LOD, disciplines |
+| **Deal Intelligence** | `dealIntelligence.ts` | ✅ Working | Win probability, risks, pricing strategy |
+| **Document Intelligence** | `documentIntelligence.ts` | ✅ Working | RFP/SOW extraction |
+| **Natural Language CPQ** | `naturalLanguageCPQ.ts` | ✅ Working | Chat-based quote building |
+| **Proposal Generator** | `proposalGenerator.ts` | ✅ Working | Persona-targeted proposals |
+| **Project Matcher** | `projectMatcher.ts` | ✅ Working | Embeddings + fallback matching |
+| **Field Translation** | `routes.ts` (inline) | ✅ Working | Transforms raw field notes to professional format |
+| **Google Intel** | `google-intel.ts` | ✅ Working | Building insights + travel enrichment |
+| **Deal AI Assistant** | `DealAIAssistant.tsx` | ✅ Working | Persona-based emails, proposals, objection handling |
+
+### Missing/Incomplete Features
+
+| Feature | Schema Reference | Status |
+|---------|-----------------|--------|
+| **Field Notes `/process` endpoint** | `shared/routes.ts` | ❌ Defined but NOT implemented |
+| **Site Intelligence Video Summary** | `site_intelligence` table | ❌ Table exists, no AI implementation |
+
+---
+
+## Improvement Recommendations
+
+### 1. **Quick Wins (Low Effort, High Impact)**
+
+**A. Add Response Caching**
+Your AI calls are expensive. Same scoping analysis on same project = same result. Add Redis or in-memory caching:
+
+```typescript
+// In aiClient.ts
+import { LRUCache } from 'lru-cache';
+
+const cache = new LRUCache<string, any>({ 
+  max: 500, 
+  ttl: 1000 * 60 * 30 // 30 min cache
+});
+
+async chat(params: ChatParams): Promise<string | null> {
+  const cacheKey = JSON.stringify(params.messages);
+  const cached = cache.get(cacheKey);
+  if (cached) return cached;
+  
+  const result = await this.openai.chat.completions.create(/*...*/);
+  cache.set(cacheKey, result);
+  return result;
+}
+```
+
+**B. Pre-compute Project Embeddings**
+Currently embeddings are generated on-demand. Add a background job to pre-compute them when leads are created/updated.
+
+**C. Implement the Missing `/api/field-notes/:id/process` Endpoint**
+The route is defined but never registered. Wire it up:
+
+```typescript
+// server/routes/ai.ts - add this
+app.post("/api/field-notes/:id/process", isAuthenticated, requireRole("ceo", "sales", "production"), 
+  asyncHandler(async (req, res) => {
+    const fieldNote = await storage.getFieldNote(Number(req.params.id));
+    if (!fieldNote) return res.status(404).json({ error: "Field note not found" });
+    
+    // Use existing field translation logic
+    const translation = await translateFieldNote(fieldNote.rawContent);
+    
+    const updated = await storage.updateFieldNote(fieldNote.id, {
+      processedContent: translation.professionalSummary,
+      extractedData: translation.extractedData,
+      status: "processed",
+    });
+    
+    res.json(updated);
+  })
+);
+```
+
+### 2. **Medium Effort Improvements**
+
+**A. Add Streaming for Long Generations**
+Proposal generation can take 10-15 seconds. Add streaming for better UX:
+
+```typescript
+// server/routes/ai.ts
+app.post("/api/proposals/generate-stream", isAuthenticated, asyncHandler(async (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  
+  const stream = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [...],
+    stream: true,
+  });
+  
+  for await (const chunk of stream) {
+    res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+  }
+  res.end();
+}));
+```
+
+**B. Better Prompt Engineering**
+Your prompts are solid but could use few-shot examples. The scoping assistant, for instance, would benefit from 2-3 example inputs/outputs in the system prompt.
+
+**C. Add Confidence Thresholds**
+When AI confidence is low (< 60%), prompt the user to provide more info rather than returning low-quality suggestions:
+
+```typescript
+if (result.overallConfidence < 60) {
+  return {
+    ...result,
+    requiresMoreInfo: true,
+    suggestedQuestions: [
+      "What's the approximate square footage?",
+      "Is this new construction or renovation?",
+    ]
+  };
+}
+```
+
+### 3. **Higher Effort / Strategic Improvements**
+
+**A. Consider Claude for Structured Tasks**
+Your current setup uses GPT-4o. For structured JSON extraction (document intelligence, scoping), Claude Sonnet 4 often performs better and is more reliable with JSON output. You could use a hybrid approach:
+
+- **Claude**: Document extraction, scoping analysis, proposal generation
+- **GPT-4o**: Conversational (NL CPQ chat)
+- **GPT-4o-mini**: Simple tasks (field translation)
+
+**B. Build a Feedback Loop**
+Track when users accept/reject AI suggestions and use that to improve prompts over time. Your `aiAnalytics` table already captures this—add an `accepted` boolean.
+
+**C. Site Intelligence Video Summary**
+You have the `site_intelligence` table but no AI processing. Add video walkthrough transcription + summarization:
+
+```typescript
+// Future: Use Whisper for transcription, then GPT for summary
+async function processSiteVideo(videoUrl: string): Promise<SiteIntelligenceResult> {
+  const transcript = await whisper.transcribe(videoUrl);
+  const summary = await aiClient.chat({
+    messages: [
+      { role: "system", content: SITE_INTELLIGENCE_PROMPT },
+      { role: "user", content: transcript }
+    ]
+  });
+  return parseSiteIntelligence(summary);
+}
+```
+
+---
+
+## Priority Order
+
+1. **Add caching** (30 min, saves $ immediately)
+2. **Implement field notes process endpoint** (1 hr, completes a half-built feature)
+3. **Pre-compute embeddings** (2 hrs, improves project matching)
+4. **Add streaming for proposals** (2 hrs, better UX)
+5. **Improve prompts with examples** (ongoing, better quality)
+
+Want me to implement any of these? I can start with the caching layer or the field notes endpoint.

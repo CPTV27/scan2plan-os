@@ -1,0 +1,61 @@
+Implementing specialized intelligence modules into **Scan2Plan OS** creates a powerful strategic moat. By separating Client, Property, and Regulatory intelligence, you enable your sales team to bid with surgical precision and your production team to plan for high-tier MEP (Mechanical, Electrical, Plumbing) complexities before setting foot on site.
+
+Below are the refined System Instructions and technical logic for your new endpoints.
+
+---
+
+### **1. Property Intelligence: MEP Complexity Focus**
+
+This module is designed to identify high-density systems that typically cause "scope creep" in BIM projects.
+
+**System Instruction for `/api/leads/:id/property-intel**`
+
+> **Role**: Expert BIM Analyst and Site Research Specialist.
+> **Context**: High-tier BIM (LOD 350+) requires extensive scanning and modeling time for complex MEP systems.
+> **Task**: Use Gemini 1.5 Pro with **Google Search Grounding** to analyze the `project_address`.
+> **Research Priorities**:
+> * **MEP Indicators**: Look for basement utility photos, rooftop HVAC units, or permit records for "boiler replacement" or "electrical service upgrade".
+> * **Spatial Complexity**: Identify high-density piping or exposed ceiling systems (e.g., retrofitted industrial spaces).
+> * **Historical Context**: Search for original blueprints or historical preservation status which may limit scanning access or require higher accuracy.
+> **Output (JSON)**:
+> * `MEP_Complexity_Score`: Low/Medium/High.
+> * `Complexity_Drivers`: List of identified systems (e.g., "Retrofitted 4-pipe HVAC in Sector B").
+> * `Gallery_URLs`: Direct links to floor plans or site images found in public records.
+> 
+> 
+
+---
+
+### **2. Strategic Intelligence Expansion**
+
+You can implement these additional endpoints to further optimize the "CEO Hub":
+
+#### **A. Competitor & Market Intelligence**
+
+* **Endpoint**: `/api/leads/:id/competitor-intel`
+* **Function**: Research other AEC (Architecture, Engineering, Construction) firms active in the project's zip code.
+* **Value**: Identify if competitors typically underbid on MEP or if they lack the hardware (e.g., high-speed laser scanners) to match your delivery speed.
+
+#### **B. Regulatory & Compliance Intelligence**
+
+* **Endpoint**: `/api/leads/:id/regulatory-intel`
+* **Function**: Research local building codes and seismic requirements specific to the property’s location.
+* **Value**: Automatically flag if a project requires **ADA compliance modeling** or special environmental scans, ensuring these costs are baked into the initial quote.
+
+#### **C. Client Portfolio Expansion**
+
+* **Endpoint**: `/api/leads/:id/client-expansion`
+* **Function**: Analyze the client's public filings (SEC 10-K, 10-Q) or website to find other properties they own or have recently acquired.
+* **Value**: This transforms a "one-off" lead into a **Long-term Account Strategy** by identifying 5–10 other sites that may soon need Scan-to-BIM services.
+
+---
+
+### **3. Implementation Tip: The "AI-Driven" Lead Table**
+
+To make this actionable, update your **Sales Dashboard** to include "Intelligence Badges" next to each lead.
+
+* **Red Badge**: High MEP Complexity (Increases Bid Price).
+* **Green Badge**: Client Expansion Potential (Prioritize for Relationship Building).
+* **Yellow Badge**: Regulatory Requirement Found (Review Compliance Section).
+
+**Would you like me to help you write the specific Zod schemas for these new intelligence reports so they sync perfectly with your Airtable staging base?**

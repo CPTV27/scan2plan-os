@@ -1,0 +1,505 @@
+/**
+ * CPQ Pricing Engine Unit Tests
+ * 
+ * Run with: npx tsx server/lib/pricingEngine.test.ts
+ * 
+ * These tests verify all pricing calculation logic works correctly.
+ */
+
+import {
+  getAreaTier,
+  getBrooklynTravelTier,
+  getBrooklynBaseFee,
+  isLandscapeType,
+  getLandscapeAcreageTierIndex,
+  getLandscapePerAcreRate,
+  calculateLandscapePrice,
+  acresToSqft,
+  calculateStandardTravel,
+  calculateBrooklynTravel,
+  calculateTravel,
+  calculateRiskMultiplier,
+  applyRiskPremium,
+  isTierAProject,
+  calculateTierAPrice,
+  parseTierAScanningCost,
+  getScopeDiscount,
+  applyScopeDiscount,
+  getPaymentTermPremium,
+  applyPaymentTermPremium,
+  calculateTotalSqft,
+  calculateAdditionalElevationsPrice,
+  SQFT_PER_ACRE,
+} from './pricingEngine';
+
+// Simple test framework
+let passed = 0;
+let failed = 0;
+
+function test(name: string, fn: () => void) {
+  try {
+    fn();
+    console.log(`✓ ${name}`);
+    passed++;
+  } catch (error: any) {
+    console.log(`✗ ${name}`);
+    console.log(`  Error: ${error.message}`);
+    failed++;
+  }
+}
+
+function expect(actual: any) {
+  return {
+    toBe(expected: any) {
+      if (actual !== expected) {
+        throw new Error(`Expected ${expected}, got ${actual}`);
+      }
+    },
+    toEqual(expected: any) {
+      if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+        throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+      }
+    },
+    toBeCloseTo(expected: number, precision = 2) {
+      const multiplier = Math.pow(10, precision);
+      const actualRounded = Math.round(actual * multiplier) / multiplier;
+      const expectedRounded = Math.round(expected * multiplier) / multiplier;
+      if (actualRounded !== expectedRounded) {
+        throw new Error(`Expected ~${expected}, got ${actual}`);
+      }
+    },
+    toBeTruthy() {
+      if (!actual) {
+        throw new Error(`Expected truthy value, got ${actual}`);
+      }
+    },
+    toBeFalsy() {
+      if (actual) {
+        throw new Error(`Expected falsy value, got ${actual}`);
+      }
+    },
+  };
+}
+
+// ============================================================================
+// AREA TIER TESTS
+// ============================================================================
+
+console.log('\n📐 AREA TIER TESTS');
+console.log('─'.repeat(50));
+
+test('getAreaTier: 0-3k tier', () => {
+  expect(getAreaTier(2000)).toBe('0-3k');
+  expect(getAreaTier(2999)).toBe('0-3k');
+});
+
+test('getAreaTier: 3k-5k tier', () => {
+  expect(getAreaTier(3000)).toBe('3k-5k');
+  expect(getAreaTier(4999)).toBe('3k-5k');
+});
+
+test('getAreaTier: 10k-25k tier', () => {
+  expect(getAreaTier(10000)).toBe('10k-25k');
+  expect(getAreaTier(24999)).toBe('10k-25k');
+});
+
+test('getAreaTier: 50k-75k tier', () => {
+  expect(getAreaTier(50000)).toBe('50k-75k');
+  expect(getAreaTier(74999)).toBe('50k-75k');
+});
+
+test('getAreaTier: 100k+ tier', () => {
+  expect(getAreaTier(100000)).toBe('100k+');
+  expect(getAreaTier(500000)).toBe('100k+');
+});
+
+// ============================================================================
+// BROOKLYN TRAVEL TIER TESTS
+// ============================================================================
+
+console.log('\n🚕 BROOKLYN TRAVEL TIER TESTS');
+console.log('─'.repeat(50));
+
+test('getBrooklynTravelTier: Tier C for < 10k sqft', () => {
+  expect(getBrooklynTravelTier(5000)).toBe('tierC');
+  expect(getBrooklynTravelTier(9999)).toBe('tierC');
+});
+
+test('getBrooklynTravelTier: Tier B for 10k-50k sqft', () => {
+  expect(getBrooklynTravelTier(10000)).toBe('tierB');
+  expect(getBrooklynTravelTier(25000)).toBe('tierB');
+  expect(getBrooklynTravelTier(49999)).toBe('tierB');
+});
+
+test('getBrooklynTravelTier: Tier A for 50k+ sqft', () => {
+  expect(getBrooklynTravelTier(50000)).toBe('tierA');
+  expect(getBrooklynTravelTier(75000)).toBe('tierA');
+  expect(getBrooklynTravelTier(100000)).toBe('tierA');
+});
+
+test('getBrooklynBaseFee: $150 for Tier C', () => {
+  expect(getBrooklynBaseFee(5000)).toBe(150);
+});
+
+test('getBrooklynBaseFee: $300 for Tier B', () => {
+  expect(getBrooklynBaseFee(25000)).toBe(300);
+});
+
+test('getBrooklynBaseFee: $0 for Tier A', () => {
+  expect(getBrooklynBaseFee(75000)).toBe(0);
+});
+
+// ============================================================================
+// LANDSCAPE TESTS
+// ============================================================================
+
+console.log('\n🌳 LANDSCAPE TESTS');
+console.log('─'.repeat(50));
+
+test('isLandscapeType: true for type 14', () => {
+  expect(isLandscapeType('14')).toBe(true);
+});
+
+test('isLandscapeType: true for type 15', () => {
+  expect(isLandscapeType('15')).toBe(true);
+});
+
+test('isLandscapeType: false for type 1', () => {
+  expect(isLandscapeType('1')).toBe(false);
+});
+
+test('acresToSqft: 1 acre = 43,560 sqft', () => {
+  expect(acresToSqft(1)).toBe(43560);
+});
+
+test('acresToSqft: 2.5 acres = 108,900 sqft', () => {
+  expect(acresToSqft(2.5)).toBe(108900);
+});
+
+test('getLandscapeAcreageTierIndex: < 5 acres = tier 0', () => {
+  expect(getLandscapeAcreageTierIndex(3)).toBe(0);
+});
+
+test('getLandscapeAcreageTierIndex: 5-20 acres = tier 1', () => {
+  expect(getLandscapeAcreageTierIndex(10)).toBe(1);
+});
+
+test('getLandscapeAcreageTierIndex: 20-50 acres = tier 2', () => {
+  expect(getLandscapeAcreageTierIndex(30)).toBe(2);
+});
+
+test('getLandscapeAcreageTierIndex: 50-100 acres = tier 3', () => {
+  expect(getLandscapeAcreageTierIndex(75)).toBe(3);
+});
+
+test('getLandscapeAcreageTierIndex: 100+ acres = tier 4', () => {
+  expect(getLandscapeAcreageTierIndex(150)).toBe(4);
+});
+
+test('getLandscapePerAcreRate: Built Landscape (14), < 5ac, LoD 300', () => {
+  expect(getLandscapePerAcreRate('14', 3, '300')).toBe(1000);
+});
+
+test('getLandscapePerAcreRate: Natural Landscape (15), < 5ac, LoD 300', () => {
+  expect(getLandscapePerAcreRate('15', 3, '300')).toBe(750);
+});
+
+test('getLandscapePerAcreRate: Built Landscape, 5-20ac, LoD 350', () => {
+  expect(getLandscapePerAcreRate('14', 10, '350')).toBe(1000);
+});
+
+test('calculateLandscapePrice: 5 acres Built Landscape LoD 300', () => {
+  // 5 acres is in the 5-20 tier, rate = $750
+  expect(calculateLandscapePrice('14', 5, '300')).toBe(3750);
+});
+
+test('calculateLandscapePrice: 3 acres Natural Landscape LoD 200', () => {
+  // < 5 acres tier, rate = $625
+  expect(calculateLandscapePrice('15', 3, '200')).toBe(1875);
+});
+
+// ============================================================================
+// TRAVEL TESTS
+// ============================================================================
+
+console.log('\n🚗 TRAVEL TESTS');
+console.log('─'.repeat(50));
+
+test('calculateStandardTravel: 30 miles = $90', () => {
+  const result = calculateStandardTravel(30);
+  expect(result.totalCost).toBe(90);
+  expect(result.scanDayFee).toBe(0);
+});
+
+test('calculateStandardTravel: 80 miles = $240 + $300 scan day fee', () => {
+  const result = calculateStandardTravel(80);
+  expect(result.baseCost).toBe(240);
+  expect(result.scanDayFee).toBe(300);
+  expect(result.totalCost).toBe(540);
+});
+
+test('calculateStandardTravel: 75 miles triggers scan day fee', () => {
+  const result = calculateStandardTravel(75);
+  expect(result.scanDayFee).toBe(300);
+});
+
+test('calculateStandardTravel: 74 miles no scan day fee', () => {
+  const result = calculateStandardTravel(74);
+  expect(result.scanDayFee).toBe(0);
+});
+
+test('calculateBrooklynTravel: Tier C, 15 miles (under threshold)', () => {
+  const result = calculateBrooklynTravel(15, 8000);
+  expect(result.baseCost).toBe(150);
+  expect(result.extraMilesCost).toBe(0);
+  expect(result.totalCost).toBe(150);
+});
+
+test('calculateBrooklynTravel: Tier B, 25 miles (5 over threshold)', () => {
+  const result = calculateBrooklynTravel(25, 25000);
+  expect(result.baseCost).toBe(300);
+  expect(result.extraMilesCost).toBe(20); // 5 miles * $4
+  expect(result.totalCost).toBe(320);
+});
+
+test('calculateBrooklynTravel: Tier A, 30 miles', () => {
+  const result = calculateBrooklynTravel(30, 75000);
+  expect(result.baseCost).toBe(0);
+  expect(result.extraMilesCost).toBe(40); // 10 miles * $4
+  expect(result.totalCost).toBe(40);
+});
+
+test('calculateTravel: troy dispatch uses standard rates', () => {
+  const result = calculateTravel('troy', 30, 25000);
+  expect(result.totalCost).toBe(90);
+});
+
+test('calculateTravel: brooklyn dispatch uses tiered rates', () => {
+  const result = calculateTravel('brooklyn', 25, 25000);
+  expect(result.totalCost).toBe(320);
+});
+
+// ============================================================================
+// RISK PREMIUM TESTS
+// ============================================================================
+
+console.log('\n⚠️ RISK PREMIUM TESTS');
+console.log('─'.repeat(50));
+
+test('calculateRiskMultiplier: no risks = 1.0', () => {
+  expect(calculateRiskMultiplier([])).toBe(1);
+});
+
+test('calculateRiskMultiplier: occupied only = 1.15', () => {
+  expect(calculateRiskMultiplier(['occupied'])).toBe(1.15);
+});
+
+test('calculateRiskMultiplier: hazardous only = 1.25', () => {
+  expect(calculateRiskMultiplier(['hazardous'])).toBe(1.25);
+});
+
+test('calculateRiskMultiplier: occupied + hazardous = 1.40', () => {
+  expect(calculateRiskMultiplier(['occupied', 'hazardous'])).toBe(1.40);
+});
+
+test('calculateRiskMultiplier: all risks = 1.60', () => {
+  expect(calculateRiskMultiplier(['occupied', 'hazardous', 'no_power'])).toBe(1.60);
+});
+
+test('applyRiskPremium: applies to arch discipline', () => {
+  const base = 1000;
+  const result = applyRiskPremium('arch', base, ['occupied']);
+  expect(result).toBe(1150);
+});
+
+test('applyRiskPremium: does NOT apply to mepf discipline', () => {
+  const base = 1000;
+  const result = applyRiskPremium('mepf', base, ['occupied']);
+  expect(result).toBe(1000);
+});
+
+test('applyRiskPremium: does NOT apply to structure discipline', () => {
+  const base = 1000;
+  const result = applyRiskPremium('structure', base, ['occupied', 'hazardous']);
+  expect(result).toBe(1000);
+});
+
+test('applyRiskPremium: does NOT apply to site discipline', () => {
+  const base = 1000;
+  const result = applyRiskPremium('site', base, ['occupied']);
+  expect(result).toBe(1000);
+});
+
+// ============================================================================
+// TIER A TESTS
+// ============================================================================
+
+console.log('\n🏢 TIER A TESTS');
+console.log('─'.repeat(50));
+
+test('isTierAProject: 49999 sqft = false', () => {
+  expect(isTierAProject(49999)).toBe(false);
+});
+
+test('isTierAProject: 50000 sqft = true', () => {
+  expect(isTierAProject(50000)).toBe(true);
+});
+
+test('isTierAProject: 75000 sqft = true', () => {
+  expect(isTierAProject(75000)).toBe(true);
+});
+
+test('calculateTierAPrice: scanning + modeling * margin', () => {
+  const result = calculateTierAPrice(10500, 18000, 3);
+  expect(result).toBe(85500);
+});
+
+test('calculateTierAPrice: minimum margin 2.352X', () => {
+  const result = calculateTierAPrice(7000, 15000, 2.352);
+  expect(result).toBeCloseTo(51744, 0);
+});
+
+test('parseTierAScanningCost: numeric value', () => {
+  expect(parseTierAScanningCost('10500', '')).toBe(10500);
+});
+
+test('parseTierAScanningCost: other value uses other field', () => {
+  expect(parseTierAScanningCost('other', '12000')).toBe(12000);
+});
+
+// ============================================================================
+// SCOPE DISCOUNT TESTS
+// ============================================================================
+
+console.log('\n📏 SCOPE DISCOUNT TESTS');
+console.log('─'.repeat(50));
+
+test('getScopeDiscount: full = 0%', () => {
+  expect(getScopeDiscount('full')).toBe(0);
+});
+
+test('getScopeDiscount: interior = 35%', () => {
+  expect(getScopeDiscount('interior')).toBe(0.35);
+});
+
+test('getScopeDiscount: exterior = 65%', () => {
+  expect(getScopeDiscount('exterior')).toBe(0.65);
+});
+
+test('applyScopeDiscount: full scope no discount', () => {
+  expect(applyScopeDiscount(1000, 'full')).toBe(1000);
+});
+
+test('applyScopeDiscount: interior scope 35% discount', () => {
+  expect(applyScopeDiscount(1000, 'interior')).toBe(650);
+});
+
+test('applyScopeDiscount: exterior scope 65% discount', () => {
+  expect(applyScopeDiscount(1000, 'exterior')).toBe(350);
+});
+
+// ============================================================================
+// PAYMENT TERM TESTS
+// ============================================================================
+
+console.log('\n💳 PAYMENT TERM TESTS');
+console.log('─'.repeat(50));
+
+test('getPaymentTermPremium: partner = 0%', () => {
+  expect(getPaymentTermPremium('partner')).toBe(0);
+});
+
+test('getPaymentTermPremium: net30 = 5%', () => {
+  expect(getPaymentTermPremium('net30')).toBe(0.05);
+});
+
+test('getPaymentTermPremium: net60 = 10%', () => {
+  expect(getPaymentTermPremium('net60')).toBe(0.10);
+});
+
+test('getPaymentTermPremium: net90 = 15%', () => {
+  expect(getPaymentTermPremium('net90')).toBe(0.15);
+});
+
+test('applyPaymentTermPremium: net30 adds 5%', () => {
+  expect(applyPaymentTermPremium(10000, 'net30')).toBe(10500);
+});
+
+test('applyPaymentTermPremium: net90 adds 15%', () => {
+  expect(applyPaymentTermPremium(10000, 'net90')).toBe(11500);
+});
+
+// ============================================================================
+// AGGREGATE TESTS
+// ============================================================================
+
+console.log('\n📊 AGGREGATE TESTS');
+console.log('─'.repeat(50));
+
+test('calculateTotalSqft: single building area', () => {
+  const areas = [{ buildingType: '1', squareFeet: '25000' }];
+  expect(calculateTotalSqft(areas)).toBe(25000);
+});
+
+test('calculateTotalSqft: multiple building areas', () => {
+  const areas = [
+    { buildingType: '1', squareFeet: '15000' },
+    { buildingType: '2', squareFeet: '20000' },
+  ];
+  expect(calculateTotalSqft(areas)).toBe(35000);
+});
+
+test('calculateTotalSqft: landscape area converts acres to sqft', () => {
+  const areas = [{ buildingType: '14', squareFeet: '2.5' }];
+  expect(calculateTotalSqft(areas)).toBe(108900);
+});
+
+test('calculateTotalSqft: mixed buildings and landscape', () => {
+  const areas = [
+    { buildingType: '1', squareFeet: '15000' },
+    { buildingType: '14', squareFeet: '1' }, // 1 acre = 43560 sqft
+  ];
+  expect(calculateTotalSqft(areas)).toBe(58560);
+});
+
+// ============================================================================
+// ADDITIONAL ELEVATIONS TESTS
+// ============================================================================
+
+console.log('\n📐 ADDITIONAL ELEVATIONS TESTS');
+console.log('─'.repeat(50));
+
+test('calculateAdditionalElevationsPrice: 0 = $0', () => {
+  expect(calculateAdditionalElevationsPrice(0)).toBe(0);
+});
+
+test('calculateAdditionalElevationsPrice: 5 = $125 (5 * $25)', () => {
+  expect(calculateAdditionalElevationsPrice(5)).toBe(125);
+});
+
+test('calculateAdditionalElevationsPrice: 10 = $250 (10 * $25)', () => {
+  expect(calculateAdditionalElevationsPrice(10)).toBe(250);
+});
+
+test('calculateAdditionalElevationsPrice: 15 = $350 (10*$25 + 5*$20)', () => {
+  expect(calculateAdditionalElevationsPrice(15)).toBe(350);
+});
+
+test('calculateAdditionalElevationsPrice: 25 = $500 (10*$25 + 10*$20 + 5*$15)', () => {
+  expect(calculateAdditionalElevationsPrice(25)).toBe(525);
+});
+
+// ============================================================================
+// SUMMARY
+// ============================================================================
+
+console.log('\n' + '═'.repeat(50));
+console.log(`📋 TEST SUMMARY: ${passed} passed, ${failed} failed`);
+console.log('═'.repeat(50));
+
+if (failed > 0) {
+  process.exit(1);
+  
+}
+
+

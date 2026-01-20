@@ -1,0 +1,121 @@
+Here's a comprehensive prompt for Replit's AI agent:
+
+---
+
+```markdown
+# CPQ Integration Cleanup & Fix
+
+## Context
+This application has a CPQ (Configure, Price, Quote) system that's partially integrated. There's duplicate/orphaned code and an unnecessary external API proxy. We need to clean this up and make the CPQ work entirely client-side.
+
+## Phase 1: Delete Orphaned Sales Engine Module
+
+First, verify nothing imports the orphaned module:
+
+```bash
+grep -r "modules/sales_engine" client/src --exclude-dir=modules
+grep -r "modules/sales_engine" server/
+```
+
+If both commands return empty (no matches), delete the entire orphaned module:
+
+```bash
+rm -rf client/src/modules/sales_engine/
+```
+
+This removes ~120 orphaned files including a redundant Express server that isn't connected to anything.
+
+## Phase 2: Switch Calculator to Client-Side Pricing
+
+The file `client/src/features/cpq/Calculator.tsx` currently calls `/api/cpq/calculate` which proxies to an external CPQ service. This is unnecessary because all pricing logic already exists in `client/src/features/cpq/pricing.ts`.
+
+### Task: Update Calculator.tsx to use local pricing
+
+1. Find where the Calculator calls the `/api/cpq/calculate` endpoint (likely in a mutation or useQuery)
+
+2. Replace the API call with a direct call to `calculatePricing()` from `./pricing.ts`
+
+3. The Calculator already imports `calculatePricing` - find where it's imported and make sure it's being used for real-time price calculation instead of the API.
+
+4. The pricing calculation should happen in a `useMemo` that reacts to changes in: `areas`, `services`, `travel`, `risks`, `paymentTerms`, `marginTarget`
+
+Example pattern:
+```typescript
+const pricing = useMemo(() => {
+  return calculatePricing(
+    areas,
+    services,
+    travel,
+    risks,
+    paymentTerms,
+    marginTarget
+  );
+}, [areas, services, travel, risks, paymentTerms, marginTarget]);
+```
+
+5. Keep the quote SAVE functionality - that should still POST to `/api/leads/:id/cpq-quotes` to persist quotes to the database. Only the real-time calculation should be client-side.
+
+## Phase 3: Update DealWorkspace Embedded Calculator
+
+Check `client/src/pages/DealWorkspace.tsx` for any direct API calls to `/api/cpq/calculate`. If found, update them to use the same client-side `calculatePricing()` pattern.
+
+The DealWorkspace may have an embedded pricing sidebar with a margin slider. Make sure:
+- The margin slider updates pricing in real-time (client-side calculation)
+- Save Quote still calls the backend API to persist
+
+## Phase 4: Simplify Backend CPQ Route (Optional)
+
+In `server/routes/cpq.ts`, the `POST /api/cpq/calculate` endpoint proxies to an external CPQ service and then post-processes the response. Since we're now calculating client-side, this endpoint can be simplified or deprecated.
+
+Options:
+1. Keep it as a fallback but mark it deprecated with a console.warn
+2. Return a 410 Gone response pointing to client-side calculation
+3. Remove it entirely (only after confirming frontend doesn't call it)
+
+For now, add a deprecation warning:
+```typescript
+// At the start of POST /api/cpq/calculate handler:
+console.warn("[DEPRECATED] /api/cpq/calculate - Use client-side calculatePricing() instead");
+```
+
+## Phase 5: Test the Integration
+
+After making changes, verify:
+
+1. **Calculator Page** (`/cpq` or embedded in DealWorkspace):
+   - Areas can be added/removed
+   - Building type, sqft, LOD, disciplines can be configured
+   - Margin slider (35%-60%) updates total price in real-time
+   - Risk factors apply only to Architecture discipline
+   - Travel costs calculate correctly based on dispatch location
+
+2. **Quote Saving**:
+   - "Save Quote" button persists quote to database
+   - Quotes appear in quote history for the lead
+   - Margin below 40% should show "blocked" status and disable save
+
+3. **Margin Governance**:
+   - < 40% margin: integrityStatus = "blocked", save disabled
+   - 40-45% margin: integrityStatus = "warning", save enabled with warning
+   - >= 45% margin: integrityStatus = "passed", save enabled
+
+## Files to Check/Modify
+
+- `client/src/features/cpq/Calculator.tsx` - Main calculator component
+- `client/src/features/cpq/pricing.ts` - Pricing engine (DO NOT MODIFY, just use it)
+- `client/src/pages/DealWorkspace.tsx` - Embedded quote builder
+- `server/routes/cpq.ts` - Backend API routes
+- `shared/businessGoals.ts` - FY26 margin thresholds (reference only)
+
+## Success Criteria
+
+- No calls to external CPQ service (scan2plan-cpq.replit.app)
+- Pricing calculates instantly in the browser
+- Margin slider provides real-time feedback
+- Quotes save correctly with proper integrity status
+- No console errors related to CPQ/pricing
+```
+
+---
+
+Copy and paste that into Replit. It gives the AI clear context, specific tasks, and success criteria. Let me know if you hit any snags.

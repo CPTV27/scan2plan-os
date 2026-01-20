@@ -1,0 +1,52 @@
+This functionality is the "connective tissue" that ensures Kurt (Production) and the Scan Techs have the visual context they need without digging through emails. By using Google Drive as the storage backend, you keep your database light while ensuring files are synced across the entire Google ecosystem.
+
+Here is the targeted prompt for the Replit Architect to build this **Visual Scoping & Sync** engine.
+
+---
+
+### **Prompt: The "Visual Scoping" & Google Drive Attachment Engine**
+
+**Role:** Senior Full-Stack Engineer
+
+**Objective:** Implement a drag-and-drop file attachment system for the Scoping section that syncs directly with the project's Google Drive folder and is accessible in the Production Kanban.
+
+#### **1. Drag-and-Drop Frontend (React)**
+
+* **Component:** Create a `ProjectAttachments` component using `react-dropzone`.
+* **Placement:** Add this to the **Scoping** tab in the Deal/Project details view.
+* **Functionality:** * Allow users to drag and drop images (JPG, PNG) and PDFs.
+* Show a thumbnail gallery of already uploaded files with filename and upload date.
+* Implement a "Loading" state that shows progress as files are sent to the backend.
+
+
+
+#### **2. Google Drive Bridge (Node.js Backend)**
+
+* **The Trigger:** When a file is dropped into the `ProjectAttachments` zone.
+* **The Logic:**
+* Use the **Google Drive API** to upload the file directly into the specific subfolder created for the project (e.g., `[Universal_ID]/01_Field_Capture` or a new `05_Client_Assets` folder).
+* **Metadata:** Once uploaded, capture the Google Drive `webContentLink` (direct download) and `webViewLink` (browser view).
+
+
+* **The Database:** Save these links and the Drive File ID into a new `attachments` table linked to the `project_id`.
+
+#### **3. Production Kanban Integration**
+
+* **The Visibility:** Update the **Production Kanban** project cards.
+* **Feature:** If a project has attachments, show a "Paperclip" icon with a count (e.g., 📎 3).
+* **The Quick View:** Clicking the icon should open a simple lightbox gallery or a list of links so the Scan Tech can see the client's reference images or floorplans directly from the Kanban board.
+
+#### **4. Technical Requirements**
+
+* **File Handling:** Use `multer` on the backend to handle the initial multipart/form-data upload before passing it to Google Drive.
+* **Consistency:** Ensure files uploaded here are named using the nomenclature: `[Universal_ID]_Asset_[Filename]`.
+
+---
+
+### **Why this fixes your workflow:**
+
+1. **Zero Loss of Context:** If a client sends a photo of a complicated boiler room, it’s now "stuck" to the project record. Kurt doesn't have to ask Sales for the photo.
+2. **Field Ready:** The Scan Tech opens the app on their phone, clicks the paperclip on the Kanban card, and sees the exact room they need to scan.
+3. **Drive Synchronization:** Because these are stored in Google Drive, Agata can see them in the office on her desktop while the team sees them in the app.
+
+**Would you like me to generate the database schema for the `attachments` table to track these Google Drive links?**

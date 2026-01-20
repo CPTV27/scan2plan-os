@@ -1,0 +1,135 @@
+Role: Senior Backend Engineer Objective: Implement Google Chat notifications for critical Sales and Operations events using Webhooks.
+
+1. CONFIG: ENVIRONMENT VARIABLES
+
+Action: Requires two new secrets in Replit (Add these after applying code):
+
+GOOGLE_CHAT_WEBHOOK_SALES (URL for the Sales Space)
+
+GOOGLE_CHAT_WEBHOOK_OPS (URL for the Operations Space)
+
+2. SERVICE: THE CHAT BOT (server/services/googleChat.ts)
+
+Action: Create a robust service to send formatted "Cards" (not just text).
+
+Code:
+
+TypeScript
+
+import axios from 'axios';
+
+interface ChatCardProps {
+  title: string;
+  subtitle?: string;
+  text: string;
+  imageUrl?: string;
+  buttonUrl?: string;
+  buttonText?: string;
+  type: 'success' | 'alert' | 'info';
+}
+
+export async function sendToGoogleChat(space: 'sales' | 'ops', data: ChatCardProps) {
+  const webhookUrl = space === 'sales' 
+    ? process.env.GOOGLE_CHAT_WEBHOOK_SALES 
+    : process.env.GOOGLE_CHAT_WEBHOOK_OPS;
+
+  if (!webhookUrl) {
+    console.warn(`⚠️ No Google Chat Webhook configured for ${space}`);
+    return;
+  }
+
+  // Map types to icons/colors
+  const icon = data.type === 'success' ? 'https://fonts.gstatic.com/s/e/notoemoji/15.0/1f389/72.png' : // Party Popper
+               data.type === 'alert' ? 'https://fonts.gstatic.com/s/e/notoemoji/15.0/1f6a8/72.png' :   // Siren
+               'https://fonts.gstatic.com/s/e/notoemoji/15.0/2139/72.png';                             // Info
+
+  const cardPayload = {
+    cards: [{
+      header: {
+        title: data.title,
+        subtitle: data.subtitle,
+        imageUrl: icon,
+        imageStyle: "IMAGE"
+      },
+      sections: [
+        {
+          widgets: [
+            { textParagraph: { text: data.text } }
+          ]
+        },
+        data.buttonUrl ? {
+          widgets: [
+            {
+              buttons: [
+                {
+                  textButton: {
+                    text: data.buttonText || "View in S2P OS",
+                    onClick: { openLink: { url: data.buttonUrl } }
+                  }
+                }
+              ]
+            }
+          ]
+        } : {}
+      ]
+    }]
+  };
+
+  try {
+    await axios.post(webhookUrl, cardPayload);
+    console.log(`💬 Google Chat notification sent to ${space}`);
+  } catch (error) {
+    console.error("❌ Google Chat Send Failed:", error);
+  }
+}
+3. INTEGRATION: SALES TRIGGER (CLOSED WON)
+
+Action: Update the Deals route (server/routes.ts) to fire when stage changes to "Closed Won".
+
+Code:
+
+TypeScript
+
+import { sendToGoogleChat } from './services/googleChat';
+
+// Inside PUT /api/deals/:id ...
+// After db.update...
+
+if (updatedDeal.stage === 'closed_won' && oldDeal.stage !== 'closed_won') {
+  const value = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(updatedDeal.value));
+
+  sendToGoogleChat('sales', {
+    type: 'success',
+    title: "New Deal Closed! 🚀",
+    subtitle: updatedDeal.name,
+    text: `<b>Value:</b> ${value}<br><b>Owner:</b> ${req.user.name || 'Sales Team'}<br>Time to onboard!`,
+    buttonText: "Open Deal",
+    buttonUrl: `https://${req.headers.host}/deals/${updatedDeal.id}`
+  });
+}
+4. INTEGRATION: OPS TRIGGER (TRUTH LOOP)
+
+Action: Update the Marketing/Audit loop (server/services/marketingLoop.ts) to fire on high variance.
+
+Code:
+
+TypeScript
+
+import { sendToGoogleChat } from './googleChat';
+
+// Inside triggerTruthLoop...
+// After calculating variance...
+
+if (variance > 0.10) {
+  const variancePct = (variance * 100).toFixed(1);
+  const savingsStr = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(savingsAmount);
+
+  sendToGoogleChat('ops', {
+    type: 'alert',
+    title: "Truth Loop Triggered 🚨",
+    subtitle: `Variance: ${variancePct}% Detected`,
+    text: `<b>Project:</b> ${project.name}<br><b>Risk Avoided:</b> ${savingsStr}<br>Delivery has been locked. Marketing loop activated.`,
+    buttonText: "Review Audit",
+    buttonUrl: `https://scan2plan.io/projects/${project.id}`
+  });
+}

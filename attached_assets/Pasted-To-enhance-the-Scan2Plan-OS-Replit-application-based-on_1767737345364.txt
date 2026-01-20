@@ -1,0 +1,62 @@
+To enhance the Scan2Plan OS Replit application based on the "Tech update" notes from January 6, 2026, you should implement the following instructions. These additions focus on creating a "single source of truth," integrating departmental workflows, and enhancing sales intelligence.
+
+### **1. Core System Architecture & Data Flow**
+
+* 
+**Unique Identifier System:** Implement a standardized nomenclature (unique project code) to be used across all departments (Sales, Production, Accounting) to link data from the OS to QuickBooks and Airtable.
+
+
+* **CPQ as a "Standalone Calculator":** Keep the Configure Price Quote (CPQ) tool strictly as a calculator. Most data input, address handling, and high-level synchronization should be managed on the OS side.
+
+
+* 
+**Single Source of Truth:** Ensure all deal data is integrated into the CPQ to provide accurate, data-driven intelligence for the OS.
+
+
+
+### **2. Sales & Lead Intelligence Enhancements**
+
+* 
+**AI Enrichment (Persona Blueprint):** Integrate Owen’s specialized intelligence-gathering prompt that creates a "structured evidence vault" and a "persona blueprint" for high-value leads at the bottom of the sales funnel.
+
+
+* 
+**Competitor & Regulatory Analysis:** Refine the built-in AI to conduct regional competitor analysis and regulatory passes to identify potential sales implications for specific properties.
+
+
+* 
+**External CRM Integration:** Use a dedicated CRM like HubSpot to manage the raw influx of leads (e.g., the 10,000 leads from Matt) and build logic there before feeding only prioritized, quality leads into the Scan2Plan OS.
+
+
+
+### **3. Operational "Workflow Gates" & Accounting**
+
+* 
+**Agata’s Financial Hub:** Create a specific user type for "Agata" (Accounting) that allows her to update payment statuses and view "Open Invoices" based on her existing weekly tracking spreadsheet.
+
+
+* 
+**Production "Gates":** Implement visual "red flags" on the production tracker to prevent project delivery or scan scheduling if the retainer hasn't been paid, ensuring compliance with payment terms.
+
+
+* 
+**Legal Language Integration:** Update proposal templates to include specific legal language, such as stating that project jurisdiction is in Welor County for small claims court purposes.
+
+
+
+### **4. Technical CPQ & PandaDoc Updates**
+
+* 
+**Address Formatting:** Modify the PandaDoc integration to use the full address, including the zip code, to ensure it acts as a unique identifier on all documents.
+
+
+* 
+**Formatted PDF Export:** Implement a button within the CPQ to generate a "nicely formatted PDF export" of the estimate, which can be used directly in PandaDoc to replace the current QuickBooks output.
+
+
+* 
+**Travel Cost Distribution:** Update logic so that custom travel costs are distributed across all relevant architectural line items rather than just the first one.
+
+
+* 
+**Quote Versioning:** Enable long-term analytics on quote losses by utilizing the new versioning feature to track changes during negotiations.

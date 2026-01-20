@@ -1,0 +1,597 @@
+# Server-Side CPQ Validation Spec
+
+## Problem Statement
+
+Currently, all pricing calculations happen client-side in `client/src/features/cpq/pricing.ts`. The server blindly trusts whatever the client sends. This creates a security gap: a malicious user could bypass margin guardrails by modifying the POST payload before submission.
+
+**Current vulnerable endpoints:**
+- `POST /api/cpq/quotes` — creates quote directly
+- `POST /api/leads/:id/cpq-quotes` — creates quote linked to lead
+- `PATCH /api/cpq-quotes/:id` — updates existing quote
+
+## Validation Requirements
+
+### 1. Margin Floor Enforcement (BLOCKING)
+
+Per `shared/businessGoals.ts`, the 40% margin floor is a hard gate. Quotes below this MUST be rejected.
+
+**Rule:**
+```
+grossMarginPercent >= 40% OR quote is BLOCKED
+```
+
+**Calculation:**
+```typescript
+// Server must independently verify margin
+const grossMarginPercent = ((totalClientPrice - totalUpteamCost) / totalClientPrice) * 100;
+
+if (grossMarginPercent < 40.0) {
+  return 400 with error "MARGIN_BELOW_FLOOR"
+}
+```
+
+**Exception:** If `overrideApproved === true` (CEO approved override), allow quote to save with margin below floor but add `integrityStatus: "override_approved"`.
+
+### 2. Margin Guardrail Warning (NON-BLOCKING)
+
+Quotes between 40-45% margin should save but include a warning flag.
+
+**Rule:**
+```
+if 40% <= grossMarginPercent < 45%:
+  save quote with integrityStatus: "warning"
+  add flag: { code: "MARGIN_BELOW_GUARDRAIL", severity: "warning" }
+```
+
+### 3. Price Integrity Validation (BLOCKING)
+
+Verify the client didn't tamper with pricing by spot-checking the math.
+
+**Rule:** Server recalculates expected client price from upteam cost and margin target:
+```typescript
+const expectedClientPrice = totalUpteamCost / (1 - marginTarget);
+const variance = Math.abs(totalClientPrice - expectedClientPrice) / expectedClientPrice;
+
+if (variance > 0.01) { // >1% variance = tampering or bug
+  return 400 with error "PRICE_INTEGRITY_FAILED"
+}
+```
+
+### 4. Required Fields Validation
+
+**For quote creation (`POST`):**
+| Field | Required | Validation |
+|-------|----------|------------|
+| `areas` | Yes | Non-empty array |
+| `totalClientPrice` | Yes | Positive number |
+| `totalUpteamCost` | Yes | Positive number |
+| `dispatchLocation` | Yes | One of: TROY, WOODSTOCK, BROOKLYN, FLY_OUT |
+| `projectName` | Yes | Non-empty string |
+| `projectAddress` | Yes | Non-empty string |
+| `typeOfBuilding` | Yes | Valid building type (1-16) |
+
+**For PandaDoc send (`POST /api/cpq-quotes/:id/send-pandadoc`):**
+| Field | Required | Source |
+|-------|----------|--------|
+| `recipientEmail` | Yes | From lead.contactEmail or request body |
+| `recipientName` | Yes | From lead.contactName or request body |
+| `quote.leadId` | Yes | Quote must be linked to a lead |
+
+If missing, return `400` with specific guidance: `"Add contact email to the lead before sending for signature."`
+
+### 5. Tier A Detection
+
+For quotes with total sqft >= 50,000, add metadata flag for visibility:
+```typescript
+const totalSqft = areas.reduce((sum, area) => sum + Number(area.squareFeet), 0);
+if (totalSqft >= 50000) {
+  quote.tierClassification = "A";
+  // Optionally trigger notification for CEO review on Tier A deals
+}
+```
+
+## Implementation
+
+### New Validation Module
+
+Create `server/validators/cpqValidator.ts`:
+
+```typescript
+import { FY26_GOALS } from "@shared/businessGoals";
+import { z } from "zod";
+
+// Constants
+const MARGIN_FLOOR = FY26_GOALS.MARGIN_FLOOR; // 0.40
+const MARGIN_GUARDRAIL = FY26_GOALS.MARGIN_STRETCH; // 0.45
+const TIER_A_THRESHOLD = FY26_GOALS.TIER_A_FLOOR; // 50000
+const PRICE_VARIANCE_TOLERANCE = 0.01; // 1%
+
+// Types
+interface ValidationResult {
+  valid: boolean;
+  errors: ValidationError[];
+  warnings: ValidationWarning[];
+  integrityStatus: "pass" | "warning" | "blocked";
+  tierClassification?: "A" | "B";
+}
+
+interface ValidationError {
+  code: string;
+  field?: string;
+  message: string;
+}
+
+interface ValidationWarning {
+  code: string;
+  message: string;
+  details?: Record<string, any>;
+}
+
+// Input schema
+const quoteInputSchema = z.object({
+  areas: z.array(z.object({
+    name: z.string().optional(),
+    buildingType: z.string(),
+    squareFeet: z.union([z.string(), z.number()]),
+    disciplines: z.array(z.string()).optional(),
+  })).min(1, "At least one area is required"),
+  
+  totalClientPrice: z.number().positive("Total client price must be positive"),
+  totalUpteamCost: z.number().positive("Total upteam cost must be positive"),
+  marginTarget: z.number().min(0.35).max(0.60).optional(),
+  
+  dispatchLocation: z.string().transform(v => v.toUpperCase()),
+  projectName: z.string().min(1, "Project name is required"),
+  projectAddress: z.string().min(1, "Project address is required"),
+  typeOfBuilding: z.string(),
+  
+  // Override handling
+  overrideApproved: z.boolean().optional(),
+  overrideApprovedBy: z.string().optional(),
+});
+
+/**
+ * Validate CPQ quote data before persistence
+ */
+export function validateQuote(data: unknown): ValidationResult {
+  const errors: ValidationError[] = [];
+  const warnings: ValidationWarning[] = [];
+  let integrityStatus: "pass" | "warning" | "blocked" = "pass";
+  
+  // Step 1: Schema validation
+  const parsed = quoteInputSchema.safeParse(data);
+  if (!parsed.success) {
+    return {
+      valid: false,
+      errors: parsed.error.errors.map(e => ({
+        code: "VALIDATION_ERROR",
+        field: e.path.join("."),
+        message: e.message,
+      })),
+      warnings: [],
+      integrityStatus: "blocked",
+    };
+  }
+  
+  const quote = parsed.data;
+  
+  // Step 2: Calculate and validate margin
+  const grossMargin = quote.totalClientPrice - quote.totalUpteamCost;
+  const grossMarginPercent = (grossMargin / quote.totalClientPrice) * 100;
+  
+  if (grossMarginPercent < MARGIN_FLOOR * 100) {
+    if (!quote.overrideApproved) {
+      errors.push({
+        code: "MARGIN_BELOW_FLOOR",
+        message: `Gross margin ${grossMarginPercent.toFixed(1)}% is below the ${MARGIN_FLOOR * 100}% governance gate. CEO override required.`,
+      });
+      integrityStatus = "blocked";
+    } else {
+      // Override approved - allow but flag
+      warnings.push({
+        code: "MARGIN_OVERRIDE_USED",
+        message: `Quote saved with ${grossMarginPercent.toFixed(1)}% margin (below floor) via CEO override.`,
+        details: { approvedBy: quote.overrideApprovedBy },
+      });
+      integrityStatus = "warning";
+    }
+  } else if (grossMarginPercent < MARGIN_GUARDRAIL * 100) {
+    warnings.push({
+      code: "MARGIN_BELOW_GUARDRAIL",
+      message: `Gross margin ${grossMarginPercent.toFixed(1)}% is below the ${MARGIN_GUARDRAIL * 100}% target.`,
+    });
+    integrityStatus = "warning";
+  }
+  
+  // Step 3: Price integrity check (if marginTarget provided)
+  if (quote.marginTarget) {
+    const expectedClientPrice = quote.totalUpteamCost / (1 - quote.marginTarget);
+    const variance = Math.abs(quote.totalClientPrice - expectedClientPrice) / expectedClientPrice;
+    
+    if (variance > PRICE_VARIANCE_TOLERANCE) {
+      errors.push({
+        code: "PRICE_INTEGRITY_FAILED",
+        message: `Client price $${quote.totalClientPrice.toFixed(2)} doesn't match expected $${expectedClientPrice.toFixed(2)} for ${(quote.marginTarget * 100).toFixed(0)}% margin. Variance: ${(variance * 100).toFixed(1)}%`,
+      });
+      integrityStatus = "blocked";
+    }
+  }
+  
+  // Step 4: Validate dispatch location
+  const validLocations = ["TROY", "WOODSTOCK", "BROOKLYN", "FLY_OUT"];
+  if (!validLocations.includes(quote.dispatchLocation)) {
+    errors.push({
+      code: "INVALID_DISPATCH_LOCATION",
+      field: "dispatchLocation",
+      message: `Invalid dispatch location "${quote.dispatchLocation}". Must be one of: ${validLocations.join(", ")}`,
+    });
+    integrityStatus = "blocked";
+  }
+  
+  // Step 5: Calculate tier classification
+  const totalSqft = quote.areas.reduce((sum, area) => {
+    const sqft = typeof area.squareFeet === "string" 
+      ? parseFloat(area.squareFeet) 
+      : area.squareFeet;
+    return sum + (isNaN(sqft) ? 0 : sqft);
+  }, 0);
+  
+  const tierClassification = totalSqft >= TIER_A_THRESHOLD ? "A" : "B";
+  
+  if (tierClassification === "A") {
+    warnings.push({
+      code: "TIER_A_PROJECT",
+      message: `Large project (${totalSqft.toLocaleString()} sqft) classified as Tier A.`,
+    });
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+    integrityStatus: errors.length > 0 ? "blocked" : integrityStatus,
+    tierClassification,
+  };
+}
+
+/**
+ * Validate before PandaDoc send
+ */
+export function validatePandaDocSend(quote: any, lead: any | null, body: any): ValidationResult {
+  const errors: ValidationError[] = [];
+  
+  const recipientEmail = lead?.contactEmail || body.recipientEmail;
+  const recipientName = lead?.contactName || body.recipientName;
+  
+  if (!recipientEmail) {
+    errors.push({
+      code: "MISSING_RECIPIENT_EMAIL",
+      field: "contactEmail",
+      message: "Recipient email is required. Add contact email to the lead first.",
+    });
+  }
+  
+  if (!recipientName) {
+    errors.push({
+      code: "MISSING_RECIPIENT_NAME", 
+      field: "contactName",
+      message: "Recipient name is required. Add contact name to the lead first.",
+    });
+  }
+  
+  if (!quote.leadId) {
+    errors.push({
+      code: "QUOTE_NOT_LINKED",
+      message: "Quote must be linked to a lead before sending for signature.",
+    });
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings: [],
+    integrityStatus: errors.length > 0 ? "blocked" : "pass",
+  };
+}
+```
+
+### Update Quote Endpoints
+
+Modify `server/routes/cpq.ts` to use the validator:
+
+```typescript
+import { validateQuote, validatePandaDocSend } from "../validators/cpqValidator";
+
+// POST /api/cpq/quotes
+app.post("/api/cpq/quotes", isAuthenticated, requireRole("ceo", "sales"), asyncHandler(async (req, res) => {
+  const user = req.user as any;
+  const normalizedData = normalizeQuoteData(req.body);
+  
+  // NEW: Server-side validation
+  const validation = validateQuote(normalizedData);
+  if (!validation.valid) {
+    return res.status(400).json({
+      success: false,
+      integrityStatus: validation.integrityStatus,
+      errors: validation.errors,
+      warnings: validation.warnings,
+    });
+  }
+  
+  // Add validation metadata to quote
+  const quoteData = {
+    ...normalizedData,
+    integrityStatus: validation.integrityStatus,
+    integrityFlags: validation.warnings,
+    tierClassification: validation.tierClassification,
+    createdBy: user?.claims?.email || user?.username || "unknown",
+  };
+  
+  const quote = await storage.createCpqQuote(quoteData);
+  
+  res.status(201).json({
+    ...quote,
+    warnings: validation.warnings, // Surface warnings to client
+  });
+}));
+
+// POST /api/leads/:id/cpq-quotes  
+app.post("/api/leads/:id/cpq-quotes", isAuthenticated, requireRole("ceo", "sales"), asyncHandler(async (req, res) => {
+  const leadId = Number(req.params.id);
+  const lead = await storage.getLead(leadId);
+  if (!lead) {
+    return res.status(404).json({ message: "Lead not found" });
+  }
+
+  const user = req.user as any;
+  const normalizedData = normalizeQuoteData(req.body);
+  
+  // NEW: Server-side validation
+  const validation = validateQuote(normalizedData);
+  if (!validation.valid) {
+    log(`[CPQ Quote Create] Validation failed for lead ${leadId}: ${JSON.stringify(validation.errors)}`);
+    return res.status(400).json({
+      success: false,
+      integrityStatus: validation.integrityStatus,
+      errors: validation.errors,
+      warnings: validation.warnings,
+    });
+  }
+  
+  // ... rest of existing logic with validation metadata added
+}));
+
+// PATCH /api/cpq-quotes/:id
+app.patch("/api/cpq-quotes/:id", isAuthenticated, requireRole("ceo", "sales"), asyncHandler(async (req, res) => {
+  const quoteId = Number(req.params.id);
+  const normalizedData = normalizeQuoteData(req.body);
+  
+  // NEW: Validate updates that affect pricing
+  if (normalizedData.totalClientPrice || normalizedData.totalUpteamCost) {
+    const existingQuote = await storage.getCpqQuote(quoteId);
+    const mergedData = { ...existingQuote, ...normalizedData };
+    
+    const validation = validateQuote(mergedData);
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        integrityStatus: validation.integrityStatus,
+        errors: validation.errors,
+      });
+    }
+    
+    normalizedData.integrityStatus = validation.integrityStatus;
+    normalizedData.integrityFlags = validation.warnings;
+  }
+  
+  const quote = await storage.updateCpqQuote(quoteId, normalizedData);
+  // ...
+}));
+
+// POST /api/cpq-quotes/:id/send-pandadoc
+app.post("/api/cpq-quotes/:id/send-pandadoc", isAuthenticated, requireRole("ceo", "sales"), asyncHandler(async (req, res) => {
+  // ... existing setup ...
+  
+  // NEW: Validate before external action
+  const validation = validatePandaDocSend(quote, lead, req.body);
+  if (!validation.valid) {
+    return res.status(400).json({
+      success: false,
+      errors: validation.errors,
+      message: validation.errors[0]?.message, // Primary error for UI toast
+    });
+  }
+  
+  // ... rest of existing PandaDoc logic
+}));
+```
+
+## Error Response Format
+
+Standardized error response for validation failures:
+
+```typescript
+interface ValidationErrorResponse {
+  success: false;
+  integrityStatus: "blocked" | "warning";
+  errors: Array<{
+    code: string;      // Machine-readable code (e.g., "MARGIN_BELOW_FLOOR")
+    field?: string;    // Field path if applicable
+    message: string;   // Human-readable message
+  }>;
+  warnings?: Array<{
+    code: string;
+    message: string;
+    details?: Record<string, any>;
+  }>;
+}
+```
+
+**Example blocked response:**
+```json
+{
+  "success": false,
+  "integrityStatus": "blocked",
+  "errors": [
+    {
+      "code": "MARGIN_BELOW_FLOOR",
+      "message": "Gross margin 38.5% is below the 40% governance gate. CEO override required."
+    }
+  ],
+  "warnings": []
+}
+```
+
+**Example warning response (quote saves but with flag):**
+```json
+{
+  "id": 142,
+  "quoteNumber": "Q-2026-0142",
+  "integrityStatus": "warning",
+  "warnings": [
+    {
+      "code": "MARGIN_BELOW_GUARDRAIL",
+      "message": "Gross margin 42.3% is below the 45% target."
+    },
+    {
+      "code": "TIER_A_PROJECT",
+      "message": "Large project (75,000 sqft) classified as Tier A."
+    }
+  ]
+}
+```
+
+## Frontend Integration
+
+Update the client to handle validation errors gracefully:
+
+```typescript
+// In DealWorkspace.tsx or wherever quote save happens
+const saveQuote = async (quoteData) => {
+  try {
+    const response = await apiRequest("POST", `/api/leads/${leadId}/cpq-quotes`, quoteData);
+    const result = await response.json();
+    
+    if (!response.ok) {
+      // Handle validation errors
+      if (result.errors) {
+        const primaryError = result.errors[0];
+        
+        if (primaryError.code === "MARGIN_BELOW_FLOOR") {
+          toast({
+            title: "Quote Blocked",
+            description: primaryError.message,
+            variant: "destructive",
+            action: <Button onClick={requestOverride}>Request Override</Button>
+          });
+        } else if (primaryError.code === "MISSING_RECIPIENT_EMAIL") {
+          toast({
+            title: "Missing Contact Info",
+            description: "Add contact email to the lead before sending.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Validation Error",
+            description: primaryError.message,
+            variant: "destructive",
+          });
+        }
+      }
+      return null;
+    }
+    
+    // Handle warnings on successful save
+    if (result.warnings?.length > 0) {
+      result.warnings.forEach(warning => {
+        toast({
+          title: "Quote Saved with Warning",
+          description: warning.message,
+          variant: "warning",
+        });
+      });
+    }
+    
+    return result;
+  } catch (error) {
+    // Network error handling
+  }
+};
+```
+
+## Testing
+
+Add integration tests for validation:
+
+```typescript
+// tests/cpq-validation.spec.ts
+
+describe("CPQ Server Validation", () => {
+  test("rejects quote below 40% margin", async () => {
+    const response = await api.post("/api/cpq/quotes", {
+      areas: [{ buildingType: "1", squareFeet: "10000" }],
+      totalClientPrice: 10000,
+      totalUpteamCost: 7000, // 30% margin
+      dispatchLocation: "TROY",
+      projectName: "Test",
+      projectAddress: "123 Main St",
+      typeOfBuilding: "1",
+    });
+    
+    expect(response.status).toBe(400);
+    expect(response.body.errors[0].code).toBe("MARGIN_BELOW_FLOOR");
+  });
+  
+  test("allows quote at 40% margin with warning", async () => {
+    const response = await api.post("/api/cpq/quotes", {
+      areas: [{ buildingType: "1", squareFeet: "10000" }],
+      totalClientPrice: 10000,
+      totalUpteamCost: 6000, // 40% margin
+      // ...
+    });
+    
+    expect(response.status).toBe(201);
+    expect(response.body.integrityStatus).toBe("warning");
+    expect(response.body.warnings[0].code).toBe("MARGIN_BELOW_GUARDRAIL");
+  });
+  
+  test("detects price tampering", async () => {
+    const response = await api.post("/api/cpq/quotes", {
+      areas: [{ buildingType: "1", squareFeet: "10000" }],
+      totalClientPrice: 20000, // Inflated
+      totalUpteamCost: 5000,
+      marginTarget: 0.45, // Should be ~9090, not 20000
+      // ...
+    });
+    
+    expect(response.status).toBe(400);
+    expect(response.body.errors[0].code).toBe("PRICE_INTEGRITY_FAILED");
+  });
+  
+  test("blocks PandaDoc send without contact email", async () => {
+    const quote = await createQuoteWithoutContact();
+    
+    const response = await api.post(`/api/cpq-quotes/${quote.id}/send-pandadoc`, {});
+    
+    expect(response.status).toBe(400);
+    expect(response.body.errors[0].code).toBe("MISSING_RECIPIENT_EMAIL");
+  });
+});
+```
+
+## Migration Notes
+
+1. **No database changes required** — validation uses existing fields
+2. **Backwards compatible** — existing quotes are unaffected
+3. **Gradual rollout option** — could add feature flag to enable/disable validation during testing
+
+## Summary
+
+| Validation | Type | Threshold | Action |
+|------------|------|-----------|--------|
+| Margin Floor | Blocking | < 40% | Reject with MARGIN_BELOW_FLOOR |
+| Margin Guardrail | Warning | 40-45% | Save with MARGIN_BELOW_GUARDRAIL flag |
+| Price Integrity | Blocking | > 1% variance | Reject with PRICE_INTEGRITY_FAILED |
+| Required Fields | Blocking | Missing | Reject with specific field error |
+| PandaDoc Contact | Blocking | Missing email/name | Reject with guidance message |
+| Tier A Detection | Metadata | >= 50k sqft | Add tierClassification flag |

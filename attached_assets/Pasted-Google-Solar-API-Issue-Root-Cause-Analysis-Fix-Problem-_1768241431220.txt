@@ -1,0 +1,196 @@
+Google Solar API Issue - Root Cause Analysis & Fix
+🔴 Problem
+The Google Solar API building data (square footage, roof stats) is not displaying in the LocationPreview component, even though the code exists.
+
+🔍 Root Cause
+The frontend component 
+LocationPreview.tsx
+ is trying to call /api/location/building-insights:
+
+// Line 244-253 in LocationPreview.tsx
+const { data: buildingInsights, isLoading: isLoadingInsights } = useQuery<BuildingInsights>({
+  queryKey: ["/api/location/building-insights", locationData?.coordinates?.lat, locationData?.coordinates?.lng],
+  queryFn: async () => {
+    if (!locationData?.coordinates) return { available: false };
+    const response = await apiRequest("GET", `/api/location/building-insights?lat=${locationData.coordinates.lat}&lng=${locationData.coordinates.lng}`);
+    return response.json();
+  },
+  enabled: !!locationData?.coordinates,
+  staleTime: 1000 * 60 * 30,
+});
+BUT this API endpoint does not exist in 
+server/routes/google.ts
+!
+
+✅ What Exists
+Backend Logic (
+server/google-intel.ts
+):
+
+✅ 
+fetchBuildingInsights(lat, lng)
+ function exists
+✅ Calls Solar API correctly: https://solar.googleapis.com/v1/buildingInsights:findClosest
+✅ Returns proper data structure with squareFeet, maxRoofHeightFeet, roofSegments, etc.
+Data Structure (
+shared/schema.ts
+):
+
+✅ 
+GoogleBuildingInsights
+ interface properly defined
+✅ Used in 
+GoogleIntel
+ type for lead enrichment
+Frontend Component (
+client/src/components/LocationPreview.tsx
+):
+
+✅ UI components ready to display data
+✅ Query properly structured
+✅ "Building Stats" card ready (lines 502-561)
+❌ What's Missing
+The API Route in 
+server/routes/google.ts
+ to expose the Solar API data!
+
+The file has:
+
+✅ /api/location/preview (line 881)
+✅ /api/location/aerial-view (line 940)
+❌ /api/location/building-insights MISSING!
+🔧 Fix Required
+Add the missing endpoint to 
+server/routes/google.ts
+:
+
+// Add this endpoint after /api/location/preview (around line 938)
+app.get("/api/location/building-insights", asyncHandler(async (req, res) => {
+  try {
+    const lat = parseFloat(req.query.lat as string);
+    const lng = parseFloat(req.query.lng as string);
+    
+    if (isNaN(lat) || isNaN(lng)) {
+      return res.status(400).json({ error: "Valid latitude and longitude are required" });
+    }
+    const apiKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      return res.status(503).json({ 
+        available: false,
+        error: "Google API key not configured" 
+      });
+    }
+    // Call Solar API buildingInsights:findClosest
+    const url = new URL("https://solar.googleapis.com/v1/buildingInsights:findClosest");
+    url.searchParams.set("location.latitude", lat.toString());
+    url.searchParams.set("location.longitude", lng.toString());
+    url.searchParams.set("key", apiKey);
+    const response = await fetch(url.toString());
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      log(`WARN: Solar API error: ${response.status} - ${errorText}`);
+      return res.json({
+        available: false,
+        error: `Solar API error: ${response.status}`,
+        message: "Building data not available for this location"
+      });
+    }
+    const data = await response.json();
+    // Check if we have roof data
+    if (!data.solarPotential?.roofSegmentStats) {
+      return res.json({
+        available: false,
+        message: "No building data found for this location"
+      });
+    }
+    const roofStats = data.solarPotential.roofSegmentStats;
+    const totalRoofArea = roofStats.reduce((sum: number, seg: any) => 
+      sum + (seg.stats?.areaMeters2 || 0), 0);
+    
+    const squareMeters = Math.round(totalRoofArea);
+    const squareFeet = Math.round(totalRoofArea * 10.764);
+    // Estimate max height from max array area (rough approximation)
+    const maxHeight = data.solarPotential.maxArrayAreaMeters2 
+      ? Math.round(Math.sqrt(data.solarPotential.maxArrayAreaMeters2))
+      : undefined;
+    // Map to frontend-expected structure
+    res.json({
+      available: true,
+      buildingArea: {
+        squareMeters,
+        squareFeet
+      },
+      roofStats: {
+        segments: roofStats.length,
+        pitchDegrees: roofStats[0]?.pitchDegrees,
+        azimuthDegrees: roofStats[0]?.azimuthDegrees
+      },
+      height: maxHeight ? {
+        maxRoofHeightMeters: maxHeight,
+        maxRoofHeightFeet: Math.round(maxHeight * 3.281)
+      } : undefined,
+      imagery: {
+        date: data.imageryDate,
+        quality: data.imageryQuality === "HIGH" ? "High" : 
+                 data.imageryQuality === "MEDIUM" ? "Medium" : "Low"
+      }
+    });
+  } catch (error) {
+    log("ERROR: Building insights error - " + (error as any)?.message);
+    res.status(500).json({ 
+      available: false,
+      error: "Failed to fetch building insights" 
+    });
+  }
+}));
+📝 Testing Steps After Fix
+Restart the server: npm run dev
+Open DealWorkspace for any lead
+Enter a valid address (e.g., "Empire State Building, New York, NY")
+Check LocationPreview component:
+Should see "Building Stats" card
+Should display:
+✅ Footprint (sqft)
+✅ Elevation (ft)
+✅ Roof Segments
+✅ Imagery quality badge
+Click "Apply to Quote" button should populate the quote with sqft
+🎯 Expected Result
+The Solar API data flow will be complete:
+
+Frontend (LocationPreview)
+    ↓ GET /api/location/building-insights?lat=X&lng=Y
+Backend (google.ts route)
+    ↓ Calls Solar API
+Google Solar API (buildingInsights:findClose)
+    ↓ Returns building data
+Backend transforms data
+    ↓ Returns to frontend
+Frontend displays in UI ✅
+🔗 Related Files
+Frontend: 
+client/src/components/LocationPreview.tsx
+ (lines 244-253, 502-561)
+Backend Route (NEEDS FIX): 
+server/routes/google.ts
+ (add after line 938)
+Backend Logic (EXISTS): 
+server/google-intel.ts
+ (lines 56-109)
+Schema: 
+shared/schema.ts
+ (lines 291-303)
+💡 Why This Happened
+The Solar API integration was likely partially implemented:
+
+✅ Backend utility function created (
+fetchBuildingInsights
+)
+✅ Frontend component ready to display data
+✅ Used for lead enrichment (background process)
+❌ API endpoint never created to expose it to the UI
+This is a common issue when refactoring or when different developers work on frontend vs backend.
+
+Status: Ready for implementation
+Priority: High (feature is non-functional)

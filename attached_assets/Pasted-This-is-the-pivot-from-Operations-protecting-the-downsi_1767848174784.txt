@@ -1,0 +1,85 @@
+This is the pivot from **Operations** (protecting the downside) to **Growth** (capturing the upside).
+
+You have 7 Buyer Personas and a "Proof Vault" of case studies. The Marketing Module shouldn't be a generic newsletter tool; it needs to be a **Precision Rifle** that automatically matches the right Case Study to the right Persona.
+
+Here is the **"Growth Engine" Prompt**. It builds the infrastructure for Matt (Lead Gen) to execute targeted campaigns using your existing data assets.
+
+**Copy and paste this into Replit.**
+
+---
+
+**Role:** Senior Growth Engineer
+**Objective:** Build the "Marketing Module" to operationalize Buyer Personas and automate B2B outreach.
+
+**1. DATABASE: MARKETING SCHEMA (`shared/schema.ts`)**
+
+* **Action:** Create tables to track Campaigns and Personas.
+* **Code:**
+
+```typescript
+// Add to schema.ts
+export const personas = pgTable("personas", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull(), // e.g., "BP1", "BP5"
+  name: text("name").notNull(), // e.g., "The Engineer", "The Architect"
+  painPoints: text("pain_points").array(), // ["Risk", "Drift", "Clash"]
+  preferredCaseStudyTags: text("preferred_tags").array(), // ["industrial", "mep"]
+});
+
+export const campaigns = pgTable("campaigns", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  targetPersona: text("target_persona"), // Linked to personas.code
+  status: text("status").default("draft"), // draft, active, completed
+  sentCount: integer("sent_count").default(0),
+  responseCount: integer("response_count").default(0),
+});
+
+// Update Leads table
+// Add "persona_id" column to leads
+
+```
+
+**2. DATA: SEED THE PERSONAS (`server/data/seedMarketing.ts`)**
+
+* **Action:** Hard-code the 7 Buyer Personas from the documentation.
+* **Example Data:**
+* **BP1 (Engineer):** Pain Point = "Accuracy/Drift". Asset = "MEP Case Study". Script = "We guarantee 1/8 inch or we re-scan."
+* **BP5 (Architect):** Pain Point = "As-Built vs Design". Asset = "Historical Case Study". Script = "Capture the design intent, not just the geometry."
+
+
+
+**3. FEATURE: THE "CAMPAIGN BUILDER" (`client/src/pages/Marketing.tsx`)**
+
+* **Workflow:**
+1. **Select Target:** Dropdown of Personas (e.g., "BP5 - Architects").
+2. **Select Asset:** System auto-suggests Case Studies from the Proof Vault that match the Persona's tags.
+3. **Generate Script:** Simple AI wrapper (or template) that injects the User's Name and the Case Study Link into a standardized email.
+4. **Action:** "Export Audience to CSV" (for Mailchimp) OR "Copy Script to Clipboard" (for manual outreach).
+
+
+
+**4. UI: THE "LEAD GEN" DASHBOARD (Matt's View)**
+
+* **Target:** `client/src/pages/LeadGen.tsx`
+* **Visuals:**
+* **Metric:** "Leads Added this Week."
+* **List:** "Unassigned Leads."
+* **Action:** A "Quick Classify" tool. Matt sees a lead, clicks "Architect," and the system auto-tags them as `BP5` and assigns the "Historical Renovation" case study to their profile.
+
+
+
+**5. AUTOMATION: ATTRIBUTION TRACKING**
+
+* **Logic:** When a Lead is converted to "Closed Won" (Deal), update the linked Campaign's `revenue_generated` stat.
+* **Goal:** See which Persona (Architects vs. Engineers) is actually making us money.
+
+---
+
+### **How this works in practice:**
+
+1. **Matt (The Hunter)** logs in. He adds 50 leads. He uses the "Quick Classify" buttons to tag them as "Architects" (BP5).
+2. **The System** automatically links your "St. Mary's Hospital" case study to those leads because it matches the BP5 tag.
+3. **Owen (The Closer)** opens a lead. He doesn't have to guess what to say. The dashboard says: *"This is a BP5 Architect. Send them the St. Mary's PDF. Here is the email script."*
+
+**Run this. It turns your "Buyer Persona" theory into a clickable tool.**

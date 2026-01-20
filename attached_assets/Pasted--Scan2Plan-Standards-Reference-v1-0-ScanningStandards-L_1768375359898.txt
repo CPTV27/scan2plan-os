@@ -1,0 +1,67 @@
+# Scan2Plan Standards Reference v1.0
+
+---
+
+### #ScanningStandards
+#### Levels of Accuracy (LoA)
+- **LoA 40 (Measured Accuracy):**
+  - **Tolerance:** 0–1/8 inch.
+  - **Application:** Point clouds generated directly from laser scans.
+  - **Purpose:** Provides high-precision scan data aligned with real-world conditions.
+  - **Validation Methods:**
+    - **B-Validation:** Overlapping scan alignment for consistency.
+    - **C-Validation:** Control points aligned with survey data.
+- **LoA 30 (Modeled Accuracy):**
+  - **Tolerance:** 0–1/2 inch.
+  - **Application:** BIM/CAD models derived from point clouds.
+  - **Purpose:** Ensures modeled geometry reflects scanned data for construction-ready deliverables.
+
+#### Scanning Devices
+- **Trimble X7:**
+  - **Accuracy:** ±2mm.
+  - **Features:** Colorized scans, real-time registration.
+- **NavVis VLX 2:**
+  - **Accuracy:** Up to 6mm.
+  - **Features:** Mobile SLAM scanning for dynamic environments.
+
+#### Scanning Process
+- **Pre-Scan:**
+  - Conduct site surveys to identify access points and conditions.
+  - Ensure comprehensive planning to cover all required areas.
+- **On-Site Execution:**
+  - Perform live review to verify completeness of scan coverage.
+  - Address missing data before leaving the site.
+
+---
+
+### #ModelingStandards
+#### Levels of Detail (LoD)
+- **LoD 200:**
+  - **Use Case:** Schematic massing, basic geometry for feasibility studies.
+- **LoD 300:**
+  - **Use Case:** Construction-ready elements, accurate geometry, and dimensions.
+- **LoD 350:**
+  - **Use Case:** Detailed construction-ready models with joint and connection details.
+- **LoD 350+ (HBIM):**
+  - **Use Case:** Custom detail for historic preservation, including carvings and ornate features.
+
+#### Disciplines and Key Modeling Elements
+- **Architecture:**
+  - **Elements:** Walls, doors, windows, ceilings, and floors.
+  - **Special Features:** Custom details for historic and high-profile projects (LoD 350+).
+- **Structure:**
+  - **Elements:** Beams, columns, trusses, and foundations.
+  - **Special Features:** Detailed connections supporting structural analysis.
+- **MEPF (Mechanical, Electrical, Plumbing, Fire):**
+  - **Elements:** Ducts, pipes, conduits, and sprinkler systems.
+  - **Special Features:** Fully clash-detectable layouts compatible with multidisciplinary coordination.
+- **Landscape:**
+  - **Elements:** Topography, pathways, and foliage.
+  - **Special Features:** Georeferenced models for landscape design and historic preservation at LoD 350+.
+
+#### Validation and Quality Control
+- **3-Stage QC Process:**
+  1. Dedicated BIM Modeling and CAD drafting teams.
+  2. Dedicated BIM and CAD QC teams.
+  3. Senior Engineer Review.
+

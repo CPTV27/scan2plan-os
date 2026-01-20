@@ -1,0 +1,51 @@
+The "Agentic Scan2Plan OS" Master Prompt
+Role: Senior AI Engineer & Systems Architect
+
+Objective: Enhance Scan2Plan OS with AI Grounding for site audits and Automated Coordination via Google Chat.
+
+1. Site Reality Audit (Vertex AI + Maps Grounding)
+The Mission: Add a "Reality Check" button to the Evidence Vault.
+
+The Logic: Use Vertex AI with Google Maps Grounding (via the Model Context Protocol).
+
+The Action: Pass the project_address and the current scope_of_work notes to the AI.
+
+The Goal: Ask the AI: "Analyze this building at [Address]. Our scope says it's a [Notes]. Does the Google Maps 3D data confirm this, or are there discrepancies (e.g., hidden levels, complex roof structures, HVAC density) that suggest we should re-audit the square footage?"
+
+The Output: Generate a "Risk Report" that Kurt can review before final scheduling.
+
+2. Automated Project Concierge (Google Chat API)
+The Trigger: When the Retainer Gate is cleared (status changes to "Ready to Scan").
+
+The Mission: Use the Google Chat API to create a dedicated Space for the project.
+
+The Details: * Space Name: [Universal Project ID] - [Client Name]
+
+Automated Post: Send an initial message containing:
+
+Link to the Google Drive Parent Folder.
+
+The Scope of Work summary.
+
+The Universal Project ID.
+
+Members: Automatically add the CEO, Accounting Lead, Production Lead, and the assigned Scan Tech.
+
+3. Predictive Cashflow (BigQuery ML Integration)
+The Mission: Create a "Future Outlook" card on the CEO Dashboard.
+
+The Logic: Use the BigQuery API to run a simple ARIMA_PLUS forecast on the invoices and expenses tables.
+
+The Visual: Display a line chart in Recharts showing "Projected Revenue vs. Operating Costs" for the next 90 days based on historical deal velocity and staleness tracking.
+
+4. Technical Stack Requirements
+API Handlers: Ensure all new Google Cloud calls are handled through a unified GoogleServicesController on the backend.
+
+Security: Use Service Account authentication for Chat and Vertex AI to ensure 24/7 background operation without manual login.
+
+Why this fixes your coordination problem:
+The Grounding: Prevents you from sending a technician into a site that was scoped incorrectly, protecting your margins on the Square Foot Audit.
+
+The Chat Space: Stops the "Where's the info?" noise. Every stakeholder is dropped into a room with all the data they need the moment the money clears.
+
+The Predictive Outlook: Gives you the confidence to know exactly when to hire your next tech to stay on track for your $2.2M goal.

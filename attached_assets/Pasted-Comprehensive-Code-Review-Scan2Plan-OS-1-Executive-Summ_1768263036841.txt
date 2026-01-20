@@ -1,0 +1,102 @@
+Comprehensive Code Review: Scan2Plan_OS
+1. Executive Summary
+The Scan2Plan_OS application is a robust, full-stack CRM and CPQ (Configure, Price, Quote) system built with Node.js/Express, PostgreSQL (Drizzle ORM), and React. The project demonstrates a high level of type safety and clear modularity in its routing and frontend layers.
+
+However, the backend architecture suffers from monolithic "God Class" patterns in its data access (
+storage.ts
+) and schema definitions (
+schema.ts
+). These files have become excessively large, making maintenance difficult and increasing the risk of regressions during changes.
+
+Overall Health Score: 🟡 Good but Needs Refactoring
+
+2. Critical Findings & Observations
+2.1 The "Deleted" 
+server/storage.ts
+The user prompt mentioned 
+server/storage.ts
+ was "recently deleted". This file exists in the current workspace and is critical to the application. It contains ~1120 lines of code and handles every single database interaction.
+
+Risk: If this file were actually deleted, the entire backend would crash immediately.
+Action: It must be protected and prioritizing its refactoring is essential to prevent future accidental loss or corruption.
+2.2 Monolithic Data Access (
+server/storage.ts
+)
+This file is an anti-pattern known as a "God Object". It implements the 
+IStorage
+ interface which forces a single class 
+DatabaseStorage
+ to handle methods for Leads, Projects, Invoices, CPQ, Users, Notifications, etc.
+
+Size: 1100+ lines.
+Problem:
+High coupling: unrelated domains (e.g., Finance vs. Notifications) are in the same file.
+Git conflicts: multiple developers working on different features will clash here.
+Testing difficulty: Hard to mock individual services.
+2.3 Overloaded Schema (
+shared/schema.ts
+)
+This file (2500+ lines) acts as a dumping ground for:
+
+Database Tables (Drizzle definitions)
+Validation Schemas (Zod)
+UI Constants (Dropdown options, Enums)
+Types (TypeScript interfaces)
+Problem: Tying UI logic (dropdowns) directly to DB schema files creates tight coupling. Changing a dropdown option shouldn't theoretically require touching the DB schema file.
+3. Architecture Review
+Strengths
+Type Safety: Excellent use of TypeScript, Zod, and Drizzle. The end-to-end type safety is a major asset.
+Routing: Routes are well-separated in server/routes/*.ts (
+leads.ts
+, 
+cpq.ts
+, etc.).
+Testing: Strong E2E test coverage with Playwright in the tests/ directory.
+Weaknesses
+Service Layer Missing: Logic often bleeds into the Route handlers. For example, 
+server/routes/leads.ts
+ contains complex logic like 
+generateScopeSummary
+, enrichLeadWithGoogleIntel, and CSV parsing. This should be in dedicated Service classes (e.g., LeadService, IntelligenceService).
+Synchronous AI Dependencies: In server/routes/routes.ts (and global routes), PDF extraction calls OpenAI synchronously. Large documents could cause API timeouts.
+4. Security & Performance
+Security
+Authentication: Middleware isAuthenticated and requireRole are correctly applied to sensitive routes.
+Input Validation: Zod is used extensively to validate incoming request bodies (e.g., api.leads.create.input.parse). This limits injection attacks.
+Data Access: Drizzle ORM parametrizes queries, effectively preventing SQL injection.
+Performance
+Database Indexing: I observed several queries filtering by fields like clientName, qboCustomerId, etc. Ensure these columns are indexed in PostgreSQL (definitions in 
+schema.ts
+ should be checked for .index()).
+JSON Blobs: The database uses jsonb heavily (e.g., cpqAreas, googleIntel). While flexible, frequent updates to large JSON blobs can cause write amplification and are harder to query efficiently.
+5. Recommendations
+Priority 1: Refactor 
+server/storage.ts
+Break this file down into domain-specific repositories. Proposed Structure:
+
+server/
+  storage/
+    index.ts       (Exports the main interface)
+    db.ts          (Database connection)
+    leads.ts       (Lead-related operations)
+    projects.ts    (Project operations)
+    cpq.ts         (CPQ operations)
+    finance.ts     (Invoices, Loans, Accounts)
+Priority 2: Split 
+shared/schema.ts
+Separate database definitions from UI constants and validation schemas. Proposed Structure:
+
+shared/
+  schema/
+    db.ts          (Drizzle table definitions)
+    validation.ts  (Zod schemas for API)
+  constants/
+    ui.ts          (Dropdown options, labels)
+    business.ts    (Business rules, pricing factors)
+Priority 3: Extract Business Logic
+Move complex logic out of routes and storage into services.
+
+LeadService: Handle CSV import, Tier A logic, and Google Intel enrichment.
+CPQService: Handle quote calculations, normalization, and versioning.
+Priority 4: Async Processing
+For heavy AI tasks (PDF extraction, Translation), implement a queue system (or just simple background processing with status polling) so the API doesn't hang while waiting for OpenAI.
