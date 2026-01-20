@@ -2173,9 +2173,9 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
   return (
     <div className={isEmbedded ? "" : "min-h-screen bg-background"}>
       <div className={isEmbedded ? "" : "mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8"}>
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">{quoteId ? "Edit Quote" : "Create Quote"}</h1>
-          <p className="text-muted-foreground">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-3">{quoteId ? "Edit Quote" : "Create Quote"}</h1>
+          <p className="text-muted-foreground text-base">
             Build a comprehensive pricing quote for your Scan-to-BIM project
           </p>
         </div>
@@ -2195,15 +2195,15 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
           </div>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-3 w-full">
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid gap-5 lg:grid-cols-3 w-full">
+          <div className="lg:col-span-2 space-y-5">
             {/* QUOTE SECTION */}
-            <div className="rounded-lg bg-blue-50/30 dark:bg-blue-950/10 p-6 space-y-6">
-              <h2 className="text-2xl font-bold text-blue-900 dark:text-blue-100">Quote</h2>
+            <div className="rounded-lg bg-blue-50/30 dark:bg-blue-950/10 p-5 space-y-5">
+              <h2 className="text-xl font-bold text-blue-900 dark:text-blue-100">Quote</h2>
 
-              <div className="space-y-4">
+              <div className="space-y-3 pt-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Project Areas</h3>
+                  <h3 className="text-base font-semibold">Project Areas</h3>
                   <Button
                     variant="outline"
                     size="sm"
@@ -2256,8 +2256,8 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
             </div>
 
             {/* SCOPE SECTION */}
-            <div className="rounded-lg bg-green-50/30 dark:bg-green-950/10 p-6 space-y-6">
-              <h2 className="text-2xl font-bold text-green-900 dark:text-green-100">Scope</h2>
+            <div className="rounded-lg bg-green-50/30 dark:bg-green-950/10 p-5 space-y-5">
+              <h2 className="text-xl font-bold text-green-900 dark:text-green-100">Scope</h2>
 
               <ProjectDetailsForm {...projectDetails} onFieldChange={handleProjectDetailChange} />
 
@@ -2267,15 +2267,16 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
             </div>
 
             {/* CRM SECTION */}
-            <div className="rounded-lg bg-amber-50/30 dark:bg-amber-950/10 p-6 space-y-6">
-              <h2 className="text-2xl font-bold text-amber-900 dark:text-amber-100">CRM</h2>
+            <div className="rounded-lg bg-amber-50/30 dark:bg-amber-950/10 p-5 space-y-5">
+              <h2 className="text-xl font-bold text-amber-900 dark:text-amber-100">CRM</h2>
 
               <CRMFields data={scopingData} onChange={handleScopingDataChange} />
             </div>
 
-            <div className="flex flex-wrap gap-3 pt-6">
+            <div className="flex flex-wrap gap-2.5 pt-6">
               <Button
                 size="lg"
+                variant="outline"
                 data-testid="button-save-quote"
                 onClick={handleSaveQuote}
                 disabled={saveQuoteMutation.isPending}

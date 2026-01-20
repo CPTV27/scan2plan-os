@@ -1,0 +1,54 @@
+﻿Starting Proposal Flow Test...
+Creating Lead...
+Created Lead: 10
+Creating Quote...
+Created Quote: 6
+Fetching Templates...
+Creating Generated Proposal...
+Created Generated Proposal: 5
+Simulating PDF Generation...
+Custom Sections being passed: [
+  {
+    "name": "About Scan2Plan",
+    "content": "# About Test Client 1768941507991's Project\n\nWe are excited to work on Project Alpha.\nTotal investment: $5,000.\n\nThis is a **customized** section replacing the standard About text."
+  },
+  {
+    "name": "Scan2Plan Capabilities",
+    "content": "## Our Capabilities for Test Client 1768941507991\n\n- Custom Scanning\n- Custom Modeling\n- Speed: Fast"
+  }
+]
+node.exe : Test failed with 
+exception: TypeError: Cannot 
+read properties of undefined 
+(reading 'projectName')
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (Test fa  
+  iled wit... 'projectName   
+ '):String) [], RemoteExc    
+eption
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 
+    at renderProjectPage (D:\
+Scan2Plan-Sales-Production\se
+rver\pdf\proposalGenerator.ts
+:305:26)
+    at generateProposalPDF (D
+:\Scan2Plan-Sales-Production\
+server\pdf\proposalGenerator.
+ts:121:3)
+    at runTest (D:\Scan2Plan-
+Sales-Production\server\scrip
+ts\test_proposal_flow.ts:130:
+27)
+    at process.processTicksAn
+dRejections (node:internal/pr
+ocess/task_queues:105:5)

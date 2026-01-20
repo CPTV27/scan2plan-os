@@ -3,7 +3,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
 import { Card } from "@/components/ui/card";
 import { ExternalLink } from "lucide-react";
 
@@ -15,12 +14,7 @@ interface CRMFieldsProps {
     tierAScanningCostOther: string;
     tierAModelingCost: string;
     tierAMargin: string;
-    source: string;
-    sourceNote: string;
     assist: string;
-    probabilityOfClosing: string;
-    projectStatus: string;
-    projectStatusOther: string;
   };
   onChange: (field: string, value: any) => void;
 }
@@ -29,7 +23,7 @@ export default function CRMFields({ data, onChange }: CRMFieldsProps) {
   return (
     <div className="space-y-6">
       {/* Internal Notes */}
-      <Card className="p-4 bg-accent/50">
+      <Card className="p-4">
         <h3 className="text-lg font-semibold mb-4">Internal Notes</h3>
         <div className="space-y-4">
           <div className="space-y-2">
@@ -60,7 +54,7 @@ export default function CRMFields({ data, onChange }: CRMFieldsProps) {
       </Card>
 
       {/* Tier A Pricing */}
-      <Card className="p-4 bg-accent/50">
+      <Card className="p-4">
         <h3 className="text-lg font-semibold mb-4">Tier A Pricing (Internal)</h3>
         <div className="space-y-4">
           <div className="space-y-2">
@@ -145,53 +139,9 @@ export default function CRMFields({ data, onChange }: CRMFieldsProps) {
       </Card>
 
       {/* Lead Tracking */}
-      <Card className="p-4 bg-accent/50">
+      <Card className="p-4">
         <h3 className="text-lg font-semibold mb-4">Lead Tracking</h3>
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="source" className="text-sm font-medium">
-              Source
-            </Label>
-            <Select value={data.source} onValueChange={(val) => onChange('source', val)}>
-              <SelectTrigger id="source">
-                <SelectValue placeholder="Select source" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ABM">ABM</SelectItem>
-                <SelectItem value="Cold outreach">Cold outreach</SelectItem>
-                <SelectItem value="Referral - Client">Referral - Client</SelectItem>
-                <SelectItem value="Referral - Partner">Referral - Partner</SelectItem>
-                <SelectItem value="Existing customer">Existing customer</SelectItem>
-                <SelectItem value="CEU">CEU</SelectItem>
-                <SelectItem value="Proof Vault">Proof Vault</SelectItem>
-                <SelectItem value="Spec/Standards">Spec/Standards</SelectItem>
-                <SelectItem value="Podcast">Podcast</SelectItem>
-                <SelectItem value="Site/SEO">Site/SEO</SelectItem>
-                <SelectItem value="Permit trigger">Permit trigger</SelectItem>
-                <SelectItem value="Compliance trigger">Compliance trigger</SelectItem>
-                <SelectItem value="Procurement trigger">Procurement trigger</SelectItem>
-                <SelectItem value="Event/Conference">Event/Conference</SelectItem>
-                <SelectItem value="Social">Social</SelectItem>
-                <SelectItem value="Vendor Onboarding">Vendor Onboarding</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
-                <SelectItem value="Unknown">Unknown</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="source-note" className="text-sm font-medium">
-              Source Note
-            </Label>
-            <Textarea
-              id="source-note"
-              placeholder="Additional details about the source..."
-              value={data.sourceNote}
-              onChange={(e) => onChange('sourceNote', e.target.value)}
-              rows={2}
-            />
-          </div>
-
           <div className="space-y-2">
             <Label htmlFor="assist" className="text-sm font-medium">
               Assist
@@ -223,52 +173,6 @@ export default function CRMFields({ data, onChange }: CRMFieldsProps) {
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="probability-closing" className="text-sm font-medium">
-              Probability of Closing: {data.probabilityOfClosing || 50}%
-            </Label>
-            <Slider
-              id="probability-closing"
-              min={0}
-              max={100}
-              step={5}
-              value={[parseInt(data.probabilityOfClosing) || 50]}
-              onValueChange={(vals) => onChange('probabilityOfClosing', vals[0].toString())}
-              className="w-full"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              Project Status
-            </Label>
-            <RadioGroup value={data.projectStatus} onValueChange={(val) => onChange('projectStatus', val)}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="proposal" id="status-proposal" />
-                <Label htmlFor="status-proposal" className="cursor-pointer">Proposal Phase</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="inhand" id="status-inhand" />
-                <Label htmlFor="status-inhand" className="cursor-pointer">In Hand</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="urgent" id="status-urgent" />
-                <Label htmlFor="status-urgent" className="cursor-pointer">Urgent</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="other" id="status-other" />
-                <Label htmlFor="status-other" className="cursor-pointer">Other:</Label>
-              </div>
-            </RadioGroup>
-            {data.projectStatus === 'other' && (
-              <Input
-                placeholder="Specify status"
-                value={data.projectStatusOther}
-                onChange={(e) => onChange('projectStatusOther', e.target.value)}
-                className="mt-2"
-              />
-            )}
-          </div>
         </div>
       </Card>
     </div>

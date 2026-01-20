@@ -1,0 +1,101 @@
+﻿client/src/components/LeadForm.tsx(626,26): error TS2322: Type '{ "data-testid": string; onChange: (...event: any[]) => void; onBlur: Noop; value: number | null | undefined; disabled?: boolean | undefined; name: "value"; ref: RefCallBack; type: "number"; }' is not assignable to type 'Omit<DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>, "ref">'.
+  Types of property 'value' are incompatible.
+    Type 'number | null | undefined' is not assignable to type 'string | number | readonly string[] | undefined'.
+      Type 'null' is not assignable to type 'string | number | readonly string[] | undefined'.
+client/src/components/LeadForm.tsx(640,26): error TS2322: Type '{ "data-testid": string; onChange: (...event: any[]) => void; onBlur: Noop; value: number | null | undefined; disabled?: boolean | undefined; name: "probability"; ref: RefCallBack; type: "number"; min: string; max: string; }' is not assignable to type 'Omit<DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>, "ref">'.
+  Types of property 'value' are incompatible.
+    Type 'number | null | undefined' is not assignable to type 'string | number | readonly string[] | undefined'.
+      Type 'null' is not assignable to type 'string | number | readonly string[] | undefined'.
+client/src/features/deals/components/LeadDetailsTab.tsx(251,28): error TS2322: Type '{ "data-testid": string; onChange: (...event: any[]) => void; onBlur: Noop; value: number | null | undefined; disabled?: boolean | undefined; name: "value"; ref: RefCallBack; type: "number"; }' is not assignable to type 'Omit<DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>, "ref">'.
+  Types of property 'value' are incompatible.
+    Type 'number | null | undefined' is not assignable to type 'string | number | readonly string[] | undefined'.
+      Type 'null' is not assignable to type 'string | number | readonly string[] | undefined'.
+client/src/features/deals/components/QuoteBuilderTab.tsx(18,74): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'string | (() => string | undefined) | undefined'.
+  Type 'number' is not assignable to type 'string | (() => string | undefined) | undefined'.
+client/src/features/deals/components/QuoteBuilderTab.tsx(22,24): error TS2345: Argument of type 'number' is not assignable to parameter of type 'SetStateAction<string | undefined>'.
+client/src/features/deals/components/QuoteBuilderTab.tsx(26,24): error TS2345: Argument of type 'number' is not assignable to parameter of type 'SetStateAction<string | undefined>'.
+server/pdf/proposalGenerator.ts(226,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(234,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(241,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(245,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(256,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(271,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(274,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(281,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(284,5): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(290,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(292,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(293,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(294,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(297,5): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(303,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(313,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(318,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(320,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(329,5): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(339,5): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(355,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(376,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(425,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(446,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(449,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(451,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(458,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(463,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(465,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(470,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(477,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(482,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(492,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(497,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(517,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(523,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(534,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(539,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(549,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(554,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(565,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(580,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(586,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(593,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(598,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(605,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(610,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(617,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(622,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(629,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(634,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(644,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(659,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(668,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(709,3): error TS2322: Type 'number' is not assignable to type '50'.
+server/pdf/proposalGenerator.ts(731,5): error TS2322: Type 'number' is not assignable to type '50'.
+server/replit_integrations/auth/replitAuth.ts(34,12): error TS2339: Property 'user' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/ai.ts(46,22): error TS2339: Property 'user' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/ai.ts(73,22): error TS2339: Property 'user' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/ai.ts(99,22): error TS2339: Property 'user' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/ai.ts(137,22): error TS2339: Property 'user' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/ai.ts(270,22): error TS2339: Property 'user' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/ai.ts(337,22): error TS2339: Property 'user' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/ai.ts(423,22): error TS2339: Property 'user' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/ai.ts(532,22): error TS2339: Property 'user' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/ai.ts(619,22): error TS2339: Property 'user' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/chat.ts(48,14): error TS2339: Property 'user' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/chat.ts(48,44): error TS2339: Property 'user' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/chat.ts(49,26): error TS2339: Property 'user' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/leads/core.ts(105,48): error TS2339: Property 'user' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/leads/core.ts(421,26): error TS2339: Property 'user' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/operations.ts(29,48): error TS2339: Property 'user' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/pandadoc.ts(191,25): error TS2339: Property 'user' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/pandadoc.ts(262,25): error TS2339: Property 'user' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/pandadoc.ts(275,25): error TS2339: Property 'user' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/pandadoc.ts(287,25): error TS2339: Property 'user' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/proposals.ts(220,7): error TS2353: Object literal may only specify known properties, and 'stage' does not exist in type 'Partial<{ clientName: string; leadPriority: number; projectCode?: string | null | undefined; projectName?: string | null | undefined; projectAddress?: string | null | undefined; projectZipCode?: string | ... 1 more ... | undefined; ... 98 more ...; mauticContactId?: string | ... 1 more ... | undefined; }>'.
+server/routes/proposals.ts(232,30): error TS2339: Property 'email' does not exist on type '{ id: number; projectCode: string | null; clientName: string; projectName: string | null; projectAddress: string | null; projectZipCode: string | null; value: string | null; dealStage: string; ... 99 more ...; updatedAt: Date | null; }'.
+server/routes/proposals.ts(234,9): error TS2353: Object literal may only specify known properties, and 'sentAt' does not exist in type '{ token: string; leadId: number; recipientEmail: string; quoteId?: number | null | undefined; recipientName?: string | null | undefined; subject?: string | null | undefined; }'.
+server/routes/quickbooks/auth.ts(50,14): error TS2339: Property 'session' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/quickbooks/auth.ts(67,40): error TS2339: Property 'session' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/quickbooks/auth.ts(73,25): error TS2339: Property 'session' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/quickbooks/finance.ts(146,30): error TS2339: Property 'user' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/timeLogs.ts(12,27): error TS2339: Property 'user' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.
+server/routes/timeLogs.ts(47,27): error TS2339: Property 'user' does not exist on type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>'.

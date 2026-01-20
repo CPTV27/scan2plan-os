@@ -97,7 +97,7 @@ export default function TravelCalculator({
         </Button>
 
         {distance !== null && !isCalculating && (
-          <div className="space-y-2 p-4 bg-accent rounded-md">
+          <div className="space-y-2 p-4 border rounded-md">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Calculated Distance:</span>
               <span className="font-mono font-semibold">{distance} miles</span>

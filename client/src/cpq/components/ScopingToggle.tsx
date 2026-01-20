@@ -9,7 +9,7 @@ interface ScopingToggleProps {
 
 export default function ScopingToggle({ enabled, onChange }: ScopingToggleProps) {
   return (
-    <Card className="p-4 bg-accent">
+    <Card className="p-4">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <Label htmlFor="scoping-mode" className="text-base font-semibold cursor-pointer">

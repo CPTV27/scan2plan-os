@@ -1204,7 +1204,7 @@ Thanks!`.trim();
             </h1>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           {isMarginBelowGate && (
             <Badge variant="destructive" className="text-xs" data-testid="badge-margin-gate-warning">
               Margin below 40% gate
@@ -1231,6 +1231,7 @@ Thanks!`.trim();
           <Button
             onClick={() => saveQuoteMutation.mutate()}
             disabled={saveQuoteMutation.isPending || !canSaveQuote}
+            variant="outline"
             data-testid="button-save-quote"
             title={hasRfiItems ? "Answer all 'I don't know' items before saving" : isMarginBelowGate ? "Adjust pricing to meet 40% minimum margin" : undefined}
           >
@@ -1242,8 +1243,8 @@ Thanks!`.trim();
 
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel - Form */}
-        <ScrollArea className="flex-1 p-4">
-          <div className="space-y-6 max-w-3xl">
+        <ScrollArea className="flex-1 p-6">
+          <div className="space-y-6 max-w-3xl mx-auto">
             {/* Pricing Mode Toggle - Tier A option */}
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -1834,65 +1835,70 @@ Thanks!`.trim();
 
             <Separator />
 
-            {/* Building Features */}
+            {/* Building Features, Site Status & MEP Scope - Grouped */}
             <div className="space-y-4">
-              <h2 className="text-lg font-medium">Building Features</h2>
-              <div className="flex flex-wrap gap-4">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="has-basement"
-                    checked={hasBasement}
-                    onCheckedChange={(checked) => setHasBasement(checked === true)}
-                    data-testid="checkbox-has-basement"
-                  />
-                  <Label htmlFor="has-basement">Has Basement</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="has-attic"
-                    checked={hasAttic}
-                    onCheckedChange={(checked) => setHasAttic(checked === true)}
-                    data-testid="checkbox-has-attic"
-                  />
-                  <Label htmlFor="has-attic">Has Attic</Label>
-                </div>
-              </div>
-            </div>
+              <h2 className="text-lg font-medium">Site & Scope Details</h2>
+              <Card>
+                <CardContent className="pt-4 space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Building Features</Label>
+                    <div className="flex flex-wrap gap-4">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="has-basement"
+                          checked={hasBasement}
+                          onCheckedChange={(checked) => setHasBasement(checked === true)}
+                          data-testid="checkbox-has-basement"
+                        />
+                        <Label htmlFor="has-basement">Has Basement</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="has-attic"
+                          checked={hasAttic}
+                          onCheckedChange={(checked) => setHasAttic(checked === true)}
+                          data-testid="checkbox-has-attic"
+                        />
+                        <Label htmlFor="has-attic">Has Attic</Label>
+                      </div>
+                    </div>
+                  </div>
 
-            <Separator />
+                  <Separator />
 
-            {/* Site Status */}
-            <div className="space-y-4">
-              <h2 className="text-lg font-medium">Site Status</h2>
-              <Select value={siteStatus} onValueChange={(v) => setSiteStatus(v as typeof siteStatus)}>
-                <SelectTrigger data-testid="select-site-status">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="vacant">Vacant</SelectItem>
-                  <SelectItem value="occupied">Occupied</SelectItem>
-                  <SelectItem value="construction">Under Construction</SelectItem>
-                  <SelectItem value="ask_client">I don't know (Ask Client)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Site Status</Label>
+                    <Select value={siteStatus} onValueChange={(v) => setSiteStatus(v as typeof siteStatus)}>
+                      <SelectTrigger data-testid="select-site-status">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="vacant">Vacant</SelectItem>
+                        <SelectItem value="occupied">Occupied</SelectItem>
+                        <SelectItem value="construction">Under Construction</SelectItem>
+                        <SelectItem value="ask_client">I don't know (Ask Client)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-            <Separator />
+                  <Separator />
 
-            {/* MEP Scope */}
-            <div className="space-y-4">
-              <h2 className="text-lg font-medium">MEP Scope</h2>
-              <Select value={mepScope} onValueChange={(v) => setMepScope(v as typeof mepScope)}>
-                <SelectTrigger data-testid="select-mep-scope">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="full">Full MEP Modeling</SelectItem>
-                  <SelectItem value="partial">Partial (Major systems only)</SelectItem>
-                  <SelectItem value="none">Architecture Only (No MEP)</SelectItem>
-                  <SelectItem value="ask_client">I don't know (Ask Client)</SelectItem>
-                </SelectContent>
-              </Select>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">MEP Scope</Label>
+                    <Select value={mepScope} onValueChange={(v) => setMepScope(v as typeof mepScope)}>
+                      <SelectTrigger data-testid="select-mep-scope">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="full">Full MEP Modeling</SelectItem>
+                        <SelectItem value="partial">Partial (Major systems only)</SelectItem>
+                        <SelectItem value="none">Architecture Only (No MEP)</SelectItem>
+                        <SelectItem value="ask_client">I don't know (Ask Client)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
             <Separator />
@@ -1944,18 +1950,22 @@ Thanks!`.trim();
             {/* Payment Terms */}
             <div className="space-y-4">
               <h2 className="text-lg font-medium">Payment Terms</h2>
-              <Select value={paymentTerms} onValueChange={setPaymentTerms}>
-                <SelectTrigger data-testid="select-payment-terms">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CPQ_PAYMENT_TERMS.filter(term => term !== "other").map((term) => (
-                    <SelectItem key={term} value={term}>
-                      {CPQ_PAYMENT_TERMS_DISPLAY[term]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Card>
+                <CardContent className="pt-4">
+                  <Select value={paymentTerms} onValueChange={setPaymentTerms}>
+                    <SelectTrigger data-testid="select-payment-terms">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CPQ_PAYMENT_TERMS.filter(term => term !== "other").map((term) => (
+                        <SelectItem key={term} value={term}>
+                          {CPQ_PAYMENT_TERMS_DISPLAY[term]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </CardContent>
+              </Card>
             </div>
 
             <Separator />
@@ -1963,19 +1973,23 @@ Thanks!`.trim();
             {/* Risk Factors */}
             <div className="space-y-4">
               <h2 className="text-lg font-medium">Risk Factors</h2>
-              <div className="flex flex-wrap gap-2">
-                {RISK_FACTORS.map((risk) => (
-                  <Badge
-                    key={risk.id}
-                    variant={risks.includes(risk.id) ? "destructive" : "outline"}
-                    className="cursor-pointer toggle-elevate"
-                    onClick={() => toggleRisk(risk.id)}
-                    data-testid={`badge-risk-${risk.id}`}
-                  >
-                    {risk.label} (+{(risk.premium * 100).toFixed(0)}%)
-                  </Badge>
-                ))}
-              </div>
+              <Card>
+                <CardContent className="pt-4">
+                  <div className="flex flex-wrap gap-2">
+                    {RISK_FACTORS.map((risk) => (
+                      <Badge
+                        key={risk.id}
+                        variant={risks.includes(risk.id) ? "destructive" : "outline"}
+                        className="cursor-pointer toggle-elevate"
+                        onClick={() => toggleRisk(risk.id)}
+                        data-testid={`badge-risk-${risk.id}`}
+                      >
+                        {risk.label} (+{(risk.premium * 100).toFixed(0)}%)
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
             <Separator />
@@ -1983,26 +1997,30 @@ Thanks!`.trim();
             {/* Additional Services */}
             <div className="space-y-4">
               <h2 className="text-lg font-medium">Additional Services</h2>
-              <div className="grid grid-cols-2 gap-4">
-                {Object.entries(SERVICE_RATES).map(([id, service]) => (
-                  <div key={id} className="flex items-center justify-between p-3 border rounded-md">
-                    <div>
-                      <Label>{service.label}</Label>
-                      <p className="text-xs text-muted-foreground">
-                        ${service.rate}/{service.unit}
-                      </p>
-                    </div>
-                    <Input
-                      type="number"
-                      value={services[id] || ""}
-                      onChange={(e) => updateService(id, parseInt(e.target.value) || 0)}
-                      className="w-20"
-                      min="0"
-                      data-testid={`input-service-${id}`}
-                    />
+              <Card>
+                <CardContent className="pt-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    {Object.entries(SERVICE_RATES).map(([id, service]) => (
+                      <div key={id} className="flex items-center justify-between p-3 border rounded-md">
+                        <div>
+                          <Label>{service.label}</Label>
+                          <p className="text-xs text-muted-foreground">
+                            ${service.rate}/{service.unit}
+                          </p>
+                        </div>
+                        <Input
+                          type="number"
+                          value={services[id] || ""}
+                          onChange={(e) => updateService(id, parseInt(e.target.value) || 0)}
+                          className="w-20"
+                          min="0"
+                          data-testid={`input-service-${id}`}
+                        />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </CardContent>
+              </Card>
             </div>
 
             <Separator />
@@ -2013,13 +2031,17 @@ Thanks!`.trim();
                 <FileText className="h-5 w-5" />
                 Project Notes
               </h2>
-              <textarea
-                value={projectNotes}
-                onChange={(e) => setProjectNotes(e.target.value)}
-                className="w-full min-h-[100px] p-3 border rounded-md bg-background resize-y"
-                placeholder="Add any notes about this project..."
-                data-testid="textarea-project-notes"
-              />
+              <Card>
+                <CardContent className="pt-4">
+                  <textarea
+                    value={projectNotes}
+                    onChange={(e) => setProjectNotes(e.target.value)}
+                    className="w-full min-h-[100px] p-3 border rounded-md bg-background resize-y"
+                    placeholder="Add any notes about this project..."
+                    data-testid="textarea-project-notes"
+                  />
+                </CardContent>
+              </Card>
             </div>
 
             <Separator />

@@ -20,16 +20,9 @@ interface ScopeFieldsProps {
     scopingDocuments: any[];
     mixedScope: string;
     insuranceRequirements: string;
-    accountContact: string;
-    accountContactEmail: string;
-    accountContactPhone: string;
     designProContact: string;
     designProCompanyContact: string;
     otherContact: string;
-    proofLinks: string;
-    ndaFiles: any[];
-    estimatedTimeline: string;
-    timelineNotes: string;
   };
   onChange: (field: string, value: any) => void;
 }
@@ -46,7 +39,7 @@ export default function ScopeFields({ data, onChange }: ScopeFieldsProps) {
   return (
     <div className="space-y-6">
       {/* Deliverables */}
-      <Card className="p-4 bg-accent/50">
+      <Card className="p-4">
         <h3 className="text-lg font-semibold mb-4">Deliverables</h3>
         <div className="space-y-4">
           <div className="space-y-2">
@@ -128,7 +121,7 @@ export default function ScopeFields({ data, onChange }: ScopeFieldsProps) {
       </Card>
 
       {/* Scope Assumptions */}
-      <Card className="p-4 bg-accent/50">
+      <Card className="p-4">
         <h3 className="text-lg font-semibold mb-4">Scope Assumptions</h3>
         <div className="space-y-4">
           <div className="space-y-2">
@@ -195,52 +188,9 @@ export default function ScopeFields({ data, onChange }: ScopeFieldsProps) {
       </Card>
 
       {/* Contacts & Communication */}
-      <Card className="p-4 bg-accent/50">
+      <Card className="p-4">
         <h3 className="text-lg font-semibold mb-4">Contacts & Communication</h3>
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="account-contact" className="text-sm font-medium">
-              Account Contact
-            </Label>
-            <Input
-              id="account-contact"
-              placeholder="Primary account contact name"
-              value={data.accountContact}
-              onChange={(e) => onChange('accountContact', e.target.value)}
-              data-testid="input-account-contact"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="account-contact-email" className="text-sm font-medium">
-                Account Contact Email
-              </Label>
-              <Input
-                id="account-contact-email"
-                type="email"
-                placeholder="email@example.com"
-                value={data.accountContactEmail}
-                onChange={(e) => onChange('accountContactEmail', e.target.value)}
-                data-testid="input-account-contact-email"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="account-contact-phone" className="text-sm font-medium">
-                Account Contact Phone
-              </Label>
-              <Input
-                id="account-contact-phone"
-                type="tel"
-                placeholder="(555) 123-4567"
-                value={data.accountContactPhone}
-                onChange={(e) => onChange('accountContactPhone', e.target.value)}
-                data-testid="input-account-contact-phone"
-              />
-            </div>
-          </div>
-
           <div className="space-y-2">
             <Label htmlFor="design-pro-contact" className="text-sm font-medium">
               Design Pro Contact
@@ -277,74 +227,6 @@ export default function ScopeFields({ data, onChange }: ScopeFieldsProps) {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="proof-links" className="text-sm font-medium">
-              Proof Links
-            </Label>
-            <Textarea
-              id="proof-links"
-              placeholder="Links to proof documents, photos, etc..."
-              value={data.proofLinks}
-              onChange={(e) => onChange('proofLinks', e.target.value)}
-              rows={2}
-            />
-            <FileUpload
-              label="Upload NDA"
-              files={data.ndaFiles || []}
-              onChange={(files) => onChange('ndaFiles', files)}
-            />
-          </div>
-        </div>
-      </Card>
-
-      {/* Project Timeline */}
-      <Card className="p-4 bg-accent/50">
-        <h3 className="text-lg font-semibold mb-4">Project Timeline</h3>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              Estimated Timeline
-            </Label>
-            <RadioGroup value={data.estimatedTimeline} onValueChange={(val) => onChange('estimatedTimeline', val)}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="1week" id="timeline-1week" />
-                <Label htmlFor="timeline-1week" className="cursor-pointer">~1 week</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="2weeks" id="timeline-2weeks" />
-                <Label htmlFor="timeline-2weeks" className="cursor-pointer">~2 weeks</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="3weeks" id="timeline-3weeks" />
-                <Label htmlFor="timeline-3weeks" className="cursor-pointer">~3 weeks</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="4weeks" id="timeline-4weeks" />
-                <Label htmlFor="timeline-4weeks" className="cursor-pointer">~4 weeks</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="5weeks" id="timeline-5weeks" />
-                <Label htmlFor="timeline-5weeks" className="cursor-pointer">~5 weeks</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="6weeks" id="timeline-6weeks" />
-                <Label htmlFor="timeline-6weeks" className="cursor-pointer">~6 weeks</Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="timeline-notes" className="text-sm font-medium">
-              Timeline Notes
-            </Label>
-            <Textarea
-              id="timeline-notes"
-              placeholder="Additional notes about project timeline..."
-              value={data.timelineNotes}
-              onChange={(e) => onChange('timelineNotes', e.target.value)}
-              rows={3}
-            />
-          </div>
         </div>
       </Card>
     </div>

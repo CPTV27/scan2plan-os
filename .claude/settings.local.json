@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(test:*)",
+      "Bash(node:*)",
+      "Bash(npm run dev:*)",
+      "Bash(set NODE_ENV=development)",
+      "Bash(tsx:*)",
+      "Bash(npx cross-env:*)",
+      "Bash(npx:*)",
+      "Bash(curl:*)",
+      "Bash(npm run check:*)"
+    ]
+  }
+}

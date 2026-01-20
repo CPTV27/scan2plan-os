@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { Slider } from "@/components/ui/slider";
 import type { BuyerPersona } from "@shared/schema";
 import {
@@ -34,7 +34,6 @@ import {
 import {
   AlertTriangle,
   Building2,
-  ClipboardList,
   DollarSign,
   Download,
   Loader2,
@@ -353,11 +352,26 @@ export function LeadDetailsTab({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
+                            <SelectItem value="ABM">ABM</SelectItem>
                             <SelectItem value="Amplifi">Amplifi</SelectItem>
+                            <SelectItem value="CEU">CEU</SelectItem>
+                            <SelectItem value="Cold outreach">Cold outreach</SelectItem>
+                            <SelectItem value="Compliance trigger">Compliance trigger</SelectItem>
                             <SelectItem value="Customer Referral">Customer Referral</SelectItem>
-                            <SelectItem value="Website">Website</SelectItem>
+                            <SelectItem value="Event/Conference">Event/Conference</SelectItem>
+                            <SelectItem value="Existing customer">Existing customer</SelectItem>
+                            <SelectItem value="Partner Referral">Partner Referral</SelectItem>
+                            <SelectItem value="Permit trigger">Permit trigger</SelectItem>
+                            <SelectItem value="Podcast">Podcast</SelectItem>
+                            <SelectItem value="Procurement trigger">Procurement trigger</SelectItem>
+                            <SelectItem value="Proof Vault">Proof Vault</SelectItem>
+                            <SelectItem value="Site/SEO">Site/SEO</SelectItem>
                             <SelectItem value="Social Media">Social Media</SelectItem>
+                            <SelectItem value="Spec/Standards">Spec/Standards</SelectItem>
+                            <SelectItem value="Vendor Onboarding">Vendor Onboarding</SelectItem>
+                            <SelectItem value="Website">Website</SelectItem>
                             <SelectItem value="Other">Other</SelectItem>
+                            <SelectItem value="Unknown">Unknown</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -393,119 +407,7 @@ export function LeadDetailsTab({
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <ClipboardList className="w-4 h-4" />
-                  Project Status
-                </CardTitle>
-                <CardDescription>Track the current phase and urgency of this project</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="projectStatus.proposalPhase"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value || false}
-                            onCheckedChange={field.onChange}
-                            data-testid="checkbox-proposal-phase"
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel className="cursor-pointer">Proposal Phase</FormLabel>
-                          <FormDescription className="text-xs">Currently preparing proposal</FormDescription>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
 
-                  <FormField
-                    control={form.control}
-                    name="projectStatus.inHand"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value || false}
-                            onCheckedChange={field.onChange}
-                            data-testid="checkbox-in-hand"
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel className="cursor-pointer">In Hand</FormLabel>
-                          <FormDescription className="text-xs">Project is confirmed</FormDescription>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="projectStatus.urgent"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value || false}
-                            onCheckedChange={field.onChange}
-                            data-testid="checkbox-urgent"
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel className="cursor-pointer">Urgent</FormLabel>
-                          <FormDescription className="text-xs">High priority timeline</FormDescription>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="projectStatus.other"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value || false}
-                            onCheckedChange={field.onChange}
-                            data-testid="checkbox-other"
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel className="cursor-pointer">Other</FormLabel>
-                          <FormDescription className="text-xs">Custom status</FormDescription>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {form.watch("projectStatus.other") && (
-                  <FormField
-                    control={form.control}
-                    name="projectStatus.otherText"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Other Status Details</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Describe the status..."
-                            {...field}
-                            value={field.value || ""}
-                            data-testid="input-other-status"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-              </CardContent>
-            </Card>
 
             {((lead.sqft && lead.sqft >= TIER_A_THRESHOLD) || lead.abmTier === "Tier A") && (
               <TierAEstimatorCard
