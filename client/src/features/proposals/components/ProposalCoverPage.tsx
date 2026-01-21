@@ -51,8 +51,8 @@ export function ProposalCoverPage({
             onChange={(v) => onChange("projectTitle", v)}
             onBlur={onBlur}
             as="h2"
-            className="text-xl font-medium"
-            placeholder="Project Title"
+            className="text-xl font-bold"
+            placeholder="Street Address (e.g., 59 Nostrand Pkwy)"
             disabled={disabled}
           />
 
@@ -60,8 +60,8 @@ export function ProposalCoverPage({
             value={data.projectAddress}
             onChange={(v) => onChange("projectAddress", v)}
             onBlur={onBlur}
-            className="text-lg text-gray-600"
-            placeholder="Project Address"
+            className="text-lg text-gray-700"
+            placeholder="City, State ZIP"
             disabled={disabled}
           />
 
@@ -69,8 +69,8 @@ export function ProposalCoverPage({
             value={data.servicesLine}
             onChange={(v) => onChange("servicesLine", v)}
             onBlur={onBlur}
-            className="text-lg text-gray-500 italic"
-            placeholder="Services (e.g., LoD 350 + MEPF + Structure)"
+            className="text-lg font-semibold"
+            placeholder="LoD 350 + MEPF"
             disabled={disabled}
           />
         </div>

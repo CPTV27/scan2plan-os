@@ -13,7 +13,8 @@ import { LeadForm } from "@/components/LeadForm";
 import { PDFImportDrawer } from "@/components/PDFImportDrawer";
 import { CommunicationCenter } from "@/components/CommunicationCenter";
 import { GHLImport } from "@/components/GHLImport";
-import { PersonaSelect } from "@/components/PersonaSelect";
+// PersonaSelect hidden for now
+// import { PersonaSelect } from "@/components/PersonaSelect";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -191,7 +192,9 @@ function DealCard({
   isMoving,
   isDeleting,
   isSelected,
-  onToggleSelect
+  onToggleSelect,
+  onDragStart,
+  onDragEnd,
 }: {
   lead: Lead;
   onEdit: () => void;
@@ -202,6 +205,8 @@ function DealCard({
   isDeleting: boolean;
   isSelected?: boolean;
   onToggleSelect?: () => void;
+  onDragStart?: (leadId: number) => void;
+  onDragEnd?: () => void;
 }) {
   const isStale = lead.lastContactDate && differenceInDays(new Date(), new Date(lead.lastContactDate)) > 14;
   const isHighValue = Number(lead.value) >= 10000;
@@ -209,14 +214,28 @@ function DealCard({
   const canMoveLeft = stageIndex > 0 && lead.dealStage !== "Closed Won" && lead.dealStage !== "Closed Lost";
   const canMoveRight = stageIndex < STAGES.length - 1 && lead.dealStage !== "Closed Won" && lead.dealStage !== "Closed Lost";
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('text/plain', lead.id.toString());
+    e.dataTransfer.effectAllowed = 'move';
+    onDragStart?.(lead.id);
+  };
+
+  const handleDragEnd = () => {
+    onDragEnd?.();
+  };
+
   return (
     <Card
       className={clsx(
-        "mb-3 border-l-4 transition-all overflow-hidden",
+        "mb-3 border-l-4 transition-all overflow-hidden cursor-pointer hover:bg-accent/50",
         STAGE_COLORS[lead.dealStage as Stage] || "border-l-muted",
         isHighValue && "ring-1 ring-yellow-500/50"
       )}
       data-testid={`card-deal-${lead.id}`}
+      onClick={onOpenCPQ}
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
     >
       <CardContent className="p-3 space-y-2 overflow-hidden">
         <div className="flex items-start justify-between gap-2">
@@ -224,6 +243,7 @@ function DealCard({
             <Checkbox
               checked={isSelected}
               onCheckedChange={onToggleSelect}
+              onClick={(e) => e.stopPropagation()}
               className="mt-0.5"
               data-testid={`checkbox-select-${lead.id}`}
             />
@@ -249,38 +269,47 @@ function DealCard({
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5 overflow-hidden">
+        <div className="flex flex-wrap items-center gap-2 overflow-hidden text-xs">
           <div className="flex items-center gap-1 flex-shrink-0">
             <DollarSign className="w-3 h-3 text-muted-foreground" />
             <span className={clsx(
-              "text-sm font-mono",
+              "font-mono",
               isHighValue && "text-yellow-500 font-semibold"
             )} data-testid={`text-value-${lead.id}`}>
               {Number(lead.value).toLocaleString()}
             </span>
           </div>
-          <div className="flex items-center gap-0.5 flex-shrink-0" title={`Priority: ${lead.leadPriority || 3}/5`}>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star key={i} className={clsx(
-                "w-3 h-3",
-                i < (lead.leadPriority || 3)
-                  ? (lead.leadPriority || 3) >= 4
-                    ? "text-yellow-500 fill-yellow-500"
-                    : "text-muted-foreground fill-muted-foreground"
-                  : "text-muted-foreground/30"
-              )} />
-            ))}
+          <div className="flex items-center gap-1 flex-shrink-0" title={`Priority: ${lead.leadPriority || 3}/5`}>
+            <span className="text-muted-foreground">Priority:</span>
+            <div className="flex items-center gap-0.5">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star key={i} className={clsx(
+                  "w-3 h-3",
+                  i < (lead.leadPriority || 3)
+                    ? (lead.leadPriority || 3) >= 4
+                      ? "text-yellow-500 fill-yellow-500"
+                      : "text-muted-foreground fill-muted-foreground"
+                    : "text-muted-foreground/30"
+                )} />
+              ))}
+            </div>
           </div>
           {lead.leadSource && (
-            <Badge
-              variant="secondary"
-              className="text-xs flex-shrink-0 max-w-[80px] truncate"
-              data-testid={`badge-source-${lead.id}`}
-            >
-              {lead.leadSource}
-            </Badge>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <span className="text-muted-foreground">Source:</span>
+              <Badge
+                variant="secondary"
+                className="text-xs max-w-[80px] truncate"
+                data-testid={`badge-source-${lead.id}`}
+              >
+                {lead.leadSource}
+              </Badge>
+            </div>
           )}
-          <ProbabilityBadge lead={lead} />
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <span className="text-muted-foreground">Win:</span>
+            <ProbabilityBadge lead={lead} />
+          </div>
         </div>
 
         {(lead.sqft || lead.buildingType || lead.scope) && (
@@ -313,7 +342,7 @@ function DealCard({
         )}
 
         {lead.quoteUrl && (
-          <div className="flex items-center gap-1.5 flex-wrap overflow-hidden">
+          <div className="flex items-center gap-1.5 flex-wrap overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <a
               href={lead.quoteUrl}
               target="_blank"
@@ -338,18 +367,8 @@ function DealCard({
           </div>
         )}
 
-        {lead.lastContactDate && (
-          <p className={clsx(
-            "text-xs",
-            isStale ? "text-destructive" : "text-muted-foreground"
-          )}>
-            Last contact: {format(new Date(lead.lastContactDate), "MMM d")}
-          </p>
-        )}
-
-        <div className="flex items-center justify-between gap-1 pt-1 border-t border-border overflow-hidden">
-          <div className="flex items-center gap-0.5 flex-shrink-0">
-            <PersonaSelect leadId={lead.id} currentPersona={lead.buyerPersona} />
+        <div className="flex flex-wrap items-center justify-between gap-1 pt-1 border-t border-border" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-0.5">
             <Button
               variant="ghost"
               size="icon"
@@ -373,7 +392,7 @@ function DealCard({
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
-          <div className="flex items-center gap-0.5 flex-shrink-0">
+          <div className="flex items-center gap-0.5">
             {(lead as any).qboEstimateId && (
               <Button
                 variant="ghost"
@@ -389,18 +408,6 @@ function DealCard({
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7"
-              onClick={() => {
-                window.location.href = `/deals/${lead.id}?tab=quote`;
-              }}
-              data-testid={`button-cpq-quote-${lead.id}`}
-              title="Open Quote Builder"
-            >
-              <Calculator className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
               className="h-7 w-7 text-destructive hover:text-destructive"
               onClick={onDelete}
               disabled={isDeleting}
@@ -412,7 +419,7 @@ function DealCard({
             <Button
               variant="outline"
               size="sm"
-              className="h-7 text-xs px-3 flex-shrink-0"
+              className="h-7 text-xs px-3"
               onClick={onOpenCPQ}
               data-testid={`button-open-deal-${lead.id}`}
             >
@@ -445,7 +452,11 @@ function StageColumn({
   movingLeadId,
   deletingLeadId,
   selectedLeads,
-  onToggleSelect
+  onToggleSelect,
+  onDrop,
+  draggingLeadId,
+  onDragStart,
+  onDragEnd,
 }: {
   stage: Stage;
   leads: Lead[];
@@ -457,13 +468,46 @@ function StageColumn({
   deletingLeadId: number | null;
   selectedLeads: number[];
   onToggleSelect: (leadId: number) => void;
+  onDrop: (leadId: number, stage: Stage) => void;
+  draggingLeadId: number | null;
+  onDragStart: (leadId: number) => void;
+  onDragEnd: () => void;
 }) {
+  const [isDragOver, setIsDragOver] = useState(false);
   const StageIcon = STAGE_ICONS[stage];
   const columnValue = leads.reduce((sum, lead) => sum + Number(lead.value), 0);
   const isEmpty = leads.length === 0;
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    const leadId = parseInt(e.dataTransfer.getData('text/plain'), 10);
+    if (leadId) {
+      onDrop(leadId, stage);
+    }
+  };
+
   return (
-    <div className="flex-shrink-0 w-72 flex flex-col" data-testid={`column-${stage.toLowerCase().replace(/\s+/g, '-')}`}>
+    <div
+      className={clsx(
+        "flex-shrink-0 w-72 flex flex-col rounded-lg transition-colors",
+        isDragOver && "bg-primary/10 ring-2 ring-primary/50"
+      )}
+      data-testid={`column-${stage.toLowerCase().replace(/\s+/g, '-')}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm pb-2">
         <div className="flex items-center justify-between gap-2 mb-1">
           <h3 className="font-semibold text-sm">{stage}</h3>
@@ -478,19 +522,26 @@ function StageColumn({
 
       <div className="flex-1 min-h-[200px]">
         {isEmpty ? (
-          <div className="h-full min-h-[200px] border-2 border-dashed border-muted rounded-lg flex flex-col items-center justify-center gap-3 p-4">
+          <div className={clsx(
+            "h-full min-h-[200px] border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-3 p-4",
+            isDragOver ? "border-primary bg-primary/5" : "border-muted"
+          )}>
             <StageIcon className="w-10 h-10 text-muted-foreground/30" />
             <div className="text-center">
-              <p className="text-sm font-medium text-muted-foreground">No deals in {stage}</p>
-              <p className="text-xs text-muted-foreground/70 mt-1">
-                {stage === "Leads" && "Add new leads to get started"}
-                {stage === "Contacted" && "Move leads here after first contact"}
-                {stage === "Proposal" && "Deals with active proposals"}
-                {stage === "Negotiation" && "Deals in final negotiation"}
-                {stage === "On Hold" && "Projects waiting on budget or timing"}
-                {stage === "Closed Won" && "Celebrate your wins here"}
-                {stage === "Closed Lost" && "Track lost opportunities"}
+              <p className="text-sm font-medium text-muted-foreground">
+                {isDragOver ? "Drop here" : `No deals in ${stage}`}
               </p>
+              {!isDragOver && (
+                <p className="text-xs text-muted-foreground/70 mt-1">
+                  {stage === "Leads" && "Add new leads to get started"}
+                  {stage === "Contacted" && "Move leads here after first contact"}
+                  {stage === "Proposal" && "Deals with active proposals"}
+                  {stage === "Negotiation" && "Deals in final negotiation"}
+                  {stage === "On Hold" && "Projects waiting on budget or timing"}
+                  {stage === "Closed Won" && "Celebrate your wins here"}
+                  {stage === "Closed Lost" && "Track lost opportunities"}
+                </p>
+              )}
             </div>
           </div>
         ) : (
@@ -507,6 +558,8 @@ function StageColumn({
                 isDeleting={deletingLeadId === lead.id}
                 isSelected={selectedLeads.includes(lead.id)}
                 onToggleSelect={() => onToggleSelect(lead.id)}
+                onDragStart={onDragStart}
+                onDragEnd={onDragEnd}
               />
             ))}
           </div>
@@ -527,6 +580,7 @@ export default function Sales() {
   const [movingLeadId, setMovingLeadId] = useState<number | null>(null);
   const [commLead, setCommLead] = useState<Lead | null>(null);
   const [selectedLeads, setSelectedLeads] = useState<number[]>([]);
+  const [draggingLeadId, setDraggingLeadId] = useState<number | null>(null);
   // QBO Filter State
   const [filterSource, setFilterSource] = useState<string>("all");
   const [filterQboStatus, setFilterQboStatus] = useState<string>("all");
@@ -713,6 +767,12 @@ export default function Sales() {
     }
   };
 
+  const handleDrop = (leadId: number, newStage: Stage) => {
+    const lead = leads?.find(l => l.id === leadId);
+    if (!lead || lead.dealStage === newStage) return;
+    moveMutation.mutate({ lead, newStage });
+  };
+
   const filteredLeads = leads?.filter(l => {
     const searchLower = search.toLowerCase();
     const matchesSearch = (
@@ -796,137 +856,6 @@ export default function Sales() {
                   </Button>
                   <NotificationBell />
                   <AIAssistant />
-                  <Button
-                    variant="outline"
-                    onClick={() => batchSyncMutation.mutate()}
-                    disabled={batchSyncMutation.isPending || selectedLeads.length === 0}
-                    data-testid="button-batch-sync"
-                    title={selectedLeads.length === 0 ? "Select leads to sync" : `Sync ${selectedLeads.length} lead(s) to GoHighLevel`}
-                  >
-                    {batchSyncMutation.isPending ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4 mr-2" />
-                    )}
-                    Sync to GHL {selectedLeads.length > 0 && `(${selectedLeads.length})`}
-                  </Button>
-                  <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" data-testid="button-import-leads">
-                        <Upload className="w-4 h-4 mr-2" /> Import CSV
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Import Leads from Spreadsheet</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                          <div className="flex items-center gap-2 text-sm font-medium">
-                            <FileSpreadsheet className="w-4 h-4" />
-                            CSV Format Requirements
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Your CSV file must include these columns:
-                          </p>
-                          <ul className="text-xs text-muted-foreground space-y-1 ml-4 list-disc">
-                            <li><strong>Client</strong> or <strong>Client Name</strong> (required)</li>
-                            <li><strong>Address</strong> or <strong>Project Address</strong> (optional)</li>
-                            <li><strong>Value</strong> or <strong>Amount</strong> (optional)</li>
-                            <li><strong>Contact Name</strong>, <strong>Email</strong>, <strong>Phone</strong> (optional)</li>
-                            <li><strong>Source</strong>, <strong>Priority</strong>, <strong>Notes</strong> (optional)</li>
-                          </ul>
-                        </div>
-                        <div className="flex flex-col items-center justify-center border-2 border-dashed border-muted rounded-lg p-8 gap-3">
-                          <Upload className="w-8 h-8 text-muted-foreground" />
-                          <p className="text-sm text-muted-foreground">Select a CSV file to import</p>
-                          <label className="cursor-pointer">
-                            <input
-                              type="file"
-                              accept=".csv"
-                              className="hidden"
-                              onChange={handleFileUpload}
-                              disabled={importMutation.isPending}
-                              data-testid="input-import-file"
-                            />
-                            <Button
-                              variant="default"
-                              className="pointer-events-none"
-                              disabled={importMutation.isPending}
-                            >
-                              {importMutation.isPending ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                  Importing...
-                                </>
-                              ) : (
-                                <>Choose File</>
-                              )}
-                            </Button>
-                          </label>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsPdfImportOpen(true)}
-                    data-testid="button-pdf-import"
-                  >
-                    <FileText className="w-4 h-4 mr-2" /> Import PDFs
-                  </Button>
-                  <GHLImport />
-                  <Dialog open={isCpqImportOpen} onOpenChange={setIsCpqImportOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" data-testid="button-cpq-import">
-                        <Calculator className="w-4 h-4 mr-2" /> CPQ Import
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Import from CPQ JSON</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                          <div className="flex items-center gap-2 text-sm font-medium">
-                            <Calculator className="w-4 h-4" />
-                            CPQ JSON Format
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Upload a .json file exported from the CPQ tool to automatically create a new lead/client in the pipeline.
-                          </p>
-                        </div>
-                        <div className="flex flex-col items-center justify-center border-2 border-dashed border-muted rounded-lg p-8 gap-3">
-                          <Upload className="w-8 h-8 text-muted-foreground" />
-                          <p className="text-sm text-muted-foreground">Select a CPQ JSON file to import</p>
-                          <label className="cursor-pointer">
-                            <input
-                              type="file"
-                              accept=".json"
-                              className="hidden"
-                              onChange={handleCpqJsonUpload}
-                              disabled={cpqImportMutation.isPending}
-                              data-testid="input-cpq-json-file"
-                            />
-                            <Button
-                              variant="default"
-                              className="pointer-events-none"
-                              disabled={cpqImportMutation.isPending}
-                            >
-                              {cpqImportMutation.isPending ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                  Importing...
-                                </>
-                              ) : (
-                                <>Choose JSON File</>
-                              )}
-                            </Button>
-                          </label>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
                   <Button
                     variant="ghost"
                     onClick={() => navigate("/sales/trash")}
@@ -1108,6 +1037,10 @@ export default function Sales() {
                             : [...prev, leadId]
                         );
                       }}
+                      onDrop={handleDrop}
+                      draggingLeadId={draggingLeadId}
+                      onDragStart={setDraggingLeadId}
+                      onDragEnd={() => setDraggingLeadId(null)}
                     />
                   ))}
                 </div>

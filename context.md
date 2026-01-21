@@ -4,7 +4,69 @@ This is the single source of truth for repository context plus current goals/pro
 
 ## Project Tracking (Updated: 2026-01-21)
 
-### Recent Session: UI Cleanup & Quote Builder Refactoring (2026-01-21)
+### Current Session: Sales Pipeline & PDF Cover Page Updates (2026-01-21)
+
+**Completed Tasks:**
+
+1. **Sales Pipeline Card Improvements (`client/src/pages/Sales.tsx`):**
+   - ✅ Added labels to card elements: "Priority:", "Source:", "Win:"
+   - ✅ Made cards clickable (opens deal on click with hover effect)
+   - ✅ Added drag-and-drop between stage columns (native HTML5 DnD)
+   - ✅ Hidden PersonaSelect dropdown (BP-INST, BP-ARCH, etc.)
+   - ✅ Hidden "Last contact" date on cards
+   - ✅ Removed Calculator button from cards (Open button remains)
+   - ✅ Buttons wrap when space is tight (`flex-wrap`)
+   - ✅ Click isolation: checkbox, buttons, links don't trigger card navigation
+
+2. **Sales Header Cleanup:**
+   - ✅ Removed "Sync to GHL" button
+   - ✅ Removed "Import CSV" button and dialog
+   - ✅ Removed "Import PDFs" button
+   - ✅ Removed "CPQ Import" button and dialog
+   - ✅ Kept: Hot Leads filter, Notification Bell, AI Assistant, Trash, New Deal
+
+3. **PDF Cover Page Update (`server/pdf/proposalGenerator.ts`):**
+   - ✅ Added company contact info below logo (address, phone, email, website)
+   - ✅ Reformatted address display (street on line 1, city/state/zip on line 2)
+   - ✅ Added "(partial building)" note for partial scope projects
+   - ✅ LoD + disciplines line formatted as "LoD 350 + MEPF"
+   - ✅ Moved acceptance text lower and smaller
+   - ✅ Removed footer from cover page (cleaner look)
+
+4. **Proposal Builder Cover Page (`server/routes/proposals.ts`, `ProposalCoverPage.tsx`):**
+   - ✅ Fixed coverData to split address: street vs city/state/zip
+   - ✅ Auto-adds scope note: "(partial building)", "(interior only)", "(exterior only)"
+   - ✅ Updated frontend placeholders and styling for clarity
+   - ✅ Cover page now matches reference format
+
+5. **Deal Workspace Header Cleanup (`client/src/pages/DealWorkspace.tsx`):**
+   - ✅ Removed: Enroll button, Files Status badge, Open Folder dropdown, Stage badge, Tier A badge
+   - ✅ Removed: QBO Estimate button and QboEstimateBadge
+   - ✅ Kept only: Deal value badge + Delete button
+
+6. **Proposal Version History:**
+   - ✅ Added DELETE endpoint for proposals (`server/routes/proposalTemplates.ts`)
+   - ✅ Backend supports `createNewVersion` flag to create new versions instead of updating
+   - ✅ Version number auto-increments when creating new versions
+   - ✅ Added version history UI in ProposalTab (`client/src/features/deals/components/ProposalTab.tsx`):
+     - Shows all proposal versions with version number, name, status, timestamps
+     - "New Version" button to create fresh proposal from current quote data
+     - "Edit" button to open specific version in Proposal Builder
+     - "Delete" button with confirmation dialog
+     - Sorted by version (newest first)
+
+**Hot Leads Logic (for reference):**
+- Filters deals where: `value >= $10,000` OR `priority >= 4`
+- Excludes "Closed Won" and "Closed Lost" stages
+- Shows high-value or high-priority active deals
+
+**Files Modified:**
+- `client/src/pages/Sales.tsx` - Card improvements, drag-drop, header cleanup
+- `server/pdf/proposalGenerator.ts` - Cover page layout matching example
+
+---
+
+### Previous Session: UI Cleanup & Quote Builder Refactoring (2026-01-21)
 
 **Completed Tasks:**
 

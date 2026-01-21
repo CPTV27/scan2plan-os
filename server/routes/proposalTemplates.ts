@@ -362,3 +362,24 @@ generatedProposalsRouter.patch("/:id", async (req: Request, res: Response) => {
         res.status(500).json({ error: "Failed to update proposal" });
     }
 });
+
+// DELETE proposal
+generatedProposalsRouter.delete("/:id", async (req: Request, res: Response) => {
+    try {
+        const id = parseInt(req.params.id);
+
+        const [deleted] = await db
+            .delete(generatedProposals)
+            .where(eq(generatedProposals.id, id))
+            .returning();
+
+        if (!deleted) {
+            return res.status(404).json({ error: "Proposal not found" });
+        }
+
+        res.json({ success: true, deleted });
+    } catch (error) {
+        console.error("Failed to delete proposal:", error);
+        res.status(500).json({ error: "Failed to delete proposal" });
+    }
+});

@@ -6,14 +6,26 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { FileEdit, Sparkles, PenTool, Check, Clock, Send, Copy, ChevronDown } from "lucide-react";
+import { FileEdit, Sparkles, PenTool, Check, Clock, Send, Copy, ChevronDown, Plus, Trash2, History, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useState } from "react";
 import { SignatureCapture } from "@/components/SignatureCapture";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
-import type { Lead } from "@shared/schema";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
+import type { Lead, GeneratedProposal } from "@shared/schema";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { formatDistanceToNow } from "date-fns";
 
 interface ProposalTabProps {
   lead: Lead;
@@ -26,6 +38,68 @@ export function ProposalTab({ lead }: ProposalTabProps) {
   const [showSignatureDialog, setShowSignatureDialog] = useState(false);
   const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
   const [sendingLink, setSendingLink] = useState(false);
+
+  // Fetch all proposals for this lead
+  const { data: proposals, isLoading: proposalsLoading } = useQuery<GeneratedProposal[]>({
+    queryKey: ["/api/generated-proposals/lead", lead.id],
+    enabled: !!lead.id,
+  });
+
+  // Create new version mutation
+  const createVersionMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/leads/${lead.id}/proposal/generate`, {
+        createNewVersion: true,
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to create new version");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/generated-proposals/lead", lead.id] });
+      toast({
+        title: "New version created",
+        description: `Version ${data.proposal?.version || "new"} created successfully`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to create version",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete proposal mutation
+  const deleteProposalMutation = useMutation({
+    mutationFn: async (proposalId: number) => {
+      const response = await apiRequest("DELETE", `/api/generated-proposals/${proposalId}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to delete proposal");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/generated-proposals/lead", lead.id] });
+      toast({
+        title: "Proposal deleted",
+        description: "The proposal version has been deleted",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const sortedProposals = proposals?.slice().sort((a, b) => (b.version || 1) - (a.version || 1)) || [];
 
   const handleSendSignatureLink = async () => {
     setSendingLink(true);
@@ -95,17 +169,130 @@ export function ProposalTab({ lead }: ProposalTabProps) {
   return (
     <ScrollArea className="h-full flex-1">
       <div className="p-4 space-y-4">
-        {/* Two-column grid for Proposal Builder and Client Signature */}
+        {/* Proposal Version History */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <History className="w-5 h-5" />
+                Proposal Versions
+              </CardTitle>
+              <Button
+                size="sm"
+                onClick={() => createVersionMutation.mutate()}
+                disabled={createVersionMutation.isPending}
+              >
+                {createVersionMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4 mr-2" />
+                )}
+                New Version
+              </Button>
+            </div>
+            <CardDescription>
+              {sortedProposals.length === 0
+                ? "No proposals yet. Create your first version."
+                : `${sortedProposals.length} version${sortedProposals.length !== 1 ? "s" : ""}`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {proposalsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : sortedProposals.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <FileEdit className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p className="text-sm">Click "New Version" to create your first proposal</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {sortedProposals.map((proposal) => (
+                  <div
+                    key={proposal.id}
+                    className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className="font-mono">
+                        v{proposal.version || 1}
+                      </Badge>
+                      <div>
+                        <p className="text-sm font-medium">{proposal.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {proposal.updatedAt
+                            ? `Updated ${formatDistanceToNow(new Date(proposal.updatedAt), { addSuffix: true })}`
+                            : proposal.createdAt
+                              ? `Created ${formatDistanceToNow(new Date(proposal.createdAt), { addSuffix: true })}`
+                              : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant={proposal.status === "sent" ? "default" : "secondary"}
+                        className="text-xs"
+                      >
+                        {proposal.status || "draft"}
+                      </Badge>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigate(`/deals/${lead.id}/proposal?v=${proposal.id}`)}
+                      >
+                        <FileEdit className="w-4 h-4 mr-1" />
+                        Edit
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            disabled={deleteProposalMutation.isPending}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Proposal Version?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete version {proposal.version || 1} of this proposal. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => deleteProposalMutation.mutate(proposal.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Two-column grid for Quick Actions and Client Signature */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Proposal Builder Entry Point */}
+          {/* Proposal Builder Quick Access */}
           <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <FileEdit className="w-5 h-5 text-primary" />
-                Proposal Builder
+                Quick Edit
               </CardTitle>
               <CardDescription>
-                Create and customize professional proposals
+                {sortedProposals.length > 0
+                  ? `Open latest version (v${sortedProposals[0]?.version || 1})`
+                  : "Create and customize professional proposals"}
               </CardDescription>
             </CardHeader>
             <CardContent>

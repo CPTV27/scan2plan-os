@@ -202,24 +202,56 @@ function buildServicesLine(data: ProposalData): string {
  */
 function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalData): void {
   // Logo - centered at top
-  const logoY = 90;
+  const logoY = 60;
   try {
     // Logo image
-    doc.image("client/public/logo-cover.png", (PAGE.width as number) / 2 - 160, logoY, { width: 320 });
+    doc.image("client/public/logo-cover.png", (PAGE.width as number) / 2 - 100, logoY, { width: 200 });
   } catch (error) {
     // Fallback text if logo not found
     doc
       .font("Helvetica-Bold")
-      .fontSize(48)
+      .fontSize(36)
       .fillColor(COLORS.primary)
-      .text("SCAN2PLAN", (PAGE.margin.left as number), logoY, {
+      .text("Scan2Plan", (PAGE.margin.left as number), logoY, {
+        width: PAGE.contentWidth,
+        align: "center",
+      });
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .fillColor(COLORS.primary)
+      .text("Focus on Design", (PAGE.margin.left as number), logoY + 40, {
         width: PAGE.contentWidth,
         align: "center",
       });
   }
 
+  // Company contact info below logo
+  let y = 200;
+  doc
+    .font("Helvetica")
+    .fontSize(10)
+    .fillColor(COLORS.textMuted)
+    .text("188 1st St, Troy, NY 12180", (PAGE.margin.left as number), y, {
+      width: PAGE.contentWidth,
+      align: "center",
+    });
+  y += 14;
+  doc
+    .text("(518) 362-2403 / admin@scan2plan.io", (PAGE.margin.left as number), y, {
+      width: PAGE.contentWidth,
+      align: "center",
+    });
+  y += 14;
+  doc
+    .fillColor(COLORS.primary)
+    .text("www.scan2plan.io", (PAGE.margin.left as number), y, {
+      width: PAGE.contentWidth,
+      align: "center",
+    });
+
   // Title section
-  let y = 360;
+  y = 320;
 
   doc
     .font("Helvetica-Bold")
@@ -230,7 +262,7 @@ function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalData): void {
       align: "center",
     });
 
-  y += 44;
+  y += 50;
 
   doc
     .font("Helvetica")
@@ -241,25 +273,47 @@ function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalData): void {
       align: "center",
     });
 
-  y += 38;
+  y += 40;
 
+  // Address lines with scope note
   const addressLines = getAddressLines(data);
+
+  // Check if partial scope - add note to first address line
+  const isPartialScope = data.scope?.scopeSummary?.toLowerCase().includes("partial") ||
+                         data.overview?.description?.toLowerCase().includes("partial");
+
   if (addressLines.length) {
-    addressLines.forEach((line) => {
+    // First line: street address (with partial building note if applicable)
+    let line1 = addressLines[0];
+    if (isPartialScope && !line1.toLowerCase().includes("partial")) {
+      line1 = `${line1} (partial building)`;
+    }
+
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(18)
+      .fillColor(COLORS.text)
+      .text(line1, (PAGE.margin.left as number), y, {
+        width: PAGE.contentWidth,
+        align: "center",
+      });
+    y += 28;
+
+    // Second line: city, state, zip
+    if (addressLines.length > 1) {
       doc
         .font("Helvetica")
         .fontSize(16)
         .fillColor(COLORS.text)
-        .text(line, (PAGE.margin.left as number), y, {
+        .text(addressLines[1], (PAGE.margin.left as number), y, {
           width: PAGE.contentWidth,
           align: "center",
         });
-      y += 26;
-    });
-  } else {
-    y += 20;
+      y += 28;
+    }
   }
 
+  // LoD + disciplines line
   const servicesLine = buildServicesLine(data);
   if (servicesLine) {
     doc
@@ -270,35 +324,18 @@ function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalData): void {
         width: PAGE.contentWidth,
         align: "center",
       });
-    y += 30;
+    y += 40;
   }
 
-  // Acceptance note
+  // Acceptance note - smaller and lower
+  y = Math.max(y + 20, 560);
   const acceptance = `Scan2Plan, Inc. hereby proposes the following engagement to ${data.clientName || "our client"}. Use of the services offered by Scan2Plan constitutes acceptance of this proposal dated ${data.date}.`;
   doc
     .font("Helvetica")
-    .fontSize(10)
+    .fontSize(9)
     .fillColor(COLORS.textMuted)
-    .text(acceptance, (PAGE.margin.left as number), y + 20, {
-      width: PAGE.contentWidth,
-      align: "center",
-    });
-
-  // Footer
-  const coverFooterY = PAGE.height - PAGE.margin.bottom - 24;
-  doc
-    .font("Helvetica")
-    .fontSize(10)
-    .fillColor(COLORS.textMuted)
-    .text("Scan2Plan", (PAGE.margin.left as number), coverFooterY, {
-      width: PAGE.contentWidth,
-      align: "center",
-    });
-
-  doc
-    .fillColor(COLORS.primary)
-    .text("www.scan2plan.com", (PAGE.margin.left as number), coverFooterY + 12, {
-      width: PAGE.contentWidth,
+    .text(acceptance, (PAGE.margin.left as number) + 40, y, {
+      width: PAGE.contentWidth - 80,
       align: "center",
     });
 

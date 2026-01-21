@@ -234,9 +234,29 @@ export function registerProposalRoutes(app: Express): void {
       servicesLine = parts.join(" + ");
     }
 
+    // Split address into street and city/state/zip
+    const fullAddress = proposalData.location || "";
+    const addressParts = fullAddress.split(",").map(p => p.trim()).filter(Boolean);
+    let streetAddress = addressParts[0] || proposalData.projectTitle || "Project";
+    const cityStateZip = addressParts.slice(1).join(", ") || "";
+
+    // Add scope note to street address if partial scope
+    const scopeNote = proposalData.scope?.scopeSummary?.toLowerCase();
+    const isPartial = scopeNote && (
+      scopeNote.includes("partial") ||
+      scopeNote.includes("interior") ||
+      scopeNote.includes("exterior")
+    );
+    if (isPartial && !streetAddress.toLowerCase().includes("partial")) {
+      const scopeLabel = scopeNote.includes("interior") ? "interior only" :
+                        scopeNote.includes("exterior") ? "exterior only" :
+                        "partial building";
+      streetAddress = `${streetAddress} (${scopeLabel})`;
+    }
+
     const coverData = {
-      projectTitle: proposalData.projectTitle || "Project",
-      projectAddress: proposalData.location || "",
+      projectTitle: streetAddress,
+      projectAddress: cityStateZip,
       servicesLine: servicesLine || "Laser Scanning & BIM Modeling",
       clientName: proposalData.clientName || "",
       date: dateFormatted,
@@ -307,13 +327,13 @@ export function registerProposalRoutes(app: Express): void {
       .select()
       .from(generatedProposals)
       .where(eq(generatedProposals.leadId, leadId))
-      .orderBy(desc(generatedProposals.createdAt))
-      .limit(1);
+      .orderBy(desc(generatedProposals.version));
 
+    const createNewVersion = req.body?.createNewVersion === true;
     let proposalId: number;
 
-    if (existingProposals.length > 0) {
-      // Update existing proposal
+    if (existingProposals.length > 0 && !createNewVersion) {
+      // Update existing proposal (most recent version)
       const existing = existingProposals[0];
       await db
         .update(generatedProposals)
@@ -332,13 +352,18 @@ export function registerProposalRoutes(app: Express): void {
       proposalId = existing.id;
       log(`INFO: Updated existing proposal ${proposalId} for lead ${leadId}`);
     } else {
-      // Create new proposal
+      // Create new proposal (new version)
+      const nextVersion = existingProposals.length > 0
+        ? Math.max(...existingProposals.map(p => p.version || 1)) + 1
+        : 1;
+
       const [newProposal] = await db
         .insert(generatedProposals)
         .values({
           leadId,
           quoteId: quote?.id || null,
           name: `Proposal - ${lead.projectName || lead.clientName}`,
+          version: nextVersion,
           status: "draft",
           sections: [],
           coverData,
@@ -353,7 +378,7 @@ export function registerProposalRoutes(app: Express): void {
         .returning();
 
       proposalId = newProposal.id;
-      log(`INFO: Created new proposal ${proposalId} for lead ${leadId}`);
+      log(`INFO: Created new proposal ${proposalId} (v${nextVersion}) for lead ${leadId}`);
     }
 
     // 6. Fetch and return the proposal
