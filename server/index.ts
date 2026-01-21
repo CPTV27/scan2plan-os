@@ -153,7 +153,9 @@ process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
 
   const port = parseInt(process.env.PORT || "5000", 10);
-  const host = process.env.HOST || "127.0.0.1";
+  // Use 0.0.0.0 in production to accept connections from outside the container (Railway, Docker, etc.)
+  // Use 127.0.0.1 in development for security (localhost only)
+  const host = process.env.HOST || (process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1");
   httpServer.listen(port, host, () => {
     log(`serving on http://${host}:${port}`);
   });
