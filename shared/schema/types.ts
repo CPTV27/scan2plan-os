@@ -78,3 +78,38 @@ export type MarketingPlatform = typeof MARKETING_PLATFORMS[number];
 export type PandaDocImportStatus = typeof PANDADOC_IMPORT_STATUSES[number];
 export type PandaDocBatchStatus = typeof PANDADOC_BATCH_STATUSES[number];
 export type QCValidationStatus = typeof QC_VALIDATION_STATUS[number];
+
+// === PROPOSAL LINE ITEMS ===
+export interface ProposalLineItem {
+  id: string;           // UUID for React keys
+  itemName: string;     // "Scan2Plan Commercial - LoD 300"
+  description: string;  // Full catalog description
+  qty: number;          // Square footage or quantity
+  rate: number;         // Per-unit rate
+  amount: number;       // Calculated: qty × rate
+}
+
+// === PROPOSAL COVER DATA ===
+export interface ProposalCoverData {
+  projectTitle: string;       // "30 Cooper Sq (1F, basement Sub-basement)"
+  projectAddress: string;     // "New York, NY 10003"
+  servicesLine: string;       // "LoD 350 + MEPF + Structure + Matterport + CAD"
+  clientName: string;         // "HENSON ARCHITECTURE"
+  date: string;               // "10/21/25"
+}
+
+// === PROPOSAL PROJECT DATA ===
+export interface ProposalProjectData {
+  overview: string;           // Service description line
+  scopeItems: string[];       // Bullet list of scope items
+  deliverables: string[];     // Bullet list of deliverables
+  timelineIntro: string;      // "Approximately 5 weeks..."
+  milestones: string[];       // Timeline bullet items
+}
+
+// === PROPOSAL PAYMENT DATA ===
+export interface ProposalPaymentData {
+  terms: string[];            // Bullet list of payment terms
+  paymentMethods: string[];   // Accepted payment methods
+  acknowledgementDate: string; // Date for acknowledgement section
+}

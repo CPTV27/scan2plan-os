@@ -107,6 +107,7 @@ export interface LeadDetailsTabProps {
   isPending: boolean;
   queryClient: QueryClient;
   updateMutation: UseMutationResult<any, Error, any, unknown>;
+  createMutation?: UseMutationResult<any, Error, any, unknown>;
   toast: any;
   documents?: LeadDocument[];
   uploadDocumentMutation: UseMutationResult<LeadDocument, Error, File, unknown>;

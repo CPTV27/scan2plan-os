@@ -9,7 +9,11 @@
       "Bash(npx cross-env:*)",
       "Bash(npx:*)",
       "Bash(curl:*)",
-      "Bash(npm run check:*)"
+      "Bash(npm run check:*)",
+      "Bash(npm run db:push:*)",
+      "Bash(taskkill:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)"
     ]
   }
 }

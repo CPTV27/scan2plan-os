@@ -64,10 +64,12 @@ export function LeadDetailsTab({
   isPending,
   queryClient,
   updateMutation,
+  createMutation,
   toast,
   documents,
   uploadDocumentMutation,
 }: LeadDetailsTabProps) {
+  const hasLeadId = Number.isFinite(leadId) && leadId > 0;
   const { data: personas = [] } = useQuery<BuyerPersona[]>({
     queryKey: ["/api/personas"],
   });
@@ -76,7 +78,9 @@ export function LeadDetailsTab({
     leadId,
     form,
     debounceMs: 1500,
-    enabled: !isNaN(leadId),
+    enabled: true, // allow autosave to create new leads automatically
+    updateMutation,
+    createMutation,
   });
 
   // Sync form paymentTerms when lead changes (e.g., from QuoteBuilder updates)
@@ -186,7 +190,17 @@ export function LeadDetailsTab({
                     <FormItem>
                       <FormLabel>Client / Company *</FormLabel>
                       <FormControl>
-                        <Input placeholder="Ashley McGraw Architects" {...field} data-testid="input-client-name" />
+                        <Input
+                          placeholder="Ashley McGraw Architects"
+                          {...field}
+                          onBlur={(e) => {
+                            field.onBlur();
+                            if (hasLeadId) {
+                              autosave.triggerSave();
+                            }
+                          }}
+                          data-testid="input-client-name"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -200,7 +214,18 @@ export function LeadDetailsTab({
                     <FormItem>
                       <FormLabel>Project Name <span className="text-destructive">*</span></FormLabel>
                       <FormControl>
-                        <Input placeholder="4900 Tank Trail, Roofs" {...field} value={field.value || ""} data-testid="input-project-name" />
+                        <Input
+                          placeholder="4900 Tank Trail, Roofs"
+                          {...field}
+                          value={field.value || ""}
+                          onBlur={(e) => {
+                            field.onBlur();
+                            if (hasLeadId) {
+                              autosave.triggerSave();
+                            }
+                          }}
+                          data-testid="input-project-name"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -227,6 +252,121 @@ export function LeadDetailsTab({
                   onAddressUpdate={(formattedAddress) => {
                     form.setValue("projectAddress", formattedAddress);
                   }}
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Building2 className="w-4 h-4" />
+                  Project Specifications
+                </CardTitle>
+                <CardDescription>BIM deliverables and building characteristics for proposals</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="bimDeliverable"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>BIM Deliverable</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-bim-deliverable">
+                              <SelectValue placeholder="Select deliverable format" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Revit">Revit</SelectItem>
+                            <SelectItem value="Archicad">Archicad</SelectItem>
+                            <SelectItem value="Sketchup">Sketchup</SelectItem>
+                            <SelectItem value="Rhino">Rhino</SelectItem>
+                            <SelectItem value="AutoCAD">AutoCAD</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="bimVersion"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>BIM Version</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., Revit 2024" {...field} value={field.value || ""} data-testid="input-bim-version" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <FormLabel>Building Features</FormLabel>
+                  <div className="flex gap-6">
+                    <FormField
+                      control={form.control}
+                      name="hasBasement"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center gap-2 space-y-0">
+                          <FormControl>
+                            <input
+                              type="checkbox"
+                              checked={field.value || false}
+                              onChange={field.onChange}
+                              className="h-4 w-4 rounded border-gray-300"
+                              data-testid="checkbox-has-basement"
+                            />
+                          </FormControl>
+                          <FormLabel className="font-normal cursor-pointer">Has Basement</FormLabel>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="hasAttic"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center gap-2 space-y-0">
+                          <FormControl>
+                            <input
+                              type="checkbox"
+                              checked={field.value || false}
+                              onChange={field.onChange}
+                              className="h-4 w-4 rounded border-gray-300"
+                              data-testid="checkbox-has-attic"
+                            />
+                          </FormControl>
+                          <FormLabel className="font-normal cursor-pointer">Has Attic</FormLabel>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="insuranceRequirements"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Insurance Requirements</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Document any special insurance requirements..."
+                          {...field}
+                          value={field.value || ""}
+                          rows={2}
+                          data-testid="textarea-insurance-requirements"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </CardContent>
             </Card>
@@ -758,7 +898,7 @@ export function LeadDetailsTab({
 
             <MarketingInfluenceWidget leadId={leadId} />
 
-            <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm py-4 border-t -mx-4 px-4 space-y-2">
+            <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm py-3 border-t -mx-4 px-4">
               <div className="flex items-center justify-between">
                 <AutosaveStatus
                   status={autosave.status}
@@ -767,18 +907,9 @@ export function LeadDetailsTab({
                 />
                 {autosave.lastSavedAt && (
                   <span className="text-xs text-muted-foreground">
-                    Last saved {autosave.lastSavedAt.toLocaleTimeString()}
+                    Saved {autosave.lastSavedAt.toLocaleTimeString()}
                   </span>
                 )}
-              </div>
-              <div className="space-y-1">
-                <Button type="submit" disabled={isPending} className="w-full" data-testid="button-submit-lead">
-                  <Save className="w-4 h-4 mr-2" />
-                  {isPending ? "Saving..." : "Force Sync"}
-                </Button>
-                <p className="text-xs text-muted-foreground text-center">
-                  Changes autosave. Use this for a full sync.
-                </p>
               </div>
             </div>
           </form>

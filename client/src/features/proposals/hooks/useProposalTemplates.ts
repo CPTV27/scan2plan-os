@@ -27,6 +27,15 @@ interface ExpandedTemplateGroup extends ProposalTemplateGroup {
 interface VariableContext {
     lead: Lead | null;
     quote: CpqQuote | null;
+    lineItems?: ProposalLineItem[] | null;
+}
+
+export interface ProposalLineItem {
+    item: string;
+    description: string;
+    qty: number | string;
+    rate: number;
+    amount: number;
 }
 
 // Format currency helper
@@ -40,6 +49,21 @@ function formatCurrency(value: number | string | null | undefined): string {
     }).format(num);
 }
 
+function formatCurrencyWithCents(value: number | string | null | undefined): string {
+    const num = Number(value) || 0;
+    return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(num);
+}
+
+function formatNumber(value: number | string | null | undefined): string {
+    const num = Number(value) || 0;
+    return num.toLocaleString("en-US");
+}
+
 // Format date helper
 function formatDate(date: Date): string {
     return date.toLocaleDateString("en-US", {
@@ -50,7 +74,26 @@ function formatDate(date: Date): string {
 }
 
 // Generate pricing table as markdown
-function generatePricingTable(quote: CpqQuote | null): string {
+function generatePricingTable(quote: CpqQuote | null, lineItems?: ProposalLineItem[] | null): string {
+    if (lineItems && lineItems.length > 0) {
+        const rows = [
+            ["Item", "Description", "Qty", "Rate", "Amount"],
+            ["---", "---", "---", "---", "---"],
+        ];
+
+        lineItems.forEach((item) => {
+            const qty = typeof item.qty === "number" ? formatNumber(item.qty) : String(item.qty || "");
+            const rate = formatCurrencyWithCents(item.rate);
+            const amount = formatCurrency(item.amount);
+            rows.push([item.item, item.description || "", qty, rate, amount]);
+        });
+
+        const total = lineItems.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+        rows.push(["**Total**", "", "", "", `**${formatCurrency(total)}**`]);
+
+        return rows.map(row => `| ${row.join(" | ")} |`).join("\n");
+    }
+
     if (!quote) return "*No pricing available*";
 
     const breakdown = (quote.pricingBreakdown as Record<string, number> | null) || {};
@@ -79,11 +122,16 @@ function generatePricingTable(quote: CpqQuote | null): string {
 
 // Substitute variables in template content
 export function substituteVariables(content: string, context: VariableContext): string {
-    const { lead, quote } = context;
+    const { lead, quote, lineItems } = context;
 
     const now = new Date();
     const validUntil = new Date(now);
     validUntil.setDate(validUntil.getDate() + 30);
+
+    const lineItemsTotal = lineItems?.reduce((sum, item) => sum + Number(item.amount || 0), 0) || 0;
+    const totalValue = lineItemsTotal || Number(quote?.totalPrice || 0);
+    const upfrontValue = totalValue * 0.5;
+    const finalValue = totalValue - upfrontValue;
 
     const variables: Record<string, string> = {
         // Lead data
@@ -96,9 +144,12 @@ export function substituteVariables(content: string, context: VariableContext): 
         contact_email: lead?.contactEmail || "[Contact Email]",
 
         // Quote data
-        total_price: formatCurrency(quote?.totalPrice),
+        total_price: formatCurrency(totalValue),
+        upfront_amount: formatCurrency(upfrontValue),
+        final_amount: formatCurrency(finalValue),
+        payment_terms: lead?.paymentTerms || quote?.paymentTerms || "Net 30",
         timeline: "2-4 weeks",
-        line_items_table: generatePricingTable(quote),
+        line_items_table: generatePricingTable(quote, lineItems),
 
         // Computed fields
         quote_date: formatDate(now),

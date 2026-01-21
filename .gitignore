@@ -4,6 +4,8 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+claude.exe
+resources/
 
 # Environment variables - NEVER commit secrets
 .env

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -164,6 +164,112 @@ function inferBuildingCategory(types: string[]): string | null {
     }
   }
   return null;
+}
+
+// Satellite Map with 45° tilt support
+function SatelliteMap({ lat, lng }: { lat: number; lng: number }) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Load Google Maps script if not already loaded
+    if (!window.google?.maps) {
+      const script = document.createElement("script");
+      script.src = `/api/maps/script?libraries=geometry&callback=initGoogleMaps`;
+      script.async = true;
+      script.defer = true;
+
+      (window as any).initGoogleMaps = () => {
+        setIsLoaded(true);
+      };
+
+      script.onerror = () => {
+        setError("Failed to load Google Maps");
+      };
+
+      document.head.appendChild(script);
+    } else {
+      setIsLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isLoaded || !mapRef.current || !window.google?.maps) return;
+
+    try {
+      const map = new google.maps.Map(mapRef.current, {
+        center: { lat, lng },
+        zoom: 19,
+        mapTypeId: google.maps.MapTypeId.SATELLITE,
+        tilt: 45,
+        heading: 0,
+        mapTypeControl: true,
+        mapTypeControlOptions: {
+          style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+          position: google.maps.ControlPosition.TOP_RIGHT,
+          mapTypeIds: [
+            google.maps.MapTypeId.SATELLITE,
+            google.maps.MapTypeId.HYBRID,
+          ],
+        },
+        rotateControl: true,
+        fullscreenControl: true,
+        streetViewControl: false,
+        zoomControl: true,
+      });
+
+      mapInstanceRef.current = map;
+
+      // Add a marker at the location
+      new google.maps.Marker({
+        position: { lat, lng },
+        map,
+        title: "Location",
+      });
+
+      // Try to enable 45° view if available
+      map.addListener("tilesloaded", () => {
+        // Tilt is automatically applied where available
+        map.setTilt(45);
+      });
+    } catch (err) {
+      setError("Failed to initialize map");
+    }
+  }, [isLoaded, lat, lng]);
+
+  // Update center when coordinates change
+  useEffect(() => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setCenter({ lat, lng });
+    }
+  }, [lat, lng]);
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-80 bg-muted/30 rounded-md">
+        <AlertCircle className="w-8 h-8 text-muted-foreground mb-2" />
+        <p className="text-sm text-muted-foreground">{error}</p>
+      </div>
+    );
+  }
+
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center h-80 bg-muted/30 rounded-md">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={mapRef}
+      className="w-full h-80 rounded-md"
+      style={{ minHeight: "320px" }}
+    />
+  );
 }
 
 export function LocationPreview({
@@ -585,7 +691,12 @@ export function LocationPreview({
           </TabsList>
 
           <TabsContent value="map" className="mt-2">
-            {locationData?.satelliteUrl && (
+            {locationData?.coordinates ? (
+              <SatelliteMap
+                lat={locationData.coordinates.lat}
+                lng={locationData.coordinates.lng}
+              />
+            ) : locationData?.satelliteUrl ? (
               <iframe
                 src={locationData.satelliteUrl}
                 width="100%"
@@ -597,7 +708,7 @@ export function LocationPreview({
                 title="Google Maps Location"
                 data-testid="iframe-map-embed"
               />
-            )}
+            ) : null}
           </TabsContent>
 
           <TabsContent value="streetview" className="mt-2">

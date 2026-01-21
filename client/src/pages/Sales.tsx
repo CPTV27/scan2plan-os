@@ -399,6 +399,17 @@ function DealCard({
               <Calculator className="w-4 h-4" />
             </Button>
             <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-destructive hover:text-destructive"
+              onClick={onDelete}
+              disabled={isDeleting}
+              data-testid={`button-delete-deal-${lead.id}`}
+              title="Delete deal"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+            <Button
               variant="outline"
               size="sm"
               className="h-7 text-xs px-3 flex-shrink-0"
@@ -1081,7 +1092,11 @@ export default function Sales() {
                       leads={getLeadsByStage(stage)}
                       onEdit={setSelectedLead}
                       onMove={handleMove}
-                      onDelete={(leadId) => deleteMutation.mutate(leadId)}
+                      onDelete={(leadId) => {
+                        if (confirm("Delete this deal? This cannot be undone.")) {
+                          deleteMutation.mutate(leadId);
+                        }
+                      }}
                       onOpenCPQ={handleOpenCPQ}
                       movingLeadId={movingLeadId}
                       deletingLeadId={deleteMutation.isPending ? (deleteMutation.variables as number) : null}

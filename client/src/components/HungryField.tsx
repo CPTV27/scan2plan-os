@@ -69,17 +69,6 @@ export function HungryField({
   return (
     <div className={cn("space-y-2", className)}>
       {children}
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={handleMarkUnknown}
-        className="text-xs text-muted-foreground hover:text-amber-600"
-        data-testid={`button-idk-${fieldKey}`}
-      >
-        <HelpCircle className="h-3 w-3 mr-1" />
-        I don't know - add to follow-up
-      </Button>
     </div>
   );
 }

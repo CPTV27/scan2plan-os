@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation, useRoute } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { useQuoteAutosave } from "@/hooks/use-quote-autosave";
+import { AutosaveStatus } from "@/components/AutosaveStatus";
 import type { Quote } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Plus, Save, Download, FileText, ExternalLink, Loader2 } from "lucide-react";
@@ -21,15 +23,12 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import ProjectDetailsForm from "@/cpq/components/ProjectDetailsForm";
 import AreaInput from "@/cpq/components/AreaInput";
 import DisciplineSelector from "@/cpq/components/DisciplineSelector";
 import RiskFactors from "@/cpq/components/RiskFactors";
 import TravelCalculator from "@/cpq/components/TravelCalculator";
 import AdditionalServices from "@/cpq/components/AdditionalServices";
 import PricingSummary from "@/cpq/components/PricingSummary";
-import QuoteFields from "@/cpq/components/QuoteFields";
-import ScopeFields from "@/cpq/components/ScopeFields";
 import CRMFields from "@/cpq/components/CRMFields";
 import VersionControl from "@/cpq/components/VersionControl";
 import { Separator } from "@/components/ui/separator";
@@ -2162,6 +2161,47 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
   const pricingData = calculatePricing();
   const pricingItems = pricingData.items;
 
+  // Autosave hook - getQuoteData callback to access current state
+  const getQuoteData = useCallback(() => {
+    const totalItem = pricingItems.find(item => item.isTotal);
+    const totalPrice = totalItem ? totalItem.value.toFixed(2) : "0.00";
+
+    return {
+      projectName: projectDetails.projectName,
+      clientName: projectDetails.clientName,
+      projectAddress: projectDetails.projectAddress,
+      specificBuilding: projectDetails.specificBuilding,
+      typeOfBuilding: projectDetails.typeOfBuilding,
+      hasBasement: projectDetails.hasBasement,
+      hasAttic: projectDetails.hasAttic,
+      notes: projectDetails.notes,
+      leadId: leadId || null,
+      scopingMode,
+      areas,
+      risks,
+      dispatchLocation: dispatch,
+      distance,
+      customTravelCost: customTravelCost?.toString() || null,
+      services,
+      scopingData: scopingMode ? scopingData : null,
+      totalPrice,
+      pricingBreakdown: {},
+    };
+  }, [projectDetails, leadId, scopingMode, areas, risks, dispatch, distance, customTravelCost, services, scopingData, pricingItems]);
+
+  const autosave = useQuoteAutosave({
+    quoteId,
+    leadId,
+    debounceMs: 2000,
+    enabled: isEmbedded && !isLoadingQuote && !isLoadingPricing,
+    getQuoteData,
+    onQuoteSaved: (savedQuoteId) => {
+      if (onQuoteSaved) {
+        onQuoteSaved(savedQuoteId);
+      }
+    },
+  });
+
   if (isLoadingQuote || isLoadingPricing) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -2172,12 +2212,30 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
 
   return (
     <div className={isEmbedded ? "" : "min-h-screen bg-background"}>
-      <div className={isEmbedded ? "" : "mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8"}>
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-3">{quoteId ? "Edit Quote" : "Create Quote"}</h1>
-          <p className="text-muted-foreground text-base">
-            Build a comprehensive pricing quote for your Scan-to-BIM project
-          </p>
+      <div className={isEmbedded ? "px-5 py-4" : "mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8"}>
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold mb-2">{quoteId || autosave.currentQuoteId ? "Edit Quote" : "Create Quote"}</h1>
+              <p className="text-muted-foreground text-sm">
+                Build a comprehensive pricing quote for your Scan-to-BIM project
+              </p>
+            </div>
+            {isEmbedded && (
+              <div className="flex items-center gap-3">
+                <AutosaveStatus
+                  status={autosave.status}
+                  error={autosave.error}
+                  onRetry={autosave.retry}
+                />
+                {autosave.lastSavedAt && (
+                  <span className="text-xs text-muted-foreground">
+                    Last saved {autosave.lastSavedAt.toLocaleTimeString()}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {quoteId && (
@@ -2249,111 +2307,16 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
               <Separator />
 
               <AdditionalServices services={services} onServiceChange={handleServiceChange} />
-
-              <Separator />
-
-              <QuoteFields data={scopingData} onChange={handleScopingDataChange} />
             </div>
 
-            {/* SCOPE SECTION */}
-            <div className="rounded-lg bg-green-50/30 dark:bg-green-950/10 p-5 space-y-5">
-              <h2 className="text-xl font-bold text-green-900 dark:text-green-100">Scope</h2>
-
-              <ProjectDetailsForm {...projectDetails} onFieldChange={handleProjectDetailChange} />
-
-              <Separator />
-
-              <ScopeFields data={scopingData} onChange={handleScopingDataChange} />
-            </div>
-
-            {/* CRM SECTION */}
+            {/* INTERNAL PRICING SECTION */}
             <div className="rounded-lg bg-amber-50/30 dark:bg-amber-950/10 p-5 space-y-5">
-              <h2 className="text-xl font-bold text-amber-900 dark:text-amber-100">CRM</h2>
+              <h2 className="text-xl font-bold text-amber-900 dark:text-amber-100">Internal Pricing</h2>
 
               <CRMFields data={scopingData} onChange={handleScopingDataChange} />
             </div>
 
-            <div className="flex flex-wrap gap-2.5 pt-6">
-              <Button
-                size="lg"
-                variant="outline"
-                data-testid="button-save-quote"
-                onClick={handleSaveQuote}
-                disabled={saveQuoteMutation.isPending}
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {saveQuoteMutation.isPending ? "Saving..." : "Save Quote"}
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={exportScope}
-                data-testid="button-export-scope-doc"
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Export Scope Doc
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={createPandaDoc}
-                disabled={isCreatingPandaDoc}
-                data-testid="button-create-pandadoc"
-              >
-                {isCreatingPandaDoc ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                )}
-                {isCreatingPandaDoc ? "Creating..." : "Create PandaDoc"}
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={exportQBOCSV}
-                data-testid="button-export-qbo-csv"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Export QBO CSV
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => window.open("https://qbo.intuit.com/app/dataimport/invoices", "_blank")}
-                data-testid="button-open-qbo-import"
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Open QuickBooks Import
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="lg" variant="outline" data-testid="button-export-menu">
-                    <Download className="h-4 w-4 mr-2" />
-                    More Export Options
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={exportQuoteClient} data-testid="button-export-quote-client">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Quote Only (Client)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={exportQuoteInternal} data-testid="button-export-quote-internal">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Quote Only (Internal)
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={exportCRMOnly} data-testid="button-export-crm-only">
-                    <FileText className="h-4 w-4 mr-2" />
-                    CRM Only
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={exportJSON} data-testid="button-export-json">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Export All (JSON)
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+            {/* Export buttons hidden - will be re-enabled later */}
           </div>
 
           <div className="lg:col-span-1">

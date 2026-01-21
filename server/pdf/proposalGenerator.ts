@@ -36,6 +36,9 @@ export interface LineItem {
 
 // Proposal data structure
 export interface ProposalData {
+  coverLine?: string;
+  addressLines?: string[];
+
   // Cover page
   projectTitle: string;
   clientName: string;
@@ -57,6 +60,10 @@ export interface ProposalData {
     disciplines: string;
     deliverables: string;
     lodLevels: string[];
+    disciplineList?: string[];
+    hasMatterport?: boolean;
+    lodLabel?: string;
+    servicesLine?: string;
   };
 
   // Timeline
@@ -136,12 +143,66 @@ export async function generateProposalPDF(
   return doc;
 }
 
+function getAddressLines(data: ProposalData): string[] {
+  if (data.addressLines && data.addressLines.length) return data.addressLines;
+
+  const address = data.overview?.address || data.location || "";
+  const parts = address.split(",").map((p) => p.trim()).filter(Boolean);
+
+  if (parts.length >= 2) {
+    const line1 = parts.shift() || "";
+    const line2 = parts.join(", ").replace(/\s+/g, " ").trim();
+    return [line1, line2].filter(Boolean);
+  }
+
+  if (address) return [address];
+
+  return data.projectTitle ? [data.projectTitle] : [];
+}
+
+function normalizeDisciplinesFromString(value: string): string[] {
+  return value
+    .split(/[,;+]/)
+    .map((item) => item.replace(/lod\s*\d+/gi, "").trim())
+    .filter(Boolean)
+    .map((item) => {
+      const lower = item.toLowerCase();
+      if (lower.includes("mep")) return "MEPF";
+      if (lower.includes("struct")) return "Structure";
+      if (lower.includes("landscape")) return "Landscape";
+      if (lower.includes("grade") || lower.includes("site") || lower.includes("civil")) return "Grade";
+      if (lower.includes("arch")) return "Architecture";
+      return item.charAt(0).toUpperCase() + item.slice(1);
+    });
+}
+
+function buildServicesLine(data: ProposalData): string {
+  if (data.coverLine) return data.coverLine;
+  if (data.scope.servicesLine) return data.scope.servicesLine;
+
+  const disciplines = data.scope.disciplineList?.length
+    ? data.scope.disciplineList
+    : data.scope.disciplines
+      ? normalizeDisciplinesFromString(data.scope.disciplines)
+      : [];
+
+  const lodLabel =
+    data.scope.lodLabel ||
+    (data.scope.lodLevels?.length ? `LoD ${data.scope.lodLevels[0]}` : "");
+
+  const parts: string[] = [];
+  if (lodLabel) parts.push(lodLabel);
+  if (disciplines.length) parts.push(disciplines.join(" + "));
+  if (data.scope.hasMatterport) parts.push("Matterport");
+  return parts.filter(Boolean).join(" + ");
+}
+
 /**
  * Page 1: Cover Page
  */
 function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalData): void {
   // Logo - centered at top
-  const logoY = 150;
+  const logoY = 90;
   try {
     // Logo image
     doc.image("client/public/logo-cover.png", (PAGE.width as number) / 2 - 160, logoY, { width: 320 });
@@ -157,66 +218,86 @@ function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalData): void {
       });
   }
 
-  // Title section - centered at bottom
-  const titleY = 500;
+  // Title section
+  let y = 360;
 
   doc
     .font("Helvetica-Bold")
-    .fontSize(36)
+    .fontSize(26)
     .fillColor(COLORS.text)
-    .text("Scan2Plan Proposal", (PAGE.margin.left as number), titleY, {
+    .text("- PROPOSAL -", (PAGE.margin.left as number), y, {
       width: PAGE.contentWidth,
       align: "center",
     });
+
+  y += 44;
 
   doc
     .font("Helvetica")
     .fontSize(20)
-    .fillColor(COLORS.textLight)
-    .text("Professional 3D Scanning & BIM Services", (PAGE.margin.left as number), titleY + 50, {
-      width: PAGE.contentWidth,
-      align: "center",
-    });
-
-  // Project info
-  const infoY = titleY + 120;
-
-  doc
-    .font("Helvetica-Bold")
-    .fontSize(14)
     .fillColor(COLORS.text)
-    .text(data.projectTitle, (PAGE.margin.left as number), infoY, {
+    .text("Laser Scanning & Building Documentation", (PAGE.margin.left as number), y, {
       width: PAGE.contentWidth,
       align: "center",
     });
 
-  doc
-    .font("Helvetica")
-    .fontSize(12)
-    .fillColor(COLORS.textMuted)
-    .text(data.clientName, (PAGE.margin.left as number), infoY + 25, {
-      width: PAGE.contentWidth,
-      align: "center",
+  y += 38;
+
+  const addressLines = getAddressLines(data);
+  if (addressLines.length) {
+    addressLines.forEach((line) => {
+      doc
+        .font("Helvetica")
+        .fontSize(16)
+        .fillColor(COLORS.text)
+        .text(line, (PAGE.margin.left as number), y, {
+          width: PAGE.contentWidth,
+          align: "center",
+        });
+      y += 26;
     });
+  } else {
+    y += 20;
+  }
 
-  doc.text(data.date, (PAGE.margin.left as number), infoY + 45, {
-    width: PAGE.contentWidth,
-    align: "center",
-  });
+  const servicesLine = buildServicesLine(data);
+  if (servicesLine) {
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(16)
+      .fillColor(COLORS.text)
+      .text(servicesLine, (PAGE.margin.left as number), y, {
+        width: PAGE.contentWidth,
+        align: "center",
+      });
+    y += 30;
+  }
 
-  // Footer
+  // Acceptance note
+  const acceptance = `Scan2Plan, Inc. hereby proposes the following engagement to ${data.clientName || "our client"}. Use of the services offered by Scan2Plan constitutes acceptance of this proposal dated ${data.date}.`;
   doc
     .font("Helvetica")
     .fontSize(10)
     .fillColor(COLORS.textMuted)
-    .text("Scan2Plan", (PAGE.margin.left as number), PAGE.height - 60, {
+    .text(acceptance, (PAGE.margin.left as number), y + 20, {
+      width: PAGE.contentWidth,
+      align: "center",
+    });
+
+  // Footer
+  const coverFooterY = PAGE.height - PAGE.margin.bottom - 24;
+  doc
+    .font("Helvetica")
+    .fontSize(10)
+    .fillColor(COLORS.textMuted)
+    .text("Scan2Plan", (PAGE.margin.left as number), coverFooterY, {
       width: PAGE.contentWidth,
       align: "center",
     });
 
   doc
     .fillColor(COLORS.primary)
-    .text("www.scan2plan.com", (PAGE.margin.left as number), PAGE.height - 45, {
+    .text("www.scan2plan.com", (PAGE.margin.left as number), coverFooterY + 12, {
       width: PAGE.contentWidth,
       align: "center",
     });
@@ -311,26 +392,52 @@ function renderProjectPage(doc: PDFKit.PDFDocument, data: ProposalData): void {
   // Scope of Work
   y = renderSectionHeading(doc, "Scope of Work", y, { fontSize: 14, marginBottom: 12 });
 
-  y = renderKeyValue(doc, "Scope:", data.scope.scopeSummary, y);
-  y = renderKeyValue(doc, "Disciplines:", data.scope.disciplines, y);
-  y = renderKeyValue(doc, "Deliverables:", data.scope.deliverables, y);
+  const scopeItems = [
+    "End-to-end project management and customer service",
+    "LiDAR Scan - A scanning technician will capture the building areas.",
+    "Registration - Point cloud data captured on-site will be registered, cleaned, and reviewed for quality assurance.",
+    "BIM Modeling - Revit model authored to the specified level of detail.",
+    "QA/QC - The entire project is redundantly reviewed and checked by our QC team and senior engineering staff.",
+  ];
 
-  if (data.scope.lodLevels.length > 0) {
-    y = renderKeyValue(doc, "LoD Levels:", data.scope.lodLevels.join(", "), y);
+  if (data.scope.hasMatterport) {
+    scopeItems.splice(
+      2,
+      0,
+      "Matterport Scan - A scanning technician will capture the interior of the residence."
+    );
   }
+
+  y = renderBulletList(doc, scopeItems, y, { fontSize: 10, lineGap: 4 });
 
   y += 15;
 
   // Deliverables section
   y = renderSectionHeading(doc, "Deliverables", y, { fontSize: 14, marginBottom: 12 });
 
+  const disciplineLine =
+    (data.scope.disciplineList && data.scope.disciplineList.length)
+      ? data.scope.disciplineList.join(" + ")
+      : data.scope.disciplines
+        ? normalizeDisciplinesFromString(data.scope.disciplines).join(" + ")
+        : "";
+  const lodLabel =
+    data.scope.lodLabel ||
+    (data.scope.lodLevels.length ? `LoD ${data.scope.lodLevels[0]}` : "LoD 300");
+  const modelLabel = data.scope.deliverables || "Revit";
+
   const deliverableItems = [
-    "3D point cloud data in industry-standard formats (E57, RCS, RCP)",
-    `BIM model(s) in ${data.scope.deliverables} format`,
-    "As-built drawings and floor plans",
-    "Project documentation and quality assurance reports",
-    "Ongoing technical support during model usage",
+    "Total Square Footage Audit",
+    `${modelLabel} Model - ${lodLabel}${disciplineLine ? ` + ${disciplineLine}` : ""}`,
   ];
+
+  if (data.scope.hasMatterport) {
+    deliverableItems.push("Matterport 3D Tour");
+  }
+
+  deliverableItems.push(
+    "Colorized Point Cloud including 360 images viewable in Autodesk Recap or Trimble ScanExplorer"
+  );
 
   y = renderBulletList(doc, deliverableItems, y);
 

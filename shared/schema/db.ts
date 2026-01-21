@@ -62,8 +62,12 @@ export const leads = pgTable("leads", {
   sqft: integer("sqft"),
   scope: text("scope"), // Interior Only, Exterior Only, Full Building, Roof/Facades
   disciplines: text("disciplines"), // Architecture LOD 300, MEPF LOD 300, etc.
-  bimDeliverable: text("bim_deliverable"), // Revit, AutoCAD, etc.
+  bimDeliverable: text("bim_deliverable"), // Revit, AutoCAD, etc. (comma-separated for multi-select)
   bimVersion: text("bim_version"), // Client template version
+  // Building Features
+  hasBasement: boolean("has_basement").default(false),
+  hasAttic: boolean("has_attic").default(false),
+  insuranceRequirements: text("insurance_requirements"), // Special insurance requirements
   // Contact Info (Project Contact)
   contactName: text("contact_name"),
   contactEmail: text("contact_email"),
@@ -1994,6 +1998,41 @@ export const generatedProposals = pgTable("generated_proposals", {
     sortOrder: number;
     included: boolean;
   }[]>().default([]),
+  // === WYSIWYG Proposal Data (editable structured content) ===
+  // Cover page data
+  coverData: jsonb("cover_data").$type<{
+    projectTitle: string;
+    projectAddress: string;
+    servicesLine: string;
+    clientName: string;
+    date: string;
+  }>(),
+  // Project page data
+  projectData: jsonb("project_data").$type<{
+    overview: string;
+    scopeItems: string[];
+    deliverables: string[];
+    timelineIntro: string;
+    milestones: string[];
+  }>(),
+  // Editable line items for estimate table
+  lineItems: jsonb("line_items").$type<{
+    id: string;
+    itemName: string;
+    description: string;
+    qty: number;
+    rate: number;
+    amount: number;
+  }[]>(),
+  // Payment terms data
+  paymentData: jsonb("payment_data").$type<{
+    terms: string[];
+    paymentMethods: string[];
+    acknowledgementDate: string;
+  }>(),
+  // Calculated totals
+  subtotal: decimal("subtotal", { precision: 12, scale: 2 }),
+  total: decimal("total", { precision: 12, scale: 2 }),
   // PDF generation
   pdfUrl: text("pdf_url"), // URL to generated PDF
   pdfGeneratedAt: timestamp("pdf_generated_at"),

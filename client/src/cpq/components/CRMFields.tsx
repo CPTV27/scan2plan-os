@@ -14,7 +14,6 @@ interface CRMFieldsProps {
     tierAScanningCostOther: string;
     tierAModelingCost: string;
     tierAMargin: string;
-    assist: string;
   };
   onChange: (field: string, value: any) => void;
 }
@@ -138,43 +137,6 @@ export default function CRMFields({ data, onChange }: CRMFieldsProps) {
         </div>
       </Card>
 
-      {/* Lead Tracking */}
-      <Card className="p-4">
-        <h3 className="text-lg font-semibold mb-4">Lead Tracking</h3>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="assist" className="text-sm font-medium">
-              Assist
-            </Label>
-            <Select value={data.assist} onValueChange={(val) => onChange('assist', val)}>
-              <SelectTrigger id="assist">
-                <SelectValue placeholder="Select assist" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ABM">ABM</SelectItem>
-                <SelectItem value="Cold outreach">Cold outreach</SelectItem>
-                <SelectItem value="Referral - Client">Referral - Client</SelectItem>
-                <SelectItem value="Referral - Partner">Referral - Partner</SelectItem>
-                <SelectItem value="Existing customer">Existing customer</SelectItem>
-                <SelectItem value="CEU">CEU</SelectItem>
-                <SelectItem value="Proof Vault">Proof Vault</SelectItem>
-                <SelectItem value="Spec/Standards">Spec/Standards</SelectItem>
-                <SelectItem value="Podcast">Podcast</SelectItem>
-                <SelectItem value="Site/SEO">Site/SEO</SelectItem>
-                <SelectItem value="Permit trigger">Permit trigger</SelectItem>
-                <SelectItem value="Compliance trigger">Compliance trigger</SelectItem>
-                <SelectItem value="Procurement trigger">Procurement trigger</SelectItem>
-                <SelectItem value="Event/Conference">Event/Conference</SelectItem>
-                <SelectItem value="Social">Social</SelectItem>
-                <SelectItem value="Vendor Onboarding">Vendor Onboarding</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
-                <SelectItem value="Unknown">Unknown</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-        </div>
-      </Card>
     </div>
   );
 }

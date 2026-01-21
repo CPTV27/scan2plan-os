@@ -57,6 +57,7 @@ import {
     substituteVariables,
     useTemplateGroups,
     CATEGORY_ORDER,
+    type ProposalLineItem,
 } from "../hooks/useProposalTemplates";
 
 interface ProposalLayoutEditorProps {
@@ -125,6 +126,13 @@ export function ProposalLayoutEditor({
         queryKey: ["/api/generated-proposals/lead", lead.id],
         enabled: !!lead.id,
     });
+
+    const { data: lineItemsData } = useQuery<{ lineItems: ProposalLineItem[]; subtotal: number; total: number }>({
+        queryKey: ["/api/proposals", lead.id, "line-items"],
+        enabled: !!lead.id,
+    });
+
+    const lineItems = lineItemsData?.lineItems || null;
 
     // Get the latest draft proposal if it exists
     const latestDraft = savedProposals.find(p => p.status === "draft") || savedProposals[0];
@@ -280,7 +288,7 @@ export function ProposalLayoutEditor({
 
         // Build from template group
         if (selectedGroup?.expandedSections && selectedGroup.expandedSections.length > 0) {
-            const context = { lead, quote };
+            const context = { lead, quote, lineItems };
             const newSections: ProposalSection[] = selectedGroup.expandedSections.map(
                 (section, idx) => ({
                     id: `section-${section.templateId}-${idx}`,
@@ -295,11 +303,11 @@ export function ProposalLayoutEditor({
             setSections(newSections);
             setLastLoadedGroupId(selectedGroupId);
         }
-    }, [hasInitialized, proposalsLoading, selectedGroup, selectedGroupId, lastLoadedGroupId, sections.length, lead, quote]);
+    }, [hasInitialized, proposalsLoading, selectedGroup, selectedGroupId, lastLoadedGroupId, sections.length, lead, quote, lineItems]);
 
     // Re-substitute variables when sections change template
     const handleSectionsChange = (newSections: ProposalSection[]) => {
-        const context = { lead, quote };
+        const context = { lead, quote, lineItems };
         const updated = newSections.map(s => {
             // Find the template to get fresh content
             const categoryTemplates = groupedTemplates[s.category] || [];
@@ -559,6 +567,8 @@ export function ProposalLayoutEditor({
                                 sections={sections}
                                 activeSectionId={activeSectionId}
                                 lead={lead}
+                                quote={quote}
+                                lineItems={lineItems}
                             />
                         </div>
                     </ResizablePanel>

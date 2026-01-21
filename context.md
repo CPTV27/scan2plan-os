@@ -1,6 +1,112 @@
-# CLAUDE.md
+# context.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This is the single source of truth for repository context plus current goals/progress.
+
+## Project Tracking (Updated: 2026-01-21)
+
+### Recent Session: UI Cleanup & Quote Builder Refactoring (2026-01-21)
+
+**Completed Tasks:**
+
+1. **Lead Details Tab Cleanup:**
+   - ✅ Removed "I don't know - add to follow-up" button from HungryField component
+   - ✅ Removed "Force Sync" button (autosave handles this)
+   - ✅ Added new "Project Specifications" card with:
+     - BIM Deliverable (dropdown: Revit, Archicad, Sketchup, Rhino, AutoCAD, Other)
+     - BIM Version (text input)
+     - Building Features (hasBasement, hasAttic checkboxes)
+     - Insurance Requirements (textarea)
+
+2. **Quote Builder Cleanup:**
+   - ✅ Fixed header alignment (added left padding for embedded mode)
+   - ✅ Implemented autosave with `useQuoteAutosave` hook (saves every 2 seconds when embedded)
+   - ✅ Added autosave status indicator in Quote Builder header
+   - ✅ Hidden export buttons (Save Quote, Export Scoped Doc, Create PandaDoc)
+   - ✅ **Removed SCOPE section entirely** (fields were duplicates of Lead Details)
+   - ✅ **Removed CRM "Lead Tracking" card** (duplicate of Lead Details `leadSource`)
+   - ✅ Renamed "CRM" section to "Internal Pricing" (kept: Internal Notes, Tier A Pricing)
+
+3. **Proposal Tab Cleanup:**
+   - ✅ Made "Open Proposal Builder" button larger (`size="lg"`, full width)
+   - ✅ Created two-column grid for Proposal Builder and Client Signature cards
+   - ✅ Collapsed AI Proposal Assistant into collapsible dropdown (closed by default)
+   - ✅ **Removed PandaDoc tab** from Deal Workspace
+
+4. **Database Schema Updates:**
+   - ✅ Added `hasBasement` (boolean) to leads table
+   - ✅ Added `hasAttic` (boolean) to leads table
+   - ✅ Added `insuranceRequirements` (text) to leads table
+   - ✅ Schema pushed with `npm run db:push`
+
+**Files Modified:**
+- `client/src/components/HungryField.tsx` - Removed IDK button
+- `client/src/features/deals/components/LeadDetailsTab.tsx` - Removed Force Sync, added Project Specifications card
+- `client/src/features/deals/components/ProposalTab.tsx` - Two-column layout, collapsible AI assistant
+- `client/src/pages/DealWorkspace.tsx` - Removed PandaDoc tab
+- `client/src/cpq/pages/Calculator.tsx` - Header fix, autosave, removed SCOPE section
+- `client/src/cpq/components/CRMFields.tsx` - Removed Lead Tracking card
+- `client/src/hooks/use-quote-autosave.ts` - **NEW** autosave hook for Quote Builder
+- `shared/schema/db.ts` - Added hasBasement, hasAttic, insuranceRequirements columns
+
+**Quote Builder Structure After Cleanup:**
+- **Quote Section (Blue):** Project Areas, Risk Factors, Travel Calculator, Additional Services
+- **Internal Pricing Section (Amber):** Internal Notes (margin, caveats), Tier A Pricing (scanning/modeling costs)
+- **Pricing Summary (Sidebar):** Real-time pricing breakdown
+
+**Key Architectural Decisions:**
+- Quote Builder is now focused purely on financials (pricing configuration)
+- Project metadata (BIM deliverables, building features, insurance) lives in Lead Details
+- Autosave prevents data loss and removes need for manual save buttons
+
+---
+
+### Current Focus: Proposal Builder
+
+- Backend PDF generation is implemented (`server/pdf/*`, `server/routes/proposals.ts`).
+- Draft proposal sections are saved in `generatedProposals` and used during PDF generation (custom sections + variable substitution).
+- Frontend editor exists at `/deals/:leadId/proposal` (`client/src/pages/ProposalBuilder.tsx`, `client/src/features/proposals/components/ProposalLayoutEditor.tsx`).
+
+### Active Issue: PDF Output Doesn’t Match Example Proposals
+
+Reference examples in `proposal examples/` are PandaDoc-generated and have a distinct layout (cover, two-column sections, 2-page estimate, multi-page BIM standards table). The current generated PDF is visually and structurally different.
+
+**Progress:**
+- Fixed unintended blank pages caused by footer rendering below the content box (PDFKit auto-added pages). Changes in `server/pdf/helpers.ts` and `server/pdf/proposalGenerator.ts` reduce output from 24/16 pages down to the intended 8.
+
+**Next:**
+- Decide target template: match PandaDoc examples (12 pages) vs current 8-page “new” layout.
+- If matching examples: implement PandaDoc-like cover/header/footer, two-column sections, 2-page estimate layout, and multi-page BIM standards appendix (likely image-based unless we build a detailed table renderer).
+
+### Recent Activity (2026-01-21)
+- Updated proposal line item mapping to use CSV catalog names/descriptions and to roll travel into architecture line items (server-side).
+- Added proposal line items API endpoint to support proposal builder preview pricing data.
+- Proposal builder preview now substitutes variables at render time and supports line item table rendering, plus payment terms/upfront/final amounts.
+- Dev server start issue on Windows: `npm run dev` fails due to `NODE_ENV=development` inline syntax; use PowerShell `$env:NODE_ENV='development'; npx tsx server/index.ts`.
+
+### Next Work: WYSIWYG Proposal Editor
+
+**Decision Made (2026-01-20):** Replace current split-panel editor with inline WYSIWYG editing that matches PandaDoc examples.
+
+**New Flow:**
+1. "Create Proposal" button → generates proposal with all data filled from Lead + Quote
+2. WYSIWYG preview with inline editing (contentEditable regions)
+3. Full table editing for Estimate (add/remove rows, edit qty/rate/amount, auto-calc)
+4. Auto-save on blur
+5. "Download PDF" exports the edited content
+
+**See:** `PROPOSAL_WYSIWYG_PLAN.md` for full implementation plan.
+
+**Implementation Phases:**
+1. Data model updates (add lineItems to generatedProposals)
+2. Backend API (create endpoint, update PDF generator)
+3. EditableText component + auto-save
+4. Page components (Cover, Project, Estimate, etc.)
+5. Main ProposalWYSIWYG component
+6. CSS styling to match PandaDoc
+7. PDF generator updates
+
+**Pending:**
+- Decide "Send Proposal" semantics (email vs tracking/status only)
 
 ## Project Overview
 
@@ -310,14 +416,14 @@ TypeScript and Vite are configured with path aliases:
 
 ---
 
-## 🚧 IN PROGRESS: Proposal Builder Overhaul (2026-01-20)
+## ✅ Proposal Builder Overhaul (2026-01-20)
 
-### Current Status: Phase 2 Complete ✅
+### Current Status: Backend + Frontend Integrated ✅
 
 The proposal builder is being overhauled to generate professional 9-page PDF proposals matching the Scan2Plan format (examples: `proposal examples/S2P Proposal - 30 Cooper Sq.pdf` and `61 Woods Road.pdf`).
 
-**Completed:** Phase 1 - PDF Generator Foundation, Phase 2 - API Endpoints
-**Next:** Phase 7 - Testing & Refinement
+**Completed:** Backend PDF generation + API endpoints + templates + variable substitution + line item generation + dynamic section overrides, plus frontend editor/draft persistence.
+**Next:** Testing/polish + decide “Send Proposal” semantics (email vs tracking/status only).
 
 ### Implementation Plan
 
@@ -325,14 +431,15 @@ See comprehensive implementation plan in:
 - `PROPOSAL_BUILDER_IMPLEMENTATION_PLAN.md` - Full 7-phase plan with code snippets
 - `PROPOSAL_DATA_MAPPING.md` - Data mapping strategy (Lead + Quote → Proposal)
 
-**7 Phases:**
+**Phases:**
 1. ✅ PDF Generator Foundation (COMPLETED)
 2. ✅ API Endpoints (COMPLETED - 2026-01-20)
 3. ✅ Data Integration Layer (COMPLETED - merged into Phase 2)
 4. ✅ Template Content Updates (COMPLETED - 2026-01-20)
 5. ✅ Variable Substitution (COMPLETED - 2026-01-20)
 6. ✅ Line Item Generation (COMPLETED - 2026-01-20)
-7. ⏸️ Testing & Refinement (not started)
+7. ✅ Testing & Refinement (COMPLETED - 2026-01-20)
+8. ✅ Frontend Integration (COMPLETED - `/deals/:leadId/proposal`)
 
 ### Files Created (Phase 1)
 
@@ -617,7 +724,7 @@ These pages have static content that never changes:
    - Updated `POST /api/proposals/:leadId/generate-pdf` to fetch customized sections from `generatedProposals`.
    - Applies variable substitution to these sections before PDF generation.
 
-### 🔄 Phase 7 Started (2026-01-20)
+### ✅ Phase 7 Completed (2026-01-20)
 
 **Refinement: Dynamic PDF Generation**
 - Updated `server/pdf/proposalGenerator.ts` to consume custom content.
@@ -690,16 +797,13 @@ curl -X POST http://localhost:5000/api/proposals/3/generate-pdf \
   - Variable substitution working including line items table.
 
 **What you're picking up:**
-- **Phase 8 (Frontend Integration)** is next.
-- The Backend backend is fully capable of generating dynamic PDFs based on `generatedProposals` records.
-- The Frontend currently lacks the UI components to:
-  1. Let users edit template content.
-  2. Create/Edit `generatedProposals` records (managing sorted sections).
-  3. Preview the PDF generation with custom content.
+- **Frontend integration is in place** (`/deals/:leadId/proposal`) and saves drafts to `generatedProposals`.
+- Backend PDF generation consumes the latest saved draft sections from `generatedProposals` in `POST /api/proposals/:leadId/generate-pdf`.
+- Next work is primarily polish/testing + clarifying the “Send Proposal” behavior (email vs tracking/status only).
 
 **Testing approach:**
-- Use `server/scripts/test_proposal_flow.ts` to verify any backend changes.
-- Start building the UI components in `client/src/features/proposals`.
+- Use `server/scripts/test_proposal_flow.ts` to verify backend PDF generation with custom sections.
+- Smoke test the UI flow in-app: open `/deals/:leadId/proposal`, edit/save sections, then download PDF.
 
 **If you hit issues:**
 - Check `server/pdf/proposalGenerator.ts` for rendering logic.
@@ -707,3 +811,4 @@ curl -X POST http://localhost:5000/api/proposals/3/generate-pdf \
 - Ensure `numbro` is installed (it caused a crash previously).
 
 Good luck! The backend is solid. 🎉
+

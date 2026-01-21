@@ -30,6 +30,7 @@ import signaturesRouter from "./routes/signatures";
 import publicSignatureRouter from "./routes/publicSignature";
 import cpqChatRouter from "./routes/cpq-chat";
 import { notificationsRouter } from "./routes/notifications";
+import { registerGoogleRoutes } from "./routes/google";
 
 
 export async function registerRoutes(
@@ -108,6 +109,7 @@ export async function registerRoutes(
   registerStorageRoutes(app);
   registerDeliveryRoutes(app);
   registerGHLRoutes(app);
+  await registerGoogleRoutes(app);
   app.use(customersRouter);
   app.use(productsRouter);
   app.use("/api/proposal-templates", proposalTemplatesRouter);

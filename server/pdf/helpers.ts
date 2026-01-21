@@ -129,13 +129,17 @@ export function renderSectionHeading(
     marginBottom?: number;
   }
 ): number {
+  const fontSize = options?.fontSize || 14;
+  const marginBottom = options?.marginBottom ?? 20;
+
   doc
     .font("Helvetica-Bold")
-    .fontSize(options?.fontSize || 14)
+    .fontSize(fontSize)
     .fillColor(options?.color || COLORS.text)
-    .text(text, PAGE.margin.left, y);
+    .text(text, PAGE.margin.left, y, { width: PAGE.contentWidth });
 
-  return y + (options?.marginBottom || 20);
+  const height = doc.heightOfString(text, { width: PAGE.contentWidth });
+  return y + height + marginBottom;
 }
 
 /**
@@ -167,10 +171,7 @@ export function renderParagraph(
       lineGap,
     });
 
-  // Calculate height of text block
-  const lines = Math.ceil(text.length / (width / (fontSize * 0.6)));
-  const height = lines * (fontSize + lineGap);
-
+  const height = doc.heightOfString(text, { width, lineGap });
   return y + height + 10;
 }
 
@@ -191,7 +192,9 @@ export function renderBulletList(
   const fontSize = options?.fontSize || 10;
   const bulletChar = options?.bulletChar || "•";
   const indent = options?.indent || 20;
-  const lineHeight = fontSize + 6;
+  const bulletX = PAGE.margin.left + indent;
+  const textX = bulletX + 15;
+  const textWidth = PAGE.contentWidth - indent - 15;
 
   doc
     .font("Helvetica")
@@ -199,15 +202,10 @@ export function renderBulletList(
     .fillColor(options?.color || COLORS.text);
 
   items.forEach((item) => {
-    // Bullet
-    doc.text(bulletChar, PAGE.margin.left + indent, y);
-
-    // Text
-    doc.text(item, PAGE.margin.left + indent + 15, y, {
-      width: PAGE.contentWidth - indent - 15,
-    });
-
-    y += lineHeight;
+    doc.text(bulletChar, bulletX, y);
+    doc.text(item, textX, y, { width: textWidth });
+    const itemHeight = doc.heightOfString(item, { width: textWidth });
+    y += itemHeight + 6;
   });
 
   return y + 10;
@@ -355,7 +353,9 @@ export function renderFooter(
   text: string,
   pageNumber?: number
 ): void {
-  const footerY = PAGE.height - 30;
+  // PDFKit's text layout will auto-add pages if y is below the content box
+  // (page height minus bottom margin). Keep footer within the content area.
+  const footerY = PAGE.height - PAGE.margin.bottom - 18;
 
   doc
     .font("Helvetica")
@@ -367,15 +367,14 @@ export function renderFooter(
     });
 
   if (pageNumber) {
-    doc.text(
-      `Page ${pageNumber}`,
-      PAGE.margin.left,
-      footerY + 10,
-      {
+    doc
+      .font("Helvetica")
+      .fontSize(8)
+      .fillColor(COLORS.textMuted)
+      .text(`Page ${pageNumber}`, PAGE.margin.left, footerY, {
         width: PAGE.contentWidth,
-        align: "center",
-      }
-    );
+        align: "right",
+      });
   }
 }
 
@@ -389,7 +388,7 @@ export function calculateTextHeight(
   lineGap: number = 4
 ): number {
   const charWidth = fontSize * 0.6; // Approximate
-  const charsPerLine = Math.floor(width / charWidth);
+  const charsPerLine = Math.max(1, Math.floor(width / charWidth));
   const lines = Math.ceil(text.length / charsPerLine);
   return lines * (fontSize + lineGap);
 }

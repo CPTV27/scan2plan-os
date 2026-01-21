@@ -12,14 +12,16 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ProposalSection } from "../hooks/useProposalTemplates";
-import type { Lead } from "@shared/schema";
+import { ProposalSection, substituteVariables, type ProposalLineItem } from "../hooks/useProposalTemplates";
+import type { Lead, CpqQuote } from "@shared/schema";
 
 interface ProposalPreviewProps {
     sections: ProposalSection[];
     activeSectionId?: string;
     onSectionVisible?: (sectionId: string) => void;
     lead?: Lead;
+    quote?: CpqQuote | null;
+    lineItems?: ProposalLineItem[] | null;
 }
 
 export function ProposalPreview({
@@ -27,6 +29,8 @@ export function ProposalPreview({
     activeSectionId,
     onSectionVisible,
     lead,
+    quote,
+    lineItems,
 }: ProposalPreviewProps) {
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -43,6 +47,7 @@ export function ProposalPreview({
 
     // Only show included sections
     const includedSections = sections.filter(s => s.included);
+    const contentSections = includedSections.filter((section) => section.name !== "Cover Page");
 
     if (includedSections.length === 0) {
         return (
@@ -95,9 +100,7 @@ export function ProposalPreview({
 
                         {/* Content Pages - Skip cover page section, render rest */}
                         <div className="py-8 px-12">
-                            {includedSections
-                                .filter((section) => section.name !== 'Cover Page')
-                                .map((section, index) => (
+                            {contentSections.map((section, index) => (
                                     <div
                                         key={section.id}
                                         ref={(el) => {
@@ -165,12 +168,16 @@ export function ProposalPreview({
                                                     ),
                                                 }}
                                             >
-                                                {section.content}
+                                                {substituteVariables(section.content, {
+                                                    lead: lead || null,
+                                                    quote: quote || null,
+                                                    lineItems: lineItems || null,
+                                                })}
                                             </ReactMarkdown>
                                         </div>
 
                                         {/* Section separator */}
-                                        {index < includedSections.filter(s => s.name !== 'Cover Page').length - 1 && (
+                                        {index < contentSections.length - 1 && (
                                             <Separator className="my-8" />
                                         )}
                                     </div>

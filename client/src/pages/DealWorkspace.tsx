@@ -94,7 +94,7 @@ import { Label } from "@/components/ui/label";
 import { useCreateLead, useUpdateLead } from "@/hooks/use-leads";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
-import { Brain, Paperclip, Download, Eye, Link2, Copy, CheckCircle2, FileSignature, ChevronRight, Activity } from "lucide-react";
+import { Brain, Paperclip, Download, Eye, Link2, Copy, CheckCircle2, ChevronRight, Activity } from "lucide-react";
 import type { LeadDocument } from "@shared/schema";
 import { SendProposalDialog } from "@/components/SendProposalDialog";
 import { Slider } from "@/components/ui/slider";
@@ -106,7 +106,7 @@ import {
 } from "@/features/cpq/pricing";
 import { FY26_GOALS } from "@shared/businessGoals";
 import { SITE_READINESS_QUESTIONS, type SiteReadinessQuestion } from "@shared/siteReadinessQuestions";
-import { QboEstimateBadge, TierAEstimatorCard, MarketingInfluenceWidget, DocumentsTab, ProposalTab, PandaDocTab, LeadDetailsTab, QuoteBuilderTab } from "@/features/deals/components";
+import { QboEstimateBadge, TierAEstimatorCard, MarketingInfluenceWidget, DocumentsTab, ProposalTab, LeadDetailsTab, QuoteBuilderTab } from "@/features/deals/components";
 import { EngagementTab } from "@/features/deals/components/EngagementTab";
 
 import { CpqImportModal } from "@/features/cpq/CpqImportModal";
@@ -171,7 +171,7 @@ export default function DealWorkspace() {
   const [activeTab, setActiveTab] = useState(() => {
     const validTabs = isNewLead
       ? ["lead"]
-      : ["lead", "quote", "ai", "documents", "proposal", "pandadoc"];
+      : ["lead", "quote", "ai", "documents", "proposal", "engagement"];
     const urlParams = new URLSearchParams(window.location.search);
     const tabFromUrl = urlParams.get("tab");
     if (tabFromUrl && validTabs.includes(tabFromUrl)) {
@@ -230,7 +230,7 @@ export default function DealWorkspace() {
   const handleTabChange = (value: string) => {
     const validTabs = isNewLead
       ? ["lead"]
-      : ["lead", "quote", "ai", "documents", "proposal", "pandadoc", "engagement"];
+      : ["lead", "quote", "ai", "documents", "proposal", "engagement"];
     setActiveTab(validTabs.includes(value) ? value : "lead");
   };
   const queryClient = useQueryClient();
@@ -1040,27 +1040,6 @@ export default function DealWorkspace() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div>
-                    <TabsTrigger value="pandadoc" className="gap-2" disabled>
-                      <FileSignature className="w-4 h-4" />
-                      PandaDoc
-                    </TabsTrigger>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Save the deal first to use PandaDoc</p>
-                </TooltipContent>
-              </Tooltip>
-            ) : (
-              <TabsTrigger value="pandadoc" className="gap-2" data-testid="tab-pandadoc">
-                <FileSignature className="w-4 h-4" />
-                PandaDoc
-              </TabsTrigger>
-            )}
-
-            {isNewLead ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div>
                     <TabsTrigger value="documents" className="gap-2" disabled>
                       <Paperclip className="w-4 h-4" />
                       Documents
@@ -1112,6 +1091,7 @@ export default function DealWorkspace() {
               isPending={isPending}
               queryClient={queryClient}
               updateMutation={updateMutation}
+              createMutation={createMutation}
               toast={toast}
               documents={documents}
               uploadDocumentMutation={uploadDocumentMutation}
@@ -1166,21 +1146,6 @@ export default function DealWorkspace() {
         <TabsContent value="engagement" className="flex-1 overflow-auto m-0">
           <ErrorBoundary fallbackTitle="Engagement Tab Error" fallbackMessage="Failed to load engagement tracking. Please try refreshing.">
             <EngagementTab leadId={leadId} />
-          </ErrorBoundary>
-        </TabsContent>
-
-        {/* PandaDoc Tab - Document editing and signature */}
-        <TabsContent value="pandadoc" className="flex-1 overflow-auto m-0">
-          <ErrorBoundary fallbackTitle="PandaDoc Tab Error" fallbackMessage="Failed to load PandaDoc integration. Please try refreshing.">
-            <PandaDocTab
-              pandaDocId={lead?.pandaDocId || null}
-              documentName={lead?.projectName ? `Proposal - ${lead.projectName}` : undefined}
-              leadId={leadId}
-              quoteId={latestQuote?.id}
-              queryClient={queryClient}
-              onOpenSendDialog={latestQuote ? () => setShowProposalDialog(true) : undefined}
-              proposalEmails={proposalEmails?.map(e => ({ openCount: e.openCount, sentAt: e.sentAt }))}
-            />
           </ErrorBoundary>
         </TabsContent>
 
