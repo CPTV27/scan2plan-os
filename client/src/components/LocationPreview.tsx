@@ -49,6 +49,8 @@ interface LocationPreviewProps {
   siteNotes?: string;
   boundary?: BoundaryCoordinate[];
   onBoundaryChange?: (boundary: BoundaryCoordinate[], areaAcres: number) => void;
+  /** Only fetch location data when address is confirmed from autocomplete dropdown */
+  addressConfirmed?: boolean;
 }
 
 interface LocationData {
@@ -281,7 +283,8 @@ export function LocationPreview({
   onAddressUpdate,
   siteNotes = "",
   boundary,
-  onBoundaryChange
+  onBoundaryChange,
+  addressConfirmed = false,
 }: LocationPreviewProps) {
   const [activeView, setActiveView] = useState<"map" | "streetview" | "photos">("map");
   const [debouncedAddress, setDebouncedAddress] = useState(address);
@@ -311,7 +314,7 @@ export function LocationPreview({
       const response = await fetch(`/api/location/preview?address=${encodeURIComponent(debouncedAddress)}`);
       return response.json();
     },
-    enabled: debouncedAddress.length >= 5,
+    enabled: debouncedAddress.length >= 5 && addressConfirmed,
     staleTime: 1000 * 60 * 5,
   });
 
@@ -321,7 +324,7 @@ export function LocationPreview({
       const response = await fetch(`/api/location/place-details?address=${encodeURIComponent(debouncedAddress)}`);
       return response.json();
     },
-    enabled: debouncedAddress.length >= 5,
+    enabled: debouncedAddress.length >= 5 && addressConfirmed,
     staleTime: 1000 * 60 * 10,
   });
 
@@ -367,7 +370,7 @@ export function LocationPreview({
       const response = await apiRequest("GET", `/api/location/aerial-view?address=${encodeURIComponent(debouncedAddress)}`);
       return response.json();
     },
-    enabled: debouncedAddress.length >= 5,
+    enabled: debouncedAddress.length >= 5 && addressConfirmed,
     staleTime: 1000 * 60 * 30,
   });
 
@@ -438,6 +441,19 @@ export function LocationPreview({
           <Map className="w-8 h-8 text-muted-foreground mb-2" />
           <p className="text-sm text-muted-foreground">
             Enter an address to see location preview
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!addressConfirmed) {
+    return (
+      <Card className="border-dashed">
+        <CardContent className="flex flex-col items-center justify-center py-8 text-center">
+          <Map className="w-8 h-8 text-muted-foreground mb-2" />
+          <p className="text-sm text-muted-foreground">
+            Select an address from the dropdown to see location preview
           </p>
         </CardContent>
       </Card>

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { Slider } from "@/components/ui/slider";
 import type { BuyerPersona } from "@shared/schema";
@@ -46,6 +47,7 @@ import {
 } from "lucide-react";
 import { PersonaSuggestion } from "@/components/PersonaSuggestion";
 import { LocationPreview } from "@/components/LocationPreview";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { HungryField, HUNGRY_FIELD_QUESTIONS } from "@/components/HungryField";
 import { DataCompleteness } from "@/components/DataCompleteness";
 import { FollowUpBuilder } from "@/components/FollowUpBuilder";
@@ -68,11 +70,43 @@ export function LeadDetailsTab({
   toast,
   documents,
   uploadDocumentMutation,
+  onLeadCreated,
 }: LeadDetailsTabProps) {
   const hasLeadId = Number.isFinite(leadId) && leadId > 0;
   const { data: personas = [] } = useQuery<BuyerPersona[]>({
     queryKey: ["/api/personas"],
   });
+
+  // State for billing contact sync (checked by default)
+  const [syncBillingContact, setSyncBillingContact] = useState(true);
+
+  // Track whether address was confirmed from autocomplete dropdown
+  const [addressConfirmed, setAddressConfirmed] = useState(!!lead?.projectAddress);
+
+  // Watch primary contact fields to sync with billing
+  const contactName = form.watch("contactName");
+  const contactEmail = form.watch("contactEmail");
+  const contactPhone = form.watch("contactPhone");
+
+  // Auto-fill billing contact when sync is enabled
+  useEffect(() => {
+    if (syncBillingContact) {
+      const currentBillingName = form.getValues("billingContactName");
+      const currentBillingEmail = form.getValues("billingContactEmail");
+      const currentBillingPhone = form.getValues("billingContactPhone");
+
+      // Only update if different to avoid infinite loops
+      if (contactName && currentBillingName !== contactName) {
+        form.setValue("billingContactName", contactName, { shouldDirty: true });
+      }
+      if (contactEmail && currentBillingEmail !== contactEmail) {
+        form.setValue("billingContactEmail", contactEmail, { shouldDirty: true });
+      }
+      if (contactPhone && currentBillingPhone !== contactPhone) {
+        form.setValue("billingContactPhone", contactPhone, { shouldDirty: true });
+      }
+    }
+  }, [syncBillingContact, contactName, contactEmail, contactPhone, form]);
 
   const autosave = useLeadAutosave({
     leadId,
@@ -81,6 +115,7 @@ export function LeadDetailsTab({
     enabled: true, // allow autosave to create new leads automatically
     updateMutation,
     createMutation,
+    onLeadCreated,
   });
 
   // Sync form paymentTerms when lead changes (e.g., from QuoteBuilder updates)
@@ -138,6 +173,7 @@ export function LeadDetailsTab({
   return (
     <ScrollArea className="h-full flex-1">
       <div className="p-4 pb-32 space-y-4">
+        {/* PersonaSuggestion hidden for now
         <PersonaSuggestion
           leadId={leadId}
           clientName={lead.clientName}
@@ -150,6 +186,7 @@ export function LeadDetailsTab({
             queryClient.invalidateQueries({ queryKey: ["/api/leads", leadId] });
           }}
         />
+        */}
 
         <DataCompleteness
           fields={[
@@ -239,7 +276,21 @@ export function LeadDetailsTab({
                     <FormItem>
                       <FormLabel>Project Address *</FormLabel>
                       <FormControl>
-                        <Input placeholder="123 Industrial Park Dr, City, ST 12345" {...field} value={field.value || ""} data-testid="input-project-address" />
+                        <AddressAutocomplete
+                          value={field.value || ""}
+                          onChange={(value) => {
+                            field.onChange(value);
+                            // Reset confirmation when user manually types
+                            setAddressConfirmed(false);
+                          }}
+                          onPlaceSelected={(formattedAddress) => {
+                            field.onChange(formattedAddress);
+                            // Confirm address when selected from dropdown
+                            setAddressConfirmed(true);
+                          }}
+                          placeholder="Start typing an address..."
+                          data-testid="input-project-address"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -249,6 +300,7 @@ export function LeadDetailsTab({
                 <LocationPreview
                   address={form.watch("projectAddress") || ""}
                   companyName={form.watch("clientName")}
+                  addressConfirmed={addressConfirmed}
                   onAddressUpdate={(formattedAddress) => {
                     form.setValue("projectAddress", formattedAddress);
                   }}
@@ -379,21 +431,7 @@ export function LeadDetailsTab({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="value"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Estimated Deal Value</FormLabel>
-                        <FormControl>
-                          <Input type="number" {...field} data-testid="input-value" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
+                <div className="grid grid-cols-1 gap-4">
                   <FormField
                     control={form.control}
                     name="probability"
@@ -612,10 +650,25 @@ export function LeadDetailsTab({
                 </div>
 
                 <div className="pt-4 border-t">
-                  <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-                    <DollarSign className="w-4 h-4" />
-                    Billing Contact <span className="text-destructive">*</span>
-                  </h4>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-medium flex items-center gap-2">
+                      <DollarSign className="w-4 h-4" />
+                      Billing Contact <span className="text-destructive">*</span>
+                    </h4>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="sync-billing"
+                        checked={syncBillingContact}
+                        onCheckedChange={(checked) => setSyncBillingContact(!!checked)}
+                      />
+                      <label
+                        htmlFor="sync-billing"
+                        className="text-sm text-muted-foreground cursor-pointer"
+                      >
+                        Same as primary contact
+                      </label>
+                    </div>
+                  </div>
                   <FormField
                     control={form.control}
                     name="billingContactName"
@@ -695,6 +748,7 @@ export function LeadDetailsTab({
               </CardContent>
             </Card>
 
+            {/* Buyer Persona card hidden for now
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -729,6 +783,7 @@ export function LeadDetailsTab({
                 />
               </CardContent>
             </Card>
+            */}
 
             <Card>
               <CardHeader className="pb-3">

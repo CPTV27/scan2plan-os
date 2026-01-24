@@ -187,6 +187,11 @@ export const leads = pgTable("leads", {
   signerName: text("signer_name"), // Full name of person who signed
   signerEmail: text("signer_email"), // Email of person who signed
   signedAt: timestamp("signed_at"), // When proposal was signed
+  signatureProposalId: integer("signature_proposal_id"), // Which proposal version to use for signature
+  // Signature Audit Trail (for ESIGN Act compliance)
+  signerIpAddress: text("signer_ip_address"),
+  signerUserAgent: text("signer_user_agent"),
+  documentHash: text("document_hash"),
   // Mautic Marketing Automation
   mauticContactId: text("mautic_contact_id"), // Mautic Contact ID for marketing sync
 

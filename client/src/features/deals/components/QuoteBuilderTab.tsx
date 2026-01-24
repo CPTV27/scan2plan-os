@@ -15,15 +15,17 @@ export default function QuoteBuilderTab({ lead, leadId, existingQuotes, sourceQu
     sourceQuote?.id ||
     existingQuotes?.find((quote) => quote.isLatest)?.id ||
     existingQuotes?.[0]?.id;
-  const [activeQuoteId, setActiveQuoteId] = useState<string | undefined>(latestQuoteId);
+  const [activeQuoteId, setActiveQuoteId] = useState<string | undefined>(
+    latestQuoteId !== undefined ? String(latestQuoteId) : undefined
+  );
 
   useEffect(() => {
     if (sourceQuote?.id) {
-      setActiveQuoteId(sourceQuote.id);
+      setActiveQuoteId(String(sourceQuote.id));
       return;
     }
-    if (!activeQuoteId && latestQuoteId) {
-      setActiveQuoteId(latestQuoteId);
+    if (!activeQuoteId && latestQuoteId !== undefined) {
+      setActiveQuoteId(String(latestQuoteId));
     }
   }, [sourceQuote?.id, activeQuoteId, latestQuoteId]);
 

@@ -1,52 +1,52 @@
 import type { Express } from "express";
-import { isAuthenticated } from "./replitAuth";
 
 // Register auth-specific routes
+// NOTE: The main auth routes (/api/auth/google, /api/auth/user, /api/logout)
+// are registered in setupAuth() in replitAuth.ts
 export function registerAuthRoutes(app: Express): void {
-  const mockUser = {
-    id: "local-user",
-    email: "local@scan2plan.io",
-    firstName: "Local",
-    lastName: "User",
-    profileImageUrl: null,
-    role: "ceo",
-    scantecHome: null,
-    passwordHash: null,
-    passwordSetAt: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  // Get current authenticated user
-  app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
-    res.json(mockUser);
-  });
-
   // Check session status - allows unauthenticated access to show login prompt
   app.get("/api/auth/session-status", async (req: any, res) => {
+    const user = req.user;
+    const isAuthenticated = !!user;
+
     res.json({
-      authenticated: true,
-      email: mockUser.email,
-      isEmailAllowed: true,
-      accessGranted: true,
+      authenticated: isAuthenticated,
+      email: user?.email || null,
+      isEmailAllowed: user?.email?.endsWith("@scan2plan.io") ?? false,
+      accessGranted: isAuthenticated,
     });
   });
 
   // Check if user has a password set
   app.get("/api/auth/password-status", async (req: any, res) => {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
     res.json({
-      hasPassword: true,
-      passwordVerified: true,
+      hasPassword: !!user.passwordHash,
+      passwordVerified: true, // For now, Google OAuth users are auto-verified
     });
   });
 
-  // Set a new password (for first-time setup)
+  // Set a new password (for first-time setup) - placeholder for future use
   app.post("/api/auth/set-password", async (req: any, res) => {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    // TODO: Implement password setting if needed for non-OAuth users
     res.json({ success: true });
   });
 
-  // Verify existing password
+  // Verify existing password - placeholder for future use
   app.post("/api/auth/verify-password", async (req: any, res) => {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    // TODO: Implement password verification if needed
     res.json({ success: true });
   });
 }

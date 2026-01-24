@@ -7,24 +7,14 @@ import { clsx } from "clsx";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import type { UserRole } from "@shared/models/auth";
 
-// Navigation items with role-based access - Sales & Production only
+// Navigation items with role-based access - Sales only for now
 const allNavigation = [
   { name: 'Sales', href: '/sales', icon: Users, roles: ['ceo', 'sales'] as UserRole[] },
-  { name: 'Production', href: '/production', icon: FolderKanban, roles: ['ceo', 'production'] as UserRole[] },
-  { name: 'Customers', href: '/customers', icon: Users, roles: ['ceo', 'sales'] as UserRole[] },
-  { name: 'Settings', href: '/settings', icon: Settings, roles: ['ceo', 'sales', 'production', 'accounting'] as UserRole[] },
+  // Hidden for now:
+  // { name: 'Production', href: '/production', icon: FolderKanban, roles: ['ceo', 'production'] as UserRole[] },
+  // { name: 'Customers', href: '/customers', icon: Users, roles: ['ceo', 'sales'] as UserRole[] },
+  // { name: 'Settings', href: '/settings', icon: Settings, roles: ['ceo', 'sales', 'production', 'accounting'] as UserRole[] },
 ];
-
-// Get role display label
-function getRoleLabel(role: UserRole | undefined): string {
-  switch (role) {
-    case 'ceo': return 'CEO Hub';
-    case 'sales': return 'Sales Rep';
-    case 'production': return 'Production';
-    case 'accounting': return 'Accounting';
-    default: return 'CEO Hub';
-  }
-}
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const [location] = useLocation();
@@ -43,8 +33,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <ScanLine className="h-6 w-6 text-primary" />
         </div>
         <div>
-          <h1 className="font-display font-bold text-lg leading-none">Scan2Plan-OS</h1>
-          <span className="text-xs text-muted-foreground font-medium">{getRoleLabel(userRole)}</span>
+          <h1 className="font-display font-bold text-lg leading-none">Scan2Plan</h1>
+          <span className="text-xs text-muted-foreground font-medium">Sales Pipeline</span>
         </div>
       </div>
 
@@ -124,7 +114,7 @@ export function MobileHeader() {
         <div className="bg-primary/10 p-1.5 rounded-lg border border-primary/20">
           <ScanLine className="h-5 w-5 text-primary" />
         </div>
-        <span className="font-display font-bold text-sm">{currentPage?.name || 'Scan2Plan-OS'}</span>
+        <span className="font-display font-bold text-sm">{currentPage?.name || 'Scan2Plan'}</span>
       </div>
 
       <Sheet open={open} onOpenChange={setOpen}>

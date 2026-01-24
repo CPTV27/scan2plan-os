@@ -189,6 +189,66 @@ function buildCoverLine(lodLabel: string | undefined, disciplines: string[], has
   return parts.join(" + ");
 }
 
+/**
+ * Build per-area scope lines for display
+ * Returns array of strings like "Area 1: LOD 300 + Architecture + MEPF"
+ */
+function buildAreaScopeLines(quote: CpqQuote | null): string[] {
+  if (!quote?.areas || !Array.isArray(quote.areas)) return [];
+
+  const areas = quote.areas as any[];
+  if (areas.length === 0) return [];
+
+  return areas.map((area, index) => {
+    const areaName = area.name || `Area ${index + 1}`;
+    const disciplines = Array.isArray(area.disciplines) ? area.disciplines : [];
+
+    // Get LOD - check disciplineLods for architecture, or use first discipline's LOD
+    let lod = "300";
+    if (area.disciplineLods) {
+      const archLod = area.disciplineLods.architecture?.toString();
+      if (archLod) {
+        lod = archLod;
+      } else {
+        // Get first discipline's LOD
+        const firstDiscipline = disciplines[0];
+        if (firstDiscipline && area.disciplineLods[firstDiscipline]) {
+          lod = area.disciplineLods[firstDiscipline].toString();
+        }
+      }
+    }
+
+    // Normalize discipline names
+    const normalizedDisciplines = disciplines
+      .filter((d: string) => d && d.toLowerCase() !== "matterport")
+      .map((d: string) => {
+        const lower = d.toLowerCase();
+        if (lower.includes("mep")) return "MEPF";
+        if (lower.includes("struct")) return "Structure";
+        if (lower.includes("landscape")) return "Landscape";
+        if (lower.includes("grade") || lower.includes("site")) return "Grade";
+        if (lower.includes("arch")) return "Architecture";
+        return d.charAt(0).toUpperCase() + d.slice(1);
+      });
+
+    // Check for Matterport
+    const hasMatterport = disciplines.some((d: string) =>
+      d.toLowerCase().includes("matterport")
+    );
+
+    // Build the scope string
+    const parts: string[] = [`LoD ${lod}`];
+    if (normalizedDisciplines.length > 0) {
+      parts.push(normalizedDisciplines.join(" + "));
+    }
+    if (hasMatterport) {
+      parts.push("Matterport");
+    }
+
+    return `${areaName}: ${parts.join(" + ")}`;
+  });
+}
+
 function splitAddressLines(address: string | null | undefined): string[] {
   const trimmed = String(address || "").trim();
   if (!trimmed) return [];
@@ -210,7 +270,32 @@ type ProductCatalogEntry = {
   category: string;
 };
 
+// Product catalog cache - reset to null to ensure fresh load on server restart
 let productCatalogCache: Map<string, ProductCatalogEntry> | null = null;
+
+// Log when module is loaded (helps debug cache issues)
+console.log("[proposalDataMapper] Module loaded - catalog cache will be populated on first use");
+
+// Clean up description while preserving line breaks for proper formatting
+// Defined before loadProductCatalog since it's used during CSV parsing
+function cleanDescription(value: string): string {
+  // First normalize Windows line endings (\r\n) and old Mac line endings (\r) to Unix (\n)
+  const normalized = value.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+
+  return normalized
+    .replace(/[_]+/g, " ")           // Replace underscores with spaces
+    .replace(/[ \t]+/g, " ")         // Collapse multiple spaces/tabs (but NOT newlines)
+    .replace(/\n{3,}/g, "\n\n")      // Collapse 3+ newlines to double newline
+    .split("\n")                     // Process each line
+    .map(line => line.trim())        // Trim each line
+    .join("\n")                      // Rejoin with newlines
+    .trim();
+}
+
+// Force reload of product catalog (useful for development)
+export function clearProductCatalogCache(): void {
+  productCatalogCache = null;
+}
 
 function loadProductCatalog(): Map<string, ProductCatalogEntry> {
   if (productCatalogCache) return productCatalogCache;
@@ -232,16 +317,34 @@ function loadProductCatalog(): Map<string, ProductCatalogEntry> {
     const records: Record<string, string>[] = parse(csvContent, {
       columns: true,
       skip_empty_lines: true,
-      trim: true,
+      trim: false,  // Don't trim - we need to preserve newlines in descriptions
+      relax_quotes: true,  // Handle quotes more flexibly
+      relax_column_count: true,  // Handle varying column counts
     });
+
+    console.log("[CSV LOAD] Loading product catalog from CSV...");
 
     records.forEach((record) => {
       const sku = String(record["SKU"] || "").trim();
       if (!sku) return;
 
       const name = String(record["Product/Service Name"] || "").trim();
-      const description = String(record["Sales Description"] || "").trim();
+      // Don't trim description - preserve newlines, just clean it up with our function
+      const rawDescription = String(record["Sales Description"] || "");
+      const description = cleanDescription(rawDescription);
       const category = String(record["Category"] || "").trim();
+
+      // Debug: log commercial SKUs to check newlines
+      if (sku === "S2P COM 300" || sku === "CAD STD PKG") {
+        console.log(`[CSV DEBUG] SKU: ${sku}`);
+        console.log(`[CSV DEBUG] Raw has \\r\\n: ${rawDescription.includes("\r\n")}`);
+        console.log(`[CSV DEBUG] Raw has \\n: ${rawDescription.includes("\n")}`);
+        console.log(`[CSV DEBUG] Raw has \\r: ${rawDescription.includes("\r")}`);
+        console.log(`[CSV DEBUG] Clean has \\n: ${description.includes("\n")}`);
+        console.log(`[CSV DEBUG] Raw length: ${rawDescription.length}, Clean length: ${description.length}`);
+        console.log(`[CSV DEBUG] Description sample:\n${description.substring(0, 300)}`);
+        console.log(`[CSV DEBUG] ---`);
+      }
 
       catalog.set(sku, {
         sku,
@@ -250,6 +353,8 @@ function loadProductCatalog(): Map<string, ProductCatalogEntry> {
         category,
       });
     });
+
+    console.log(`[CSV LOAD] Product catalog loaded with ${catalog.size} products`);
   } catch {
     return catalog;
   }
@@ -260,16 +365,6 @@ function loadProductCatalog(): Map<string, ProductCatalogEntry> {
 function getProductBySku(sku: string): ProductCatalogEntry | null {
   const catalog = loadProductCatalog();
   return catalog.get(sku) || null;
-}
-
-function cleanDescription(value: string, maxLength: number = 48): string {
-  const compact = value
-    .replace(/[_]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  if (compact.length <= maxLength) return compact;
-  return compact.slice(0, Math.max(0, maxLength - 3)).trimEnd() + "...";
 }
 
 function normalizeLod(lod: string): string {
@@ -477,7 +572,8 @@ function buildProductInfo(params: {
   if (sku) {
     const product = getProductBySku(sku);
     const name = product?.name || areaProductName || params.label;
-    const description = product?.description ? cleanDescription(product.description) : "";
+    // Description is already cleaned during CSV load, no need to clean again
+    const description = product?.description || "";
     return { name, description };
   }
 
@@ -552,9 +648,21 @@ export function generateLineItems(quote: CpqQuote | null, lead: Lead): LineItem[
       lead,
     });
 
-    const areaName = getAreaNameFromLabel(params.label);
-    const areaDescription = buildAreaDescription(areaName, params.qty, params.unit);
-    const description = areaDescription || productInfo.description || params.label;
+    // Use the full CSV description and substitute placeholders with actual values
+    let description = productInfo.description || params.label;
+
+    // Get address and sqft for placeholder substitution
+    const address = lead.projectAddress || params.area?.address || "";
+    const sqft = params.qty || params.area?.sqft || 0;
+    const sqftFormatted = sqft.toLocaleString("en-US");
+
+    // Substitute placeholders in description
+    // Replace sqft placeholder first (e.g., "_________ sqft" -> "3,000 sqft")
+    description = description.replace(/_{3,}\s*sqft/gi, `${sqftFormatted} sqft`);
+    // Replace address placeholder - handles multi-line underscores like "______\n_____"
+    description = description.replace(/_{3,}[\s\n]*_{3,}/g, address);
+    // Replace any remaining underscore placeholders
+    description = description.replace(/_{3,}/g, address);
 
     drafts.push({
       item: productInfo.name,
@@ -776,6 +884,9 @@ export function mapProposalData(lead: Lead, quote: CpqQuote | null): ProposalDat
   const lodLabel = buildLodLabel(lodLevels);
   const coverLine = buildCoverLine(lodLabel, disciplineList, hasMatterport) || scopeSummary;
 
+  // Build per-area scope lines
+  const areaScopeLines = buildAreaScopeLines(quote);
+
   const scope = {
     scopeSummary,
     disciplines,
@@ -785,6 +896,7 @@ export function mapProposalData(lead: Lead, quote: CpqQuote | null): ProposalDat
     hasMatterport,
     lodLabel,
     servicesLine: coverLine,
+    areaScopeLines,
   };
 
   // Timeline

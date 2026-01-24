@@ -86,6 +86,50 @@ googleMapsRouter.get(
     })
 );
 
+// GET /api/location/autocomplete - Google Places Autocomplete for address suggestions
+googleMapsRouter.get(
+    "/api/location/autocomplete",
+    asyncHandler(async (req, res) => {
+        try {
+            const input = req.query.input as string;
+            if (!input || input.trim().length < 3) {
+                return res.json({ predictions: [] });
+            }
+
+            const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+            if (!apiKey) {
+                return res.status(503).json({
+                    error: "Google Maps API key not configured",
+                    predictions: []
+                });
+            }
+
+            const encodedInput = encodeURIComponent(input);
+            // Use Places Autocomplete API with address type bias
+            const autocompleteUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodedInput}&types=address&key=${apiKey}`;
+
+            const response = await fetch(autocompleteUrl);
+            const data = await response.json() as any;
+
+            if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
+                log("WARN: Places Autocomplete error - " + data.status);
+                return res.json({ predictions: [] });
+            }
+
+            const predictions = (data.predictions || []).map((p: any) => ({
+                place_id: p.place_id,
+                description: p.description,
+                structured_formatting: p.structured_formatting
+            }));
+
+            res.json({ predictions });
+        } catch (error) {
+            log("ERROR: Autocomplete error - " + (error as any)?.message);
+            res.json({ predictions: [] });
+        }
+    })
+);
+
 // GET /api/location/preview
 googleMapsRouter.get(
     "/api/location/preview",
@@ -206,8 +250,10 @@ googleMapsRouter.get(
     asyncHandler(async (req, res) => {
         try {
             const address = req.query.address as string;
-            if (!address || address.trim().length < 5) {
-                return res.status(400).json({ error: "Address is required" });
+            const placeId = req.query.placeId as string;
+
+            if (!address && !placeId) {
+                return res.status(400).json({ error: "Address or placeId is required" });
             }
 
             const apiKey = process.env.GOOGLE_MAPS_API_KEY;
@@ -215,11 +261,20 @@ googleMapsRouter.get(
                 return res.status(503).json({ error: "Google Maps API key not configured" });
             }
 
-            const encodedAddress = encodeURIComponent(address);
-            const geocodeResponse = await fetch(
-                `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}`
-            );
-            const geocodeData = await geocodeResponse.json();
+            let geocodeData: any;
+
+            if (placeId) {
+                // Use Place Details API for more accurate results
+                const placeDetailsUrl = `https://maps.googleapis.com/maps/api/geocode/json?place_id=${encodeURIComponent(placeId)}&key=${apiKey}`;
+                const response = await fetch(placeDetailsUrl);
+                geocodeData = await response.json();
+            } else {
+                const encodedAddress = encodeURIComponent(address);
+                const response = await fetch(
+                    `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}`
+                );
+                geocodeData = await response.json();
+            }
 
             if (geocodeData.status !== "OK" || !geocodeData.results?.[0]) {
                 return res.status(404).json({ error: "Location not found" });

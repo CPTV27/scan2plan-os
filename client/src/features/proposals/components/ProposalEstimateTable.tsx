@@ -16,7 +16,7 @@ interface ProposalEstimateTableProps {
   onChange: (items: ProposalLineItem[]) => void;
   onBlur?: () => void;
   clientName?: string;
-  clientCompany?: string;
+  projectAddress?: string;
   estimateNumber?: string;
   estimateDate?: string;
   disabled?: boolean;
@@ -57,7 +57,7 @@ export function ProposalEstimateTable({
   onChange,
   onBlur,
   clientName = '',
-  clientCompany = '',
+  projectAddress = '',
   estimateNumber = '',
   estimateDate = '',
   disabled = false,
@@ -233,23 +233,22 @@ export function ProposalEstimateTable({
       </div>
 
       {/* Estimate title and metadata */}
-      <h2 className="text-2xl font-semibold text-[#4285f4] mb-4">Estimate</h2>
+      <h2 className="text-2xl font-semibold text-[#123da7] mb-4">Estimate</h2>
 
       <div className="flex justify-between mb-6">
         <div className="text-sm">
           <div className="text-gray-500 text-xs uppercase tracking-wide">ADDRESS</div>
-          <div className="font-medium">{clientName}</div>
-          <div>{clientCompany}</div>
+          <div className="font-medium text-gray-900">{projectAddress}</div>
         </div>
         <div className="text-sm text-right">
           <div className="flex gap-8">
             <div>
               <div className="text-gray-500 text-xs uppercase tracking-wide">ESTIMATE</div>
-              <div>{estimateNumber}</div>
+              <div className="text-gray-900">{estimateNumber}</div>
             </div>
             <div>
               <div className="text-gray-500 text-xs uppercase tracking-wide">DATE</div>
-              <div>{estimateDate}</div>
+              <div className="text-gray-900">{estimateDate}</div>
             </div>
           </div>
         </div>
@@ -258,21 +257,18 @@ export function ProposalEstimateTable({
       {/* Table */}
       <table className="w-full border-collapse">
         <thead>
-          <tr className="bg-[#e8f0fe]">
+          <tr className="bg-[#123da7]">
             {!disabled && <th className="w-8 p-3"></th>}
-            <th className="text-left p-3 text-[#4285f4] text-xs uppercase tracking-wide font-medium w-1/4">
-              Description
+            <th className="text-left p-3 text-white text-sm font-semibold tracking-wide" style={{ width: '55%' }}>
+              ITEM
             </th>
-            <th className="text-left p-3 text-[#4285f4] text-xs uppercase tracking-wide font-medium">
-              Details
-            </th>
-            <th className="text-right p-3 text-[#4285f4] text-xs uppercase tracking-wide font-medium w-20">
+            <th className="text-right p-3 text-white text-sm font-semibold tracking-wide w-16">
               QTY
             </th>
-            <th className="text-right p-3 text-[#4285f4] text-xs uppercase tracking-wide font-medium w-20">
+            <th className="text-right p-3 text-white text-sm font-semibold tracking-wide w-20">
               RATE
             </th>
-            <th className="text-right p-3 text-[#4285f4] text-xs uppercase tracking-wide font-medium w-24">
+            <th className="text-right p-3 text-white text-sm font-semibold tracking-wide w-24">
               AMOUNT
             </th>
             {!disabled && <th className="w-10 p-3"></th>}
@@ -282,57 +278,66 @@ export function ProposalEstimateTable({
           {lineItems.map((item, index) => (
             <tr
               key={item.id}
-              className="border-b border-gray-100 group hover:bg-gray-50/50"
+              className={cn(
+                "border-b border-gray-200 group",
+                index % 2 === 1 && "bg-gray-50/50"
+              )}
             >
               {!disabled && (
-                <td className="p-2 text-center">
-                  <GripVertical className="h-4 w-4 text-gray-300 cursor-grab opacity-0 group-hover:opacity-100" />
+                <td className="p-2 text-center align-top">
+                  <GripVertical className="h-4 w-4 text-gray-300 cursor-grab opacity-0 group-hover:opacity-100 mt-2" />
                 </td>
               )}
-              <td className="p-2 align-top">
+              <td className="p-3 align-top">
+                {/* Item Name as bold title */}
                 <EditableCell
                   value={item.itemName}
                   onChange={(v) => updateItem(item.id, 'itemName', v)}
                   cellId={`${item.id}-name`}
-                  className="font-medium"
+                  className="font-bold text-gray-900 text-sm"
                 />
+                {/* Description with proper formatting */}
+                {item.description && (
+                  <div className="mt-2 text-xs text-gray-600 leading-relaxed">
+                    <EditableCell
+                      value={item.description}
+                      onChange={(v) => updateItem(item.id, 'description', v)}
+                      type="textarea"
+                      cellId={`${item.id}-desc`}
+                      className="whitespace-pre-line"
+                    />
+                  </div>
+                )}
               </td>
-              <td className="p-2 align-top">
-                <EditableCell
-                  value={item.description}
-                  onChange={(v) => updateItem(item.id, 'description', v)}
-                  type="textarea"
-                  cellId={`${item.id}-desc`}
-                  className="text-sm text-gray-600 whitespace-pre-wrap"
-                />
-              </td>
-              <td className="p-2 align-top">
+              <td className="p-3 align-top">
                 <EditableCell
                   value={item.qty}
                   onChange={(v) => updateItem(item.id, 'qty', v)}
                   type="number"
                   align="right"
                   cellId={`${item.id}-qty`}
+                  className="text-gray-900 text-sm"
                 />
               </td>
-              <td className="p-2 align-top">
+              <td className="p-3 align-top">
                 <EditableCell
                   value={item.rate}
                   onChange={(v) => updateItem(item.id, 'rate', v)}
-                  type="number"
+                  type="currency"
                   align="right"
                   cellId={`${item.id}-rate`}
+                  className="text-gray-900 text-sm"
                 />
               </td>
-              <td className="p-2 align-top text-right font-medium">
+              <td className="p-3 align-top text-right font-semibold text-gray-900 text-sm">
                 {formatCurrency(item.amount)}
               </td>
               {!disabled && (
-                <td className="p-2 text-center">
+                <td className="p-2 text-center align-top">
                   {lineItems.length > 1 && (
                     <button
                       onClick={() => removeRow(item.id)}
-                      className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-opacity p-1"
+                      className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-opacity p-1 mt-2"
                       title="Remove row"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -347,12 +352,12 @@ export function ProposalEstimateTable({
           {/* Add row button */}
           {!disabled && (
             <tr>
-              <td colSpan={7} className="p-2">
+              <td colSpan={6} className="p-2">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={addRow}
-                  className="text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                 >
                   <Plus className="h-4 w-4 mr-1" />
                   Add Line Item
@@ -361,11 +366,11 @@ export function ProposalEstimateTable({
             </tr>
           )}
           {/* Total row */}
-          <tr className="border-t-2 border-dashed border-gray-200">
-            <td colSpan={disabled ? 4 : 5} className="p-3 text-right font-medium">
+          <tr className="bg-gray-100">
+            <td colSpan={disabled ? 3 : 4} className="p-3 text-right font-semibold text-gray-700">
               TOTAL
             </td>
-            <td className="p-3 text-right text-xl font-bold">
+            <td className="p-3 text-right text-xl font-bold text-[#123da7]">
               {formatCurrency(total)}
             </td>
             {!disabled && <td></td>}

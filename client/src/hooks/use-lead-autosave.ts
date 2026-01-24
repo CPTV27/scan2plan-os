@@ -14,6 +14,7 @@ interface UseLeadAutosaveOptions {
   enabled?: boolean;
   updateMutation?: UseMutationResult<any, Error, { id: number } & LeadFormData, unknown>;
   createMutation?: UseMutationResult<any, Error, LeadFormData, unknown>;
+  onLeadCreated?: (leadId: number) => void;
 }
 
 interface UseLeadAutosaveReturn {
@@ -49,6 +50,7 @@ export function useLeadAutosave({
   enabled = true,
   updateMutation,
   createMutation,
+  onLeadCreated,
 }: UseLeadAutosaveOptions): UseLeadAutosaveReturn {
   const [status, setStatus] = useState<AutosaveStatus>("idle");
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
@@ -62,6 +64,7 @@ export function useLeadAutosave({
   const inFlightRef = useRef(false);
   const isMountedRef = useRef(true);
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hasCreatedRef = useRef(false); // Prevent duplicate creates for new leads
   const isReady = enabled && Number.isFinite(leadId) && leadId > 0;
 
   const getCsrfToken = useCallback((): string | null => {
@@ -105,7 +108,11 @@ export function useLeadAutosave({
   useEffect(() => {
     isMountedRef.current = true;
     lastSavedValuesRef.current = form.getValues();
-    
+    // Reset create flag when leadId becomes valid (after navigation)
+    if (isReady) {
+      hasCreatedRef.current = false;
+    }
+
     return () => {
       isMountedRef.current = false;
       if (debounceTimerRef.current) {
@@ -115,7 +122,7 @@ export function useLeadAutosave({
         clearTimeout(idleTimerRef.current);
       }
     };
-  }, [form, leadId]);
+  }, [form, leadId, isReady]);
 
   const saveData = useCallback(async (data: LeadFormData) => {
     if (!isMountedRef.current || inFlightRef.current || !enabled) return;
@@ -134,7 +141,9 @@ export function useLeadAutosave({
         await updateMutation.mutateAsync(payload);
       } else if (isReady) {
         await putLead.mutateAsync(cleanData);
-      } else if (createMutation) {
+      } else if (createMutation && !hasCreatedRef.current) {
+        // Mark as creating to prevent duplicate creates
+        hasCreatedRef.current = true;
         const created = await createMutation.mutateAsync(cleanData);
         if (created?.id) {
           lastSavedValuesRef.current = cleanData;
@@ -143,8 +152,14 @@ export function useLeadAutosave({
           setLastSavedAt(new Date());
           queryClient.setQueryData(["/api/leads", created.id], created);
           queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+          // Notify parent that lead was created so it can navigate to the new URL
+          onLeadCreated?.(created.id);
           return;
         }
+      } else if (!isReady && hasCreatedRef.current) {
+        // Already created, waiting for navigation - skip this save
+        inFlightRef.current = false;
+        return;
       } else {
         await fallbackMutation.mutateAsync(payload);
       }
@@ -173,7 +188,7 @@ export function useLeadAutosave({
     } finally {
       inFlightRef.current = false;
     }
-  }, [leadId, putLead, updateMutation, createMutation, fallbackMutation, enabled, isReady, queryClient]);
+  }, [leadId, putLead, updateMutation, createMutation, fallbackMutation, enabled, isReady, queryClient, onLeadCreated]);
 
   const retry = useCallback(() => {
     if (pendingDataRef.current) {

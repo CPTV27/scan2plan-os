@@ -1,19 +1,16 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { DealAIAssistant } from "@/components/DealAIAssistant";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { FileEdit, Sparkles, PenTool, Check, Clock, Send, Copy, ChevronDown, Plus, Trash2, History, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FileEdit, PenTool, Check, Clock, Send, Copy, Plus, Trash2, History, Loader2, Download, FileCheck } from "lucide-react";
 import { useLocation } from "wouter";
 import { useState } from "react";
-import { SignatureCapture } from "@/components/SignatureCapture";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
-import type { Lead, GeneratedProposal } from "@shared/schema";
+import type { Lead, GeneratedProposal, CpqQuote } from "@shared/schema";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,9 +32,16 @@ export function ProposalTab({ lead }: ProposalTabProps) {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [showSignatureDialog, setShowSignatureDialog] = useState(false);
   const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
   const [sendingLink, setSendingLink] = useState(false);
+  const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
+
+  // Inline rename state
+  const [editingProposalId, setEditingProposalId] = useState<number | null>(null);
+  const [editingName, setEditingName] = useState("");
+
+  // Signature version selection
+  const [selectedSignatureProposalId, setSelectedSignatureProposalId] = useState<number | null>(null);
 
   // Fetch all proposals for this lead
   const { data: proposals, isLoading: proposalsLoading } = useQuery<GeneratedProposal[]>({
@@ -45,11 +49,18 @@ export function ProposalTab({ lead }: ProposalTabProps) {
     enabled: !!lead.id,
   });
 
+  // Fetch all quotes for this lead
+  const { data: quotes } = useQuery<CpqQuote[]>({
+    queryKey: [`/api/leads/${lead.id}/cpq-quotes`],
+    enabled: !!lead.id,
+  });
+
   // Create new version mutation
   const createVersionMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", `/api/leads/${lead.id}/proposal/generate`, {
+      const response = await apiRequest("POST", `/api/proposals/${lead.id}/create`, {
         createNewVersion: true,
+        quoteId: selectedQuoteId || undefined,
       });
       if (!response.ok) {
         const error = await response.json();
@@ -59,9 +70,11 @@ export function ProposalTab({ lead }: ProposalTabProps) {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/generated-proposals/lead", lead.id] });
+      const selectedQuote = quotes?.find(q => String(q.id) === selectedQuoteId);
+      const quoteLabel = selectedQuote?.quoteNumber ? ` (${selectedQuote.quoteNumber})` : "";
       toast({
         title: "New version created",
-        description: `Version ${data.proposal?.version || "new"} created successfully`,
+        description: `Version ${data.version || "new"}${quoteLabel} created successfully`,
       });
     },
     onError: (error: Error) => {
@@ -99,22 +112,73 @@ export function ProposalTab({ lead }: ProposalTabProps) {
     },
   });
 
+  // Rename proposal mutation
+  const renameProposalMutation = useMutation({
+    mutationFn: async ({ proposalId, name }: { proposalId: number; name: string }) => {
+      const response = await apiRequest("PATCH", `/api/generated-proposals/${proposalId}`, { name });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to rename proposal");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/generated-proposals/lead", lead.id] });
+      setEditingProposalId(null);
+      setEditingName("");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to rename",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Start inline editing
+  const handleStartEdit = (proposal: GeneratedProposal) => {
+    setEditingProposalId(proposal.id);
+    setEditingName(proposal.name || "");
+  };
+
+  // Save inline edit
+  const handleSaveEdit = () => {
+    if (editingProposalId && editingName.trim()) {
+      renameProposalMutation.mutate({ proposalId: editingProposalId, name: editingName.trim() });
+    } else {
+      setEditingProposalId(null);
+      setEditingName("");
+    }
+  };
+
+  // Cancel inline edit
+  const handleCancelEdit = () => {
+    setEditingProposalId(null);
+    setEditingName("");
+  };
+
   const sortedProposals = proposals?.slice().sort((a, b) => (b.version || 1) - (a.version || 1)) || [];
 
-  const handleSendSignatureLink = async () => {
+  const handleSendSignatureLink = async (proposalId: number) => {
     setSendingLink(true);
+    setSelectedSignatureProposalId(proposalId);
     try {
       const response = await apiRequest("POST", `/api/leads/${lead.id}/send-signature-link`, {
         recipientEmail: lead.contactEmail,
         recipientName: lead.clientName,
+        proposalId: proposalId,
       });
       const data = await response.json();
 
       setSignatureUrl(data.signatureUrl);
 
+      const selectedProposal = sortedProposals.find(p => p.id === proposalId);
       toast({
         title: "Signature link generated",
-        description: "Copy the link below to send to your client",
+        description: selectedProposal
+          ? `Using proposal v${selectedProposal.version || 1}. Copy the link below to send to your client.`
+          : "Copy the link below to send to your client",
       });
     } catch (error) {
       toast({
@@ -137,33 +201,6 @@ export function ProposalTab({ lead }: ProposalTabProps) {
     }
   };
 
-  const handleSignatureComplete = async (signatureData: {
-    signatureImage: string;
-    signerName: string;
-    signerEmail: string;
-    signedAt: Date;
-  }) => {
-    try {
-      await apiRequest("POST", `/api/leads/${lead.id}/signature`, signatureData);
-
-      // Refresh lead data
-      await queryClient.invalidateQueries({ queryKey: ["/api/leads", lead.id] });
-
-      setShowSignatureDialog(false);
-
-      toast({
-        title: "Proposal signed!",
-        description: `Signed by ${signatureData.signerName}`,
-      });
-    } catch (error) {
-      toast({
-        title: "Failed to save signature",
-        description: "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
-
   const isSigned = !!(lead as any).signedAt;
 
   return (
@@ -177,18 +214,44 @@ export function ProposalTab({ lead }: ProposalTabProps) {
                 <History className="w-5 h-5" />
                 Proposal Versions
               </CardTitle>
-              <Button
-                size="sm"
-                onClick={() => createVersionMutation.mutate()}
-                disabled={createVersionMutation.isPending}
-              >
-                {createVersionMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Plus className="w-4 h-4 mr-2" />
+              <div className="flex items-center gap-2">
+                {quotes && quotes.length > 0 && (
+                  <Select
+                    value={selectedQuoteId || "latest"}
+                    onValueChange={(v) => setSelectedQuoteId(v === "latest" ? null : v)}
+                  >
+                    <SelectTrigger className="w-[180px] h-9 text-sm">
+                      <SelectValue placeholder="Select Quote" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="latest">Latest Quote</SelectItem>
+                      {quotes.map((quote, index) => {
+                        // Use versionName (e.g., "Version 1") or fall back to version number
+                        const versionName = (quote as any).versionName;
+                        const versionNumber = (quote as any).versionNumber || index + 1;
+                        const displayName = versionName || `Version ${versionNumber}`;
+                        return (
+                          <SelectItem key={quote.id} value={String(quote.id)}>
+                            {displayName}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
                 )}
-                New Version
-              </Button>
+                <Button
+                  size="sm"
+                  onClick={() => createVersionMutation.mutate()}
+                  disabled={createVersionMutation.isPending}
+                >
+                  {createVersionMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4 mr-2" />
+                  )}
+                  New Version
+                </Button>
+              </div>
             </div>
             <CardDescription>
               {sortedProposals.length === 0
@@ -218,7 +281,30 @@ export function ProposalTab({ lead }: ProposalTabProps) {
                         v{proposal.version || 1}
                       </Badge>
                       <div>
-                        <p className="text-sm font-medium">{proposal.name}</p>
+                        {editingProposalId === proposal.id ? (
+                          <Input
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            onBlur={handleSaveEdit}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                handleSaveEdit();
+                              } else if (e.key === "Escape") {
+                                handleCancelEdit();
+                              }
+                            }}
+                            className="h-7 text-sm font-medium w-64"
+                            autoFocus
+                          />
+                        ) : (
+                          <p
+                            className="text-sm font-medium cursor-pointer hover:text-primary hover:underline"
+                            onClick={() => handleStartEdit(proposal)}
+                            title="Click to rename"
+                          >
+                            {proposal.name}
+                          </p>
+                        )}
                         <p className="text-xs text-muted-foreground">
                           {proposal.updatedAt
                             ? `Updated ${formatDistanceToNow(new Date(proposal.updatedAt), { addSuffix: true })}`
@@ -235,6 +321,12 @@ export function ProposalTab({ lead }: ProposalTabProps) {
                       >
                         {proposal.status || "draft"}
                       </Badge>
+                      {isSigned && (lead as any).signatureProposalId === proposal.id && (
+                        <Badge variant="default" className="text-xs bg-green-600 hover:bg-green-700">
+                          <Check className="w-3 h-3 mr-1" />
+                          Signed
+                        </Badge>
+                      )}
                       <Button
                         size="sm"
                         variant="outline"
@@ -243,6 +335,36 @@ export function ProposalTab({ lead }: ProposalTabProps) {
                         <FileEdit className="w-4 h-4 mr-1" />
                         Edit
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={() => handleSendSignatureLink(proposal.id)}
+                        disabled={sendingLink && selectedSignatureProposalId === proposal.id}
+                      >
+                        <Send className="w-4 h-4 mr-1" />
+                        {sendingLink && selectedSignatureProposalId === proposal.id ? "Sending..." : "Send for Signature"}
+                      </Button>
+                      {isSigned && (lead as any).signatureProposalId === proposal.id && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => {
+                            const clientToken = (lead as any).clientToken;
+                            if (clientToken) {
+                              window.open(`/api/public/proposals/${clientToken}/signed-pdf`, '_blank');
+                            } else {
+                              toast({
+                                title: "No signed PDF available",
+                                description: "The signature token is not available.",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        >
+                          <FileCheck className="w-4 h-4 mr-1" />
+                          Download Signed
+                        </Button>
+                      )}
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
@@ -280,36 +402,8 @@ export function ProposalTab({ lead }: ProposalTabProps) {
           </CardContent>
         </Card>
 
-        {/* Two-column grid for Quick Actions and Client Signature */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Proposal Builder Quick Access */}
-          <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <FileEdit className="w-5 h-5 text-primary" />
-                Quick Edit
-              </CardTitle>
-              <CardDescription>
-                {sortedProposals.length > 0
-                  ? `Open latest version (v${sortedProposals[0]?.version || 1})`
-                  : "Create and customize professional proposals"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={() => navigate(`/deals/${lead.id}/proposal`)}
-                className="gap-2 w-full"
-                size="lg"
-                data-testid="button-open-proposal-builder"
-              >
-                <Sparkles className="w-5 h-5" />
-                Open Proposal Builder
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Signature Section */}
-          <Card>
+        {/* Client Signature Section */}
+        <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div>
@@ -367,22 +461,9 @@ export function ProposalTab({ lead }: ProposalTabProps) {
                       <Clock className="w-3 h-3" />
                       Awaiting Signature
                     </Badge>
-                    <Button
-                      size="sm"
-                      onClick={handleSendSignatureLink}
-                      disabled={sendingLink}
-                    >
-                      <Send className="w-4 h-4 mr-2" />
-                      {sendingLink ? "Generating..." : "Send for Signature"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowSignatureDialog(true)}
-                    >
-                      <PenTool className="w-4 h-4 mr-2" />
-                      Sign In-Person
-                    </Button>
+                    <p className="text-sm text-muted-foreground">
+                      Use the "Send for Signature" button on each proposal version above
+                    </p>
                   </div>
 
                   {signatureUrl && (
@@ -408,42 +489,8 @@ export function ProposalTab({ lead }: ProposalTabProps) {
               )}
             </CardContent>
           </Card>
-        </div>
-
-        {/* AI Assistant - Collapsible */}
-        <Collapsible>
-          <Card>
-            <CollapsibleTrigger className="w-full">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Sparkles className="w-5 h-5" />
-                    AI Proposal Assistant
-                  </CardTitle>
-                  <ChevronDown className="w-5 h-5 text-muted-foreground transition-transform duration-200 [[data-state=open]_&]:rotate-180" />
-                </div>
-              </CardHeader>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent>
-                <DealAIAssistant lead={lead} />
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
       </div>
 
-      {/* Signature Dialog */}
-      <Dialog open={showSignatureDialog} onOpenChange={setShowSignatureDialog}>
-        <DialogContent className="max-w-3xl">
-          <SignatureCapture
-            onSignatureComplete={handleSignatureComplete}
-            onCancel={() => setShowSignatureDialog(false)}
-            proposalTitle={lead.projectName || undefined}
-            clientName={lead.clientName || undefined}
-          />
-        </DialogContent>
-      </Dialog>
     </ScrollArea>
   );
 }

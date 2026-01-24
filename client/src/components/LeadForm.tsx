@@ -69,6 +69,7 @@ export function LeadForm({ lead, onSuccess, onOpenCPQ, onOpenResearch, onOpenCom
   const createMutation = useCreateLead();
   const updateMutation = useUpdateLead();
   const [activeTab, setActiveTab] = useState("overview");
+  const [addressConfirmed, setAddressConfirmed] = useState(!!lead?.projectAddress);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -515,9 +516,13 @@ export function LeadForm({ lead, onSuccess, onOpenCPQ, onOpenResearch, onOpenCom
                     <FormControl>
                       <AddressAutocomplete
                         value={field.value || ""}
-                        onChange={field.onChange}
+                        onChange={(value) => {
+                          field.onChange(value);
+                          setAddressConfirmed(false);
+                        }}
                         onPlaceSelected={(formattedAddress) => {
                           form.setValue("projectAddress", formattedAddress, { shouldDirty: true });
+                          setAddressConfirmed(true);
                         }}
                         placeholder="Start typing address..."
                         data-testid="input-project-address"
@@ -528,10 +533,11 @@ export function LeadForm({ lead, onSuccess, onOpenCPQ, onOpenResearch, onOpenCom
                 )}
               />
 
-              <LocationPreview 
-                address={form.watch("projectAddress") || ""} 
+              <LocationPreview
+                address={form.watch("projectAddress") || ""}
                 companyName={form.watch("clientName")}
                 buildingType={form.watch("buildingType") || undefined}
+                addressConfirmed={addressConfirmed}
                 onAddressUpdate={(formattedAddress) => {
                   form.setValue("projectAddress", formattedAddress);
                 }}
@@ -623,7 +629,7 @@ export function LeadForm({ lead, onSuccess, onOpenCPQ, onOpenResearch, onOpenCom
                     <FormItem>
                       <FormLabel>Deal Value ($)</FormLabel>
                       <FormControl>
-                        <Input type="number" {...field} data-testid="input-value" />
+                        <Input type="number" {...field} value={field.value ?? ""} data-testid="input-value" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -637,7 +643,7 @@ export function LeadForm({ lead, onSuccess, onOpenCPQ, onOpenResearch, onOpenCom
                     <FormItem>
                       <FormLabel>Probability (%)</FormLabel>
                       <FormControl>
-                        <Input type="number" min="0" max="100" {...field} data-testid="input-probability" />
+                        <Input type="number" min="0" max="100" {...field} value={field.value ?? ""} data-testid="input-probability" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -16,7 +16,7 @@ import {
   ClipboardList, Pencil, Trash2
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import type { LeadSourcesConfig, StalenessConfig, BusinessDefaultsConfig, GcsStorageConfig } from "@shared/schema";
+import type { LeadSourcesConfig, StalenessConfig, GcsStorageConfig } from "@shared/schema";
 import { GCS_STORAGE_MODES } from "@shared/schema";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -249,12 +249,6 @@ export default function Settings() {
 
   const leadSources = (settings?.leadSources as LeadSourcesConfig) || { sources: [] };
   const staleness = (settings?.staleness as StalenessConfig) || { warningDays: 7, criticalDays: 14, penaltyPercent: 5 };
-  const businessDefaults = (settings?.businessDefaults as BusinessDefaultsConfig) || {
-    defaultTravelRate: 4,
-    dispatchLocations: [],
-    defaultBimDeliverable: "Revit",
-    defaultBimVersion: ""
-  };
 
   if (isLoading) {
     return (
@@ -514,8 +508,6 @@ export default function Settings() {
             {/* Cloud Storage Settings */}
             <CloudStorageEditor />
 
-            {/* Business Defaults */}
-            <BusinessDefaultsEditor config={businessDefaults} />
 
             {/* Technical Standards */}
             <StandardsEditor />
@@ -862,149 +854,6 @@ function StalenessEditor({ config }: { config: StalenessConfig }) {
   );
 }
 
-function BusinessDefaultsEditor({ config }: { config: BusinessDefaultsConfig }) {
-  const { toast } = useToast();
-  const [localConfig, setLocalConfig] = useState(config);
-  const [newLocation, setNewLocation] = useState("");
-
-  useEffect(() => {
-    setLocalConfig(config);
-  }, [config]);
-
-  const mutation = useMutation({
-    mutationFn: async (newConfig: BusinessDefaultsConfig) => {
-      return apiRequest("PUT", "/api/settings/businessDefaults", { value: newConfig });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
-      toast({ title: "Business defaults updated" });
-    },
-    onError: () => {
-      toast({ title: "Failed to update", variant: "destructive" });
-    }
-  });
-
-  const addLocation = () => {
-    if (newLocation.trim() && !localConfig.dispatchLocations.includes(newLocation.trim())) {
-      setLocalConfig({
-        ...localConfig,
-        dispatchLocations: [...localConfig.dispatchLocations, newLocation.trim()]
-      });
-      setNewLocation("");
-    }
-  };
-
-  const removeLocation = (location: string) => {
-    setLocalConfig({
-      ...localConfig,
-      dispatchLocations: localConfig.dispatchLocations.filter(l => l !== location)
-    });
-  };
-
-  const save = () => mutation.mutate(localConfig);
-
-  return (
-    <Card className="md:col-span-2">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MapPin className="h-5 w-5" />
-          Business Defaults
-        </CardTitle>
-        <CardDescription>Default values for new deals and quotes</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="travel-rate">Default Travel Rate ($/mile)</Label>
-              <Input
-                id="travel-rate"
-                type="number"
-                step="0.01"
-                value={localConfig.defaultTravelRate}
-                onChange={(e) => setLocalConfig({ ...localConfig, defaultTravelRate: parseFloat(e.target.value) || 0 })}
-                data-testid="input-travel-rate"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="bim-deliverable">Default BIM Deliverable</Label>
-              <Input
-                id="bim-deliverable"
-                value={localConfig.defaultBimDeliverable}
-                onChange={(e) => setLocalConfig({ ...localConfig, defaultBimDeliverable: e.target.value })}
-                placeholder="e.g., Revit"
-                data-testid="input-bim-deliverable"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="bim-version">Default BIM Version/Template</Label>
-              <Input
-                id="bim-version"
-                value={localConfig.defaultBimVersion}
-                onChange={(e) => setLocalConfig({ ...localConfig, defaultBimVersion: e.target.value })}
-                placeholder="e.g., 2024"
-                data-testid="input-bim-version"
-              />
-            </div>
-          </div>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Dispatch Locations</Label>
-              <div className="flex flex-wrap gap-2 min-h-[40px]">
-                {localConfig.dispatchLocations.map((location) => (
-                  <Badge
-                    key={location}
-                    variant="outline"
-                    className="flex items-center gap-1 pr-1"
-                    data-testid={`badge-location-${location.toLowerCase().replace(/[,\s]+/g, '-')}`}
-                  >
-                    {location}
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-4 w-4 p-0 no-default-hover-elevate"
-                      onClick={() => removeLocation(location)}
-                      data-testid={`button-remove-location-${location.toLowerCase().replace(/[,\s]+/g, '-')}`}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </Badge>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Add location (e.g., Brooklyn, NY)"
-                  value={newLocation}
-                  onChange={(e) => setNewLocation(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && addLocation()}
-                  data-testid="input-new-location"
-                />
-                <Button
-                  size="icon"
-                  onClick={addLocation}
-                  disabled={!newLocation.trim()}
-                  data-testid="button-add-location"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <Separator className="my-6" />
-        <Button
-          onClick={save}
-          disabled={mutation.isPending}
-          className="w-full"
-          data-testid="button-save-defaults"
-        >
-          {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-          Save Business Defaults
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
 
 // Cloud Storage (GCS) Configuration
 function CloudStorageEditor() {

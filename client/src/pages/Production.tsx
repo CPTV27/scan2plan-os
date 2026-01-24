@@ -698,10 +698,11 @@ function ProjectDialog({
             
             <TabsContent value="location" className="mt-4">
               <ScrollArea className="max-h-[60vh]">
-                <LocationPreview 
-                  address={projectAddress} 
+                <LocationPreview
+                  address={projectAddress}
                   companyName={linkedLead?.clientName}
                   buildingType={linkedLead?.buildingType || undefined}
+                  addressConfirmed={!!projectAddress}
                 />
               </ScrollArea>
             </TabsContent>

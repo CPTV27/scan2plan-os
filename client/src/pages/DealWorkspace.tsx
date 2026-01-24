@@ -68,7 +68,6 @@ import {
   Sparkles,
   Star,
   Trash2,
-  Upload,
   User,
   X,
 } from "lucide-react";
@@ -94,7 +93,7 @@ import { Label } from "@/components/ui/label";
 import { useCreateLead, useUpdateLead } from "@/hooks/use-leads";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
-import { Brain, Paperclip, Download, Eye, Link2, Copy, CheckCircle2, ChevronRight, Activity } from "lucide-react";
+import { Brain, Paperclip, Download, Eye, Link2, Copy, CheckCircle2, ChevronRight } from "lucide-react";
 import type { LeadDocument } from "@shared/schema";
 import { SendProposalDialog } from "@/components/SendProposalDialog";
 import { Slider } from "@/components/ui/slider";
@@ -107,10 +106,8 @@ import {
 import { FY26_GOALS } from "@shared/businessGoals";
 import { SITE_READINESS_QUESTIONS, type SiteReadinessQuestion } from "@shared/siteReadinessQuestions";
 import { QboEstimateBadge, TierAEstimatorCard, MarketingInfluenceWidget, DocumentsTab, ProposalTab, LeadDetailsTab, QuoteBuilderTab } from "@/features/deals/components";
-import { EngagementTab } from "@/features/deals/components/EngagementTab";
+// import { EngagementTab } from "@/features/deals/components/EngagementTab"; // Hidden for now
 
-import { CpqImportModal } from "@/features/cpq/CpqImportModal";
-import type { MappedConfiguratorData, CpqExportData } from "@/features/cpq/cpqImportUtils";
 import { EnrollSequenceDialog } from "@/features/sequences/components/EnrollSequenceDialog";
 
 import { leadFormSchema, type LeadFormData, BUYER_PERSONAS } from "@/features/deals/types";
@@ -171,7 +168,7 @@ export default function DealWorkspace() {
   const [activeTab, setActiveTab] = useState(() => {
     const validTabs = isNewLead
       ? ["lead"]
-      : ["lead", "quote", "ai", "documents", "proposal", "engagement"];
+      : ["lead", "quote", "ai", "documents", "proposal"];
     const urlParams = new URLSearchParams(window.location.search);
     const tabFromUrl = urlParams.get("tab");
     if (tabFromUrl && validTabs.includes(tabFromUrl)) {
@@ -181,8 +178,6 @@ export default function DealWorkspace() {
   });
   const { toast } = useToast();
   const [showProposalDialog, setShowProposalDialog] = useState(false);
-  const [showCpqImportModal, setShowCpqImportModal] = useState(false);
-  const [importedCpqData, setImportedCpqData] = useState<MappedConfiguratorData | null>(null);
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
 
   // Shared quote configuration state - synced between Simple and Advanced modes
@@ -230,7 +225,7 @@ export default function DealWorkspace() {
   const handleTabChange = (value: string) => {
     const validTabs = isNewLead
       ? ["lead"]
-      : ["lead", "quote", "ai", "documents", "proposal", "engagement"];
+      : ["lead", "quote", "ai", "documents", "proposal"];
     setActiveTab(validTabs.includes(value) ? value : "lead");
   };
   const queryClient = useQueryClient();
@@ -928,26 +923,7 @@ export default function DealWorkspace() {
               </TabsTrigger>
             )}
 
-            {isNewLead ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div>
-                    <TabsTrigger value="engagement" className="gap-2" disabled>
-                      <Activity className="w-4 h-4" />
-                      Engagement
-                    </TabsTrigger>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Save the deal first to track engagement</p>
-                </TooltipContent>
-              </Tooltip>
-            ) : (
-              <TabsTrigger value="engagement" className="gap-2" data-testid="tab-engagement">
-                <Activity className="w-4 h-4" />
-                Engagement
-              </TabsTrigger>
-            )}
+{/* Engagement tab hidden for now */}
           </TabsList>
         </div>
 
@@ -966,24 +942,16 @@ export default function DealWorkspace() {
               toast={toast}
               documents={documents}
               uploadDocumentMutation={uploadDocumentMutation}
+              onLeadCreated={(newLeadId) => {
+                // Navigate to the new lead's URL so tabs become enabled
+                setLocation(`/deals/${newLeadId}`);
+              }}
             />
           </ErrorBoundary>
         </TabsContent>
 
         {/* Quote Builder Tab */}
         <TabsContent value="quote" className="flex-1 overflow-auto m-0">
-          {/* Import CPQ Button */}
-          <div className="flex items-center justify-end p-3 border-b bg-muted/30">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowCpqImportModal(true)}
-            >
-              <Upload className="w-4 h-4 mr-2" />
-              Import from CPQ
-            </Button>
-          </div>
-
           {/* Conditional Content */}
           <ErrorBoundary fallbackTitle="Quote Builder Error" fallbackMessage="Failed to load quote builder. Please try refreshing.">
             <QuoteBuilderTab
@@ -1013,12 +981,7 @@ export default function DealWorkspace() {
           </ErrorBoundary>
         </TabsContent>
 
-        {/* Engagement Tab */}
-        <TabsContent value="engagement" className="flex-1 overflow-auto m-0">
-          <ErrorBoundary fallbackTitle="Engagement Tab Error" fallbackMessage="Failed to load engagement tracking. Please try refreshing.">
-            <EngagementTab leadId={leadId} />
-          </ErrorBoundary>
-        </TabsContent>
+{/* Engagement Tab hidden for now */}
 
       </Tabs>
 
@@ -1045,15 +1008,6 @@ export default function DealWorkspace() {
         onOpenChange={setShowEnrollDialog}
       />
 
-      {/* CPQ Import Modal */}
-      <CpqImportModal
-        open={showCpqImportModal}
-        onOpenChange={setShowCpqImportModal}
-        onImport={(data, rawData) => {
-          setImportedCpqData(data);
-          setShowCpqImportModal(false);
-        }}
-      />
-    </div>
+      </div>
   );
 }

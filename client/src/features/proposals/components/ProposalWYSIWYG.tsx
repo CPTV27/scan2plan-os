@@ -215,10 +215,10 @@ export function ProposalWYSIWYG({
             Save
           </Button>
           <Button
-            variant="default"
             size="sm"
             onClick={() => downloadMutation.mutate()}
             disabled={downloadMutation.isPending || disabled}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-md"
           >
             {downloadMutation.isPending ? (
               <Loader2 className="h-4 w-4 mr-1 animate-spin" />
@@ -258,22 +258,14 @@ export function ProposalWYSIWYG({
             />
           </div>
 
-          {/* Page 4: Spacer (optional, for print layout) */}
-          <div className="proposal-page min-h-[11in] p-16 bg-white shadow-lg flex items-center justify-center">
-            <div className="text-center text-gray-400">
-              <p className="text-lg">This page intentionally left blank</p>
-              <p className="text-sm">(Ensures estimate starts on odd page)</p>
-            </div>
-          </div>
-
-          {/* Pages 5-6: Estimate Table */}
+          {/* Pages 4-5: Estimate Table */}
           <div className="shadow-lg">
             <ProposalEstimateTable
               lineItems={proposal.lineItems}
               onChange={handleLineItemsChange}
               onBlur={handleBlur}
               clientName={proposal.coverData.clientName}
-              clientCompany=""
+              projectAddress={proposal.coverData.projectTitle}
               estimateNumber={`EST-${proposal.leadId}`}
               estimateDate={proposal.coverData.date}
               disabled={disabled}

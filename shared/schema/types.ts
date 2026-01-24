@@ -93,14 +93,18 @@ export interface ProposalLineItem {
 export interface ProposalCoverData {
   projectTitle: string;       // "30 Cooper Sq (1F, basement Sub-basement)"
   projectAddress: string;     // "New York, NY 10003"
-  servicesLine: string;       // "LoD 350 + MEPF + Structure + Matterport + CAD"
+  servicesLine: string;       // "LoD 350 + MEPF + Structure + Matterport + CAD" (single area fallback)
+  areaScopeLines?: string[];  // Per-area scope lines: ["Area 1: LoD 300 + Architecture", "Area 2: LoD 350 + MEPF"]
   clientName: string;         // "HENSON ARCHITECTURE"
   date: string;               // "10/21/25"
 }
 
 // === PROPOSAL PROJECT DATA ===
 export interface ProposalProjectData {
-  overview: string;           // Service description line
+  serviceType: "Commercial" | "Residential"; // Commercial Service or Residential Service
+  hasMatterport: boolean;     // Whether Matterport is included
+  overview: string;           // Legacy: address portion (for backwards compat)
+  overviewLine?: string;      // Full editable overview line (e.g., "Service for Project, Address")
   scopeItems: string[];       // Bullet list of scope items
   deliverables: string[];     // Bullet list of deliverables
   timelineIntro: string;      // "Approximately 5 weeks..."

@@ -42,6 +42,7 @@ interface UseQuoteAutosaveReturn {
   retry: () => void;
   triggerSave: () => void;
   currentQuoteId: string | undefined;
+  isHydrated: boolean;
 }
 
 function deepEqual(obj1: any, obj2: any): boolean {
@@ -74,12 +75,14 @@ export function useQuoteAutosave({
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [currentQuoteId, setCurrentQuoteId] = useState<string | undefined>(initialQuoteId);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   const lastSavedDataRef = useRef<QuoteData | null>(null);
   const pendingDataRef = useRef<QuoteData | null>(null);
   const isMountedRef = useRef(true);
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastDataHashRef = useRef<string>("");
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Update currentQuoteId when initialQuoteId changes
   useEffect(() => {
@@ -87,6 +90,19 @@ export function useQuoteAutosave({
       setCurrentQuoteId(initialQuoteId);
     }
   }, [initialQuoteId]);
+
+  // Initialize hash with current data on mount to prevent immediate save
+  useEffect(() => {
+    if (!isHydrated && enabled) {
+      // Small delay to ensure form data is populated
+      const timer = setTimeout(() => {
+        const data = getQuoteData();
+        lastDataHashRef.current = JSON.stringify(data);
+        setIsHydrated(true);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [enabled, getQuoteData, isHydrated]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -177,9 +193,9 @@ export function useQuoteAutosave({
     }
   }, [getQuoteData, saveData]);
 
-  // Debounced autosave effect
+  // Debounced autosave effect - only runs after hydration
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !isHydrated) return;
 
     const intervalId = setInterval(() => {
       const data = getQuoteData();
@@ -195,7 +211,7 @@ export function useQuoteAutosave({
     return () => {
       clearInterval(intervalId);
     };
-  }, [enabled, debounceMs, getQuoteData, saveData]);
+  }, [enabled, isHydrated, debounceMs, getQuoteData, saveData]);
 
   return {
     status,
@@ -204,5 +220,6 @@ export function useQuoteAutosave({
     retry,
     triggerSave,
     currentQuoteId,
+    isHydrated,
   };
 }

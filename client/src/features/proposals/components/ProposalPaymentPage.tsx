@@ -24,11 +24,11 @@ export function ProposalPaymentPage({
   return (
     <div className="proposal-page min-h-[11in] p-16 bg-white relative">
       {/* Section Title */}
-      <h1 className="text-3xl font-bold text-[#4285f4] mb-8">Payment</h1>
+      <h1 className="text-3xl font-bold text-[#123da7] mb-8">Payment</h1>
 
       {/* Payment Terms */}
       <div className="mb-8">
-        <h2 className="text-xl font-semibold text-[#4285f4] mb-4">
+        <h2 className="text-xl font-semibold text-[#123da7] mb-4">
           Payment Terms
         </h2>
         <EditableList
@@ -43,7 +43,7 @@ export function ProposalPaymentPage({
 
       {/* Payment Methods */}
       <div className="mb-8">
-        <h2 className="text-xl font-semibold text-[#4285f4] mb-4">
+        <h2 className="text-xl font-semibold text-[#123da7] mb-4">
           Accepted Payment Methods
         </h2>
         <EditableList
@@ -58,7 +58,7 @@ export function ProposalPaymentPage({
 
       {/* Acknowledgement Section */}
       <div className="mt-12 border-t border-gray-200 pt-8">
-        <h2 className="text-xl font-semibold text-[#4285f4] mb-4">
+        <h2 className="text-xl font-semibold text-[#123da7] mb-4">
           Acknowledgement
         </h2>
         <p className="text-gray-700 mb-6 leading-relaxed">

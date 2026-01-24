@@ -64,6 +64,9 @@ export interface ProposalData {
     hasMatterport?: boolean;
     lodLabel?: string;
     servicesLine?: string;
+    scopeItems?: string[];       // Custom scope items from WYSIWYG
+    deliverableItems?: string[]; // Custom deliverables from WYSIWYG
+    areaScopeLines?: string[];   // Per-area scope lines (e.g., "Area 1: LOD 300 + Architecture")
   };
 
   // Timeline
@@ -313,18 +316,35 @@ function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalData): void {
     }
   }
 
-  // LoD + disciplines line
-  const servicesLine = buildServicesLine(data);
-  if (servicesLine) {
-    doc
-      .font("Helvetica-Bold")
-      .fontSize(16)
-      .fillColor(COLORS.text)
-      .text(servicesLine, (PAGE.margin.left as number), y, {
-        width: PAGE.contentWidth,
-        align: "center",
-      });
-    y += 40;
+  // LoD + disciplines line(s)
+  // If we have multiple areas, show each area's scope
+  if (data.scope.areaScopeLines && data.scope.areaScopeLines.length > 1) {
+    data.scope.areaScopeLines.forEach((line: string) => {
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(14)
+        .fillColor(COLORS.text)
+        .text(line, (PAGE.margin.left as number), y, {
+          width: PAGE.contentWidth,
+          align: "center",
+        });
+      y += 22;
+    });
+    y += 10;
+  } else {
+    // Single area or fallback to services line
+    const servicesLine = buildServicesLine(data);
+    if (servicesLine) {
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(16)
+        .fillColor(COLORS.text)
+        .text(servicesLine, (PAGE.margin.left as number), y, {
+          width: PAGE.contentWidth,
+          align: "center",
+        });
+      y += 40;
+    }
   }
 
   // Acceptance note - smaller and lower
@@ -345,6 +365,7 @@ function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalData): void {
 
 /**
  * Page 2: About Scan2Plan + Why Scan2Plan
+ * Matches ProposalAboutPage.tsx exactly
  */
 function renderAboutPage(
   doc: PDFKit.PDFDocument,
@@ -357,46 +378,101 @@ function renderAboutPage(
   // Helper to strip markdown headers (e.g. ## Title)
   const cleanText = (text: string) => text.replace(/^#+\s+.*$/gm, "").trim();
 
-  // About Scan2Plan
-  y = renderSectionHeading(doc, "About Scan2Plan", y, { fontSize: 16, marginBottom: 15 });
+  // About Scan2Plan - larger heading to match WYSIWYG
+  y = renderSectionHeading(doc, "About Scan2Plan®", y, { fontSize: 20, marginBottom: 15, color: COLORS.primary });
 
-  const aboutText = customAbout
-    ? cleanText(customAbout)
-    : "Scan2Plan is a leading provider of professional 3D laser scanning and BIM documentation services. " +
-    "We specialize in capturing existing conditions with millimeter accuracy and delivering high-quality " +
-    "Building Information Models that architects, engineers, and construction professionals rely on for " +
-    "design, renovation, and facility management projects.\n\n" +
-    "Our focus is on design. We understand that your BIM model is the foundation for critical design decisions, " +
-    "coordination workflows, and construction documentation. That's why we deliver models that are not just accurate, " +
-    "but also intelligently structured, properly detailed, and ready to integrate seamlessly into your project workflow.";
+  if (customAbout) {
+    y = renderParagraph(doc, cleanText(customAbout), y, { lineGap: 6 });
+  } else {
+    // Paragraph 1
+    y = renderParagraph(
+      doc,
+      "We began in 2018 with a simple goal of helping firms focus on design.",
+      y,
+      { fontSize: 11, lineGap: 6 }
+    );
 
-  y = renderParagraph(doc, aboutText, y, { lineGap: 6 });
-  y += 20;
+    // Paragraph 2
+    y = renderParagraph(
+      doc,
+      "We're an on-demand LiDAR to BIM/CAD team that can model any building in weeks. This can be done within any scope, budget or schedule. We've scanned over 1,000 buildings (~10M sqft).",
+      y,
+      { fontSize: 11, lineGap: 6 }
+    );
 
-  // Why Scan2Plan?
-  y = renderSectionHeading(doc, "Why Scan2Plan?", y, { fontSize: 16, marginBottom: 15 });
+    // Paragraph 3
+    y = renderParagraph(
+      doc,
+      "We use LiDAR scanners for 3D mapping with extreme accuracy. We deliver professionally drafted 3D BIM and 2D CAD for comprehensive existing conditions documentation. Our Point Cloud datasets serve as a verifiable single-source-of-truth for coordination and risk-mitigation across projects.",
+      y,
+      { fontSize: 11, lineGap: 6 }
+    );
+  }
+
+  // Point cloud image placeholder
+  y += 10;
+  try {
+    doc.image("client/public/point-cloud-building.jpg", PAGE.margin.left + 50, y, {
+      width: PAGE.contentWidth - 100,
+      height: 150,
+      fit: [PAGE.contentWidth - 100, 150],
+      align: "center",
+    });
+    y += 160;
+  } catch (error) {
+    // If image not found, add some space
+    y += 20;
+  }
+
+  // Why Scan2Plan? - larger heading to match WYSIWYG
+  y = renderSectionHeading(doc, "Why Scan2Plan?", y, { fontSize: 20, marginBottom: 15, color: COLORS.primary });
 
   if (customWhy) {
-    // If custom content provided, render as paragraph (bullets handled by cleanText mostly as * item)
-    // Note: This is a simplification. Ideally we'd parse markdown list.
-    // For now, we'll just render it as text which handles newlines.
     y = renderParagraph(doc, cleanText(customWhy), y, { lineGap: 6 });
   } else {
-    // Default bullet points
-    const whyItems = [
-      "Unmatched Accuracy: Millimeter-precise scanning with the latest Leica and FARO technology",
-      "Expert Modeling: BIM specialists trained in architecture, MEP, and structural disciplines",
-      "Fast Turnaround: Efficient workflows deliver projects on time without compromising quality",
-      "Design-Ready Models: Intelligently structured for coordination, clash detection, and fabrication",
-      "Seamless Integration: Models work with your existing Revit, AutoCAD, and Navisworks workflows",
-      "Dedicated Support: Direct access to your project team throughout the engagement",
+    // Two-column bullet list matching WYSIWYG
+    const whyItemsLeft = [
+      "Experienced, dedicated team of field techs, drafters (AutoCAD and Revit) and licensed engineers.",
+      "We take the time to scope each project to suit your priorities.",
+      "We use the finest precision tools to capture a point cloud with extreme accuracy.",
+      "Drafted to Scan2Plan's rigorous design standards - your design phase begins upon delivery.",
     ];
 
-    y = renderBulletList(doc, whyItems, y, { fontSize: 10 });
+    const whyItemsRight = [
+      "We take a process driven approach with extensive quality control and team review.",
+      "Exceptional support from real professionals.",
+      "Scan2Plan has national and international coverage.",
+      "We work on a wide range of projects from single family homes to large-scale commercial, industrial and infrastructure.",
+    ];
+
+    // Render left column
+    const leftX = PAGE.margin.left;
+    const rightX = PAGE.margin.left + PAGE.contentWidth / 2 + 10;
+    const colWidth = PAGE.contentWidth / 2 - 15;
+    let leftY = y;
+    let rightY = y;
+
+    doc.font("Helvetica").fontSize(10).fillColor(COLORS.text);
+
+    whyItemsLeft.forEach((item) => {
+      doc.text("•", leftX + 10, leftY);
+      doc.text(item, leftX + 25, leftY, { width: colWidth - 25 });
+      const itemHeight = doc.heightOfString(item, { width: colWidth - 25 });
+      leftY += itemHeight + 8;
+    });
+
+    whyItemsRight.forEach((item) => {
+      doc.text("•", rightX + 10, rightY);
+      doc.text(item, rightX + 25, rightY, { width: colWidth - 25 });
+      const itemHeight = doc.heightOfString(item, { width: colWidth - 25 });
+      rightY += itemHeight + 8;
+    });
+
+    y = Math.max(leftY, rightY) + 10;
   }
 
   // Footer
-  renderFooter(doc, "Scan2Plan - Professional 3D Scanning & BIM Services", 2);
+  renderFooter(doc, "Scan2Plan, Inc • 188 1st St, Troy NY, 12180 • (518) 362-2403 • admin@scan2plan.io • scan2plan.io", 2);
 
   doc.addPage();
 }
@@ -429,20 +505,26 @@ function renderProjectPage(doc: PDFKit.PDFDocument, data: ProposalData): void {
   // Scope of Work
   y = renderSectionHeading(doc, "Scope of Work", y, { fontSize: 14, marginBottom: 12 });
 
-  const scopeItems = [
-    "End-to-end project management and customer service",
-    "LiDAR Scan - A scanning technician will capture the building areas.",
-    "Registration - Point cloud data captured on-site will be registered, cleaned, and reviewed for quality assurance.",
-    "BIM Modeling - Revit model authored to the specified level of detail.",
-    "QA/QC - The entire project is redundantly reviewed and checked by our QC team and senior engineering staff.",
-  ];
+  // Use custom scope items from WYSIWYG if provided, otherwise use defaults
+  let scopeItems: string[];
+  if (data.scope.scopeItems && data.scope.scopeItems.length > 0) {
+    scopeItems = data.scope.scopeItems;
+  } else {
+    scopeItems = [
+      "End-to-end project management and customer service",
+      "LiDAR Scan - A scanning technician will capture the building areas.",
+      "Registration - Point cloud data captured on-site will be registered, cleaned, and reviewed for quality assurance.",
+      "BIM Modeling - Revit model authored to the specified level of detail.",
+      "QA/QC - The entire project is redundantly reviewed and checked by our QC team and senior engineering staff.",
+    ];
 
-  if (data.scope.hasMatterport) {
-    scopeItems.splice(
-      2,
-      0,
-      "Matterport Scan - A scanning technician will capture the interior of the residence."
-    );
+    if (data.scope.hasMatterport) {
+      scopeItems.splice(
+        2,
+        0,
+        "Matterport Scan - A scanning technician will capture the interior of the residence."
+      );
+    }
   }
 
   y = renderBulletList(doc, scopeItems, y, { fontSize: 10, lineGap: 4 });
@@ -452,29 +534,35 @@ function renderProjectPage(doc: PDFKit.PDFDocument, data: ProposalData): void {
   // Deliverables section
   y = renderSectionHeading(doc, "Deliverables", y, { fontSize: 14, marginBottom: 12 });
 
-  const disciplineLine =
-    (data.scope.disciplineList && data.scope.disciplineList.length)
-      ? data.scope.disciplineList.join(" + ")
-      : data.scope.disciplines
-        ? normalizeDisciplinesFromString(data.scope.disciplines).join(" + ")
-        : "";
-  const lodLabel =
-    data.scope.lodLabel ||
-    (data.scope.lodLevels.length ? `LoD ${data.scope.lodLevels[0]}` : "LoD 300");
-  const modelLabel = data.scope.deliverables || "Revit";
+  // Use custom deliverables from WYSIWYG if provided, otherwise build defaults
+  let deliverableItems: string[];
+  if (data.scope.deliverableItems && data.scope.deliverableItems.length > 0) {
+    deliverableItems = data.scope.deliverableItems;
+  } else {
+    const disciplineLine =
+      (data.scope.disciplineList && data.scope.disciplineList.length)
+        ? data.scope.disciplineList.join(" + ")
+        : data.scope.disciplines
+          ? normalizeDisciplinesFromString(data.scope.disciplines).join(" + ")
+          : "";
+    const lodLabel =
+      data.scope.lodLabel ||
+      (data.scope.lodLevels.length ? `LoD ${data.scope.lodLevels[0]}` : "LoD 300");
+    const modelLabel = data.scope.deliverables || "Revit";
 
-  const deliverableItems = [
-    "Total Square Footage Audit",
-    `${modelLabel} Model - ${lodLabel}${disciplineLine ? ` + ${disciplineLine}` : ""}`,
-  ];
+    deliverableItems = [
+      "Total Square Footage Audit",
+      `${modelLabel} Model - ${lodLabel}${disciplineLine ? ` + ${disciplineLine}` : ""}`,
+    ];
 
-  if (data.scope.hasMatterport) {
-    deliverableItems.push("Matterport 3D Tour");
+    if (data.scope.hasMatterport) {
+      deliverableItems.push("Matterport 3D Tour");
+    }
+
+    deliverableItems.push(
+      "Colorized Point Cloud including 360 images viewable in Autodesk Recap or Trimble ScanExplorer"
+    );
   }
-
-  deliverableItems.push(
-    "Colorized Point Cloud including 360 images viewable in Autodesk Recap or Trimble ScanExplorer"
-  );
 
   y = renderBulletList(doc, deliverableItems, y);
 
@@ -506,7 +594,7 @@ function renderProjectPage(doc: PDFKit.PDFDocument, data: ProposalData): void {
   }
 
   // Footer
-  renderFooter(doc, "Scan2Plan - Professional 3D Scanning & BIM Services", 3);
+  renderFooter(doc, "Scan2Plan, Inc • 188 1st St, Troy NY, 12180 • (518) 362-2403 • admin@scan2plan.io • scan2plan.io", 3);
 
   doc.addPage();
 }
@@ -542,18 +630,16 @@ function renderEstimatePage(
     amount: formatCurrency(item.amount),
   }));
 
-  // Render table
+  // Render table with light blue header (matches WYSIWYG)
   y = renderTable(doc, columns, rows, y, {
-    headerBg: COLORS.primary,
+    headerBg: COLORS.primaryLight,
+    headerTextColor: COLORS.primary,
     rowAltBg: COLORS.backgroundAlt,
     fontSize: 9,
     headerFontSize: 10,
     rowHeight: 20,
     headerHeight: 24,
   });
-
-  // Make header text white
-  doc.fillColor(COLORS.white);
 
   y += 10;
 
@@ -605,7 +691,7 @@ function renderEstimatePage(
   );
 
   // Footer
-  renderFooter(doc, "Scan2Plan - Professional 3D Scanning & BIM Services", 4);
+  renderFooter(doc, "Scan2Plan, Inc • 188 1st St, Troy NY, 12180 • (518) 362-2403 • admin@scan2plan.io • scan2plan.io", 4);
 
   doc.addPage();
 }
@@ -677,22 +763,47 @@ function renderPaymentTermsPage(
 
   y += 20;
 
-  // Contact
-  y = renderParagraph(
-    doc,
-    "Questions about payment or terms? Contact us at admin@scan2plan.io or (518) 362-2403.",
-    y,
-    { fontSize: 9, color: COLORS.textMuted }
-  );
+  // Acknowledgement section (matches WYSIWYG)
+  y = renderSectionHeading(doc, "Acknowledgement", y, { fontSize: 14, marginBottom: 12 });
+
+  const acknowledgementText = "By signing below, the client acknowledges receipt of this proposal " +
+    "and agrees to the terms and conditions set forth herein, including the payment schedule and scope of work. " +
+    "This proposal is valid for 30 days from the date issued.";
+
+  y = renderParagraph(doc, acknowledgementText, y, { fontSize: 10, lineGap: 6 });
+
+  y += 15;
+
+  // Signature lines - two rows of two columns
+  const sigX = PAGE.margin.left as number;
+  const sigWidth = 200;
+  const col2X = sigX + sigWidth + 50;
+
+  // Row 1: Client Signature, Date
+  drawLine(doc, sigX, y + 12, sigX + sigWidth, y + 12, { color: COLORS.border });
+  doc.font("Helvetica").fontSize(9).fillColor(COLORS.textMuted).text("Client Signature", sigX, y + 16);
+
+  drawLine(doc, col2X, y + 12, col2X + sigWidth, y + 12, { color: COLORS.border });
+  doc.text("Date", col2X, y + 16);
+
+  y += 40;
+
+  // Row 2: Print Name, Title
+  drawLine(doc, sigX, y + 12, sigX + sigWidth, y + 12, { color: COLORS.border });
+  doc.font("Helvetica").fontSize(9).fillColor(COLORS.textMuted).text("Print Name", sigX, y + 16);
+
+  drawLine(doc, col2X, y + 12, col2X + sigWidth, y + 12, { color: COLORS.border });
+  doc.text("Title", col2X, y + 16);
 
   // Footer
-  renderFooter(doc, "Scan2Plan - Professional 3D Scanning & BIM Services", 5);
+  renderFooter(doc, "Scan2Plan, Inc • 188 1st St, Troy NY, 12180 • (518) 362-2403 • admin@scan2plan.io • scan2plan.io", 5);
 
   doc.addPage();
 }
 
 /**
  * Page 7: Scan2Plan Capabilities
+ * Matches ProposalCapabilitiesPage.tsx exactly
  */
 // Helper to strip markdown headers (e.g. ## Title)
 const cleanText = (text: string) => text.replace(/^#+\s+.*$/gm, "").trim();
@@ -707,71 +818,151 @@ function renderCapabilitiesPage(
 ): void {
   let y: number = PAGE.margin.top;
 
-  // Title
+  // Title - larger to match WYSIWYG
   y = renderSectionHeading(doc, "Scan2Plan Capabilities", y, {
-    fontSize: 18,
-    marginBottom: 20,
+    fontSize: 20,
+    marginBottom: 10,
+    color: COLORS.primary,
   });
 
+  // Target Audience
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(10)
+    .fillColor(COLORS.primary)
+    .text(
+      "Scan2Plan is for: Architects, Structural Engineers, MEP Engineers, Interior Designers, Property Managers, Owner/Operators, Landscape Architects, Civil Engineers.",
+      PAGE.margin.left,
+      y,
+      { width: PAGE.contentWidth }
+    );
+  y += 30;
+
   if (customContent) {
-    // Render custom content as simple text for now
-    // TODO: formatting for lists
     y = renderParagraph(doc, cleanText(customContent), y, { fontSize: 10, lineGap: 6 });
   } else {
-    // Services
-    y = renderSectionHeading(doc, "Core Services", y, { fontSize: 14, marginBottom: 12 });
+    // Two-column layout
+    const leftX = PAGE.margin.left;
+    const rightX = PAGE.margin.left + PAGE.contentWidth / 2 + 15;
+    const colWidth = PAGE.contentWidth / 2 - 20;
+    let leftY = y;
+    let rightY = y;
 
-    const services = [
-      "3D Laser Scanning - High-definition reality capture of existing conditions",
-      "BIM Modeling - Revit, AutoCAD, and other BIM platforms (LOD 100-400)",
-      "As-Built Documentation - Accurate floor plans, elevations, and sections",
-      "MEP Coordination - Multi-discipline models for clash detection",
-      "Structural Analysis - Precise models for engineering and assessment",
-      "Facility Management - As-built models for ongoing operations",
+    // LEFT COLUMN
+    // Scan-to-BIM
+    doc.font("Helvetica-Bold").fontSize(12).fillColor(COLORS.text).text("Scan-to-BIM", leftX, leftY);
+    leftY += 18;
+
+    const scanToBimItems = [
+      "Architectural & Structural Existing Conditions Documentation.",
+      "Deliverables:",
+      "  • Revit Model",
+      "  • Colorized Point Cloud",
+      "  • 360 Photo documentation",
+      "Standard Options:",
+      "  • LoD 200 (Approximate Geometry)",
+      "  • LoD 300 (Accurate Geometry)",
+      "  • LoD 350 (Precise Geometry)",
+      "Level of Accuracy:",
+      "  • Point Cloud - 0\" to 1/8\"",
+      "  • Model - 0\" to 1/2\"",
+      "Turnaround: 2-5 weeks (depending on scope)",
+      "Pricing is based on:",
+      "  • A) Type of Building/Structure",
+      "  • B) LoD Standard",
+      "  • C) Square Footage",
     ];
 
-    y = renderBulletList(doc, services, y, { fontSize: 10 });
+    doc.font("Helvetica").fontSize(9).fillColor(COLORS.text);
+    scanToBimItems.forEach((item) => {
+      const indent = item.startsWith("  ") ? 15 : 0;
+      const text = item.replace(/^  /, "");
+      if (!item.startsWith("  ")) {
+        doc.text("•", leftX + indent, leftY);
+      }
+      doc.text(text, leftX + indent + 10, leftY, { width: colWidth - indent - 10 });
+      leftY += 12;
+    });
 
-    y += 15;
+    leftY += 10;
 
-    // Technology
-    y = renderSectionHeading(doc, "Technology & Equipment", y, { fontSize: 14, marginBottom: 12 });
+    // BIM to CAD Conversion
+    doc.font("Helvetica-Bold").fontSize(12).fillColor(COLORS.text).text("BIM to CAD Conversion", leftX, leftY);
+    leftY += 18;
+    doc.font("Helvetica").fontSize(9);
+    doc.text("•", leftX, leftY);
+    doc.text("Pristine CAD drawings converted from Revit Model.", leftX + 10, leftY, { width: colWidth - 10 });
+    leftY += 20;
 
-    const technology = [
-      "Leica RTC360 & BLK360 laser scanners",
-      "FARO Focus premium scanners",
-      "Trimble and Topcon total stations",
-      "Matterport Pro2 & Pro3 cameras",
-      "Autodesk Revit, Recap Pro, and Navisworks",
-    ];
+    // RIGHT COLUMN
+    // MEPF Modeling
+    doc.font("Helvetica-Bold").fontSize(12).fillColor(COLORS.text).text("MEPF Modeling", rightX, rightY);
+    rightY += 18;
+    doc.font("Helvetica").fontSize(9);
+    doc.text("•", rightX, rightY);
+    doc.text("Any exposed Mechanical, Electrical, Plumbing and Fire Safety elements documented in BIM or CAD.", rightX + 10, rightY, { width: colWidth - 10 });
+    rightY += 30;
 
-    y = renderBulletList(doc, technology, y, { fontSize: 10 });
+    // Landscape
+    doc.font("Helvetica-Bold").fontSize(12).fillColor(COLORS.text).text("Landscape", rightX, rightY);
+    rightY += 18;
+    doc.font("Helvetica").fontSize(9);
+    doc.text("•", rightX, rightY);
+    doc.text("Landscape, grounds, and urban spaces documented in BIM or CAD.", rightX + 10, rightY, { width: colWidth - 10 });
+    rightY += 15;
+    doc.text("•", rightX, rightY);
+    doc.text("Georeferencing and forestry optional.", rightX + 10, rightY, { width: colWidth - 10 });
+    rightY += 25;
 
-    y += 15;
+    // Matterport 3D Tour
+    doc.font("Helvetica-Bold").fontSize(12).fillColor(COLORS.text).text("Matterport 3D Tour", rightX, rightY);
+    rightY += 18;
+    doc.font("Helvetica").fontSize(9);
+    doc.text("•", rightX, rightY);
+    doc.text("High resolution 360 photo documentation and virtual tour walkthrough. An excellent remote collaboration tool, easily shared and viewed on any mobile or desktop device.", rightX + 10, rightY, { width: colWidth - 10 });
+    rightY += 40;
 
-    // Industries
-    y = renderSectionHeading(doc, "Industries Served", y, { fontSize: 14, marginBottom: 12 });
+    // Paper to BIM or CAD
+    doc.font("Helvetica-Bold").fontSize(12).fillColor(COLORS.text).text("Paper to BIM or CAD", rightX, rightY);
+    rightY += 18;
+    doc.font("Helvetica").fontSize(9);
+    doc.text("•", rightX, rightY);
+    doc.text("Legacy 2D paper drawings converted to functional BIM or CAD documentation.", rightX + 10, rightY, { width: colWidth - 10 });
+    rightY += 25;
 
-    const industries = [
-      "Commercial Real Estate - Office buildings, retail centers, mixed-use developments",
-      "Healthcare - Hospitals, medical centers, research facilities",
-      "Education - Schools, universities, libraries",
-      "Industrial - Manufacturing plants, warehouses, distribution centers",
-      "Government & Infrastructure - Public buildings, transportation facilities",
-      "Historic Preservation - Museums, landmarks, heritage sites",
-    ];
+    // Model Only / Point Cloud Only
+    doc.font("Helvetica-Bold").fontSize(12).fillColor(COLORS.text).text("Model Only / Point Cloud Only", rightX, rightY);
+    rightY += 18;
+    doc.font("Helvetica").fontSize(9);
+    doc.text("•", rightX, rightY);
+    doc.text("You work with our point cloud or we'll model from yours.", rightX + 10, rightY, { width: colWidth - 10 });
+    rightY += 25;
 
-    y = renderBulletList(doc, industries, y, { fontSize: 10 });
+    y = Math.max(leftY, rightY) + 10;
   }
 
+  // Software Support
+  doc
+    .font("Helvetica")
+    .fontSize(9)
+    .fillColor(COLORS.text)
+    .text("We support: ", PAGE.margin.left, y, { continued: true })
+    .font("Helvetica-Bold")
+    .fillColor(COLORS.primary)
+    .text("Revit, AutoCAD, Sketchup, Rhino, Vectorworks, Solidworks, Chief Architect, ArchiCAD, Civil 3D", { continued: true })
+    .font("Helvetica")
+    .fillColor(COLORS.text)
+    .text(", and others....");
+
   // Footer
-  renderFooter(doc, "Scan2Plan - Professional 3D Scanning & BIM Services", 6);
+  renderFooter(doc, "Scan2Plan, Inc • 188 1st St, Troy NY, 12180 • (518) 362-2403 • admin@scan2plan.io • scan2plan.io", 6);
 
   doc.addPage();
 }
 
 /**
  * Page 8: The Scan2Plan Difference
+ * Matches ProposalDifferencePage.tsx exactly
  */
 function renderDifferencePage(
   doc: PDFKit.PDFDocument,
@@ -780,200 +971,181 @@ function renderDifferencePage(
 ): void {
   let y: number = PAGE.margin.top;
 
-  // Title
+  // Title - larger to match WYSIWYG
   y = renderSectionHeading(doc, "The Scan2Plan Difference", y, {
-    fontSize: 18,
-    marginBottom: 20,
+    fontSize: 20,
+    marginBottom: 8,
+    color: COLORS.primary,
   });
+
+  // Subtitle
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(14)
+    .fillColor(COLORS.primary)
+    .text("What to look for in a Scan-to-BIM partner.", PAGE.margin.left, y);
+  y += 25;
+
+  // Intro paragraph
+  const introText = "In the evolving landscape of scanning and modeling, it's important to consider your options to find a service that aligns with your specific needs. Scan2Plan is committed to delivering quality and precision in this field. Here's a closer look at what sets us apart:";
+  y = renderParagraph(doc, introText, y, { fontSize: 9, lineGap: 4 });
+  y += 5;
 
   if (customContent) {
     y = renderParagraph(doc, cleanText(customContent), y, { fontSize: 10, lineGap: 6 });
   } else {
-    // Quality
-    y = renderSectionHeading(doc, "Uncompromising Quality", y, { fontSize: 14, marginBottom: 12 });
-
-    const qualityText =
-      "Every project undergoes rigorous quality control. Our multi-stage review process ensures accuracy, " +
-      "completeness, and adherence to industry standards. We don't deliver a model until it meets our " +
-      "exacting standards - and yours.";
-
-    y = renderParagraph(doc, qualityText, y, { fontSize: 10, lineGap: 6 });
-
-    y += 15;
-
-    // Expertise
-    y = renderSectionHeading(doc, "Deep Expertise", y, { fontSize: 14, marginBottom: 12 });
-
-    const expertiseText =
-      "Our team includes licensed architects, professional engineers, and BIM specialists with decades " +
-      "of combined experience. We understand building systems, construction processes, and design intent - " +
-      "not just how to push buttons on scanning equipment.";
-
-    y = renderParagraph(doc, expertiseText, y, { fontSize: 10, lineGap: 6 });
-
-    y += 15;
-
-    // Partnership
-    y = renderSectionHeading(doc, "True Partnership", y, { fontSize: 14, marginBottom: 12 });
-
-    const partnershipText =
-      "We're not just a vendor - we're your partner in project success. From initial planning through " +
-      "final delivery and beyond, you'll work directly with experienced professionals who understand your " +
-      "goals and are invested in achieving them.";
-
-    y = renderParagraph(doc, partnershipText, y, { fontSize: 10, lineGap: 6 });
-
-    y += 15;
-
-    // Innovation
-    y = renderSectionHeading(doc, "Continuous Innovation", y, { fontSize: 14, marginBottom: 12 });
-
-    const innovationText =
-      "We invest heavily in the latest scanning technology, modeling software, and process improvements. " +
-      "Our workflows leverage cutting-edge tools like automated point cloud registration, AI-assisted modeling, " +
-      "and cloud-based collaboration platforms to deliver faster, more accurate results.";
-
-    y = renderParagraph(doc, innovationText, y, { fontSize: 10, lineGap: 6 });
-
-    y += 20;
-
-    // Guarantees
-    y = renderSectionHeading(doc, "Our Commitments to You", y, { fontSize: 14, marginBottom: 12 });
-
-    const commitments = [
-      "Accuracy Guarantee - Models meet or exceed specified tolerance requirements",
-      "On-Time Delivery - We hit deadlines or communicate proactively if challenges arise",
-      "Responsive Support - Direct access to your project team, not a support ticket system",
-      "Model Integrity - Properly structured, intelligently detailed, coordination-ready",
-      "Value Protection - Fair pricing with no hidden fees or surprise charges",
+    // Two-column layout with 9 difference points (5 left, 4 right)
+    const differencePoints = [
+      {
+        title: "High-Quality Data for Superior Results",
+        description: "The accuracy of your models and drawings hinges on the quality of the underlying data. We capture all our point cloud data sets in full color, with significant overlap and redundancy. This meticulous approach maximizes point cloud density, leading to more accurate and detailed models.",
+      },
+      {
+        title: "Precision with Terrestrial LiDAR",
+        description: "Different technologies like Drones, SLAM scanners, Solid State LiDAR, or Photogrammetry offer varied results. We have chosen high-end terrestrial LiDAR for its unparalleled accuracy. Using the Trimble X7 scanner for every project, we guarantee consistent millimeter accuracy. Our process includes thorough validation of the Point Cloud, ensuring precision from 0\" to 1/8\".",
+      },
+      {
+        title: "Setting High Standards in BIM & CAD",
+        description: "Transparency in BIM & CAD standards is vital. Providers may offer different levels of detail (LoD) standards. We offer the highest standard of Levels of Development (LoD) 200, 300, and 350, for schematic and construction-ready documentation. Our Mechanical, Electrical, Plumbing, and Fire (MEPF) documentation consistently meets the highest standards.",
+      },
+      {
+        title: "The Human Touch in Modeling and Drafting",
+        description: "In an era where AI is prevalent, we take pride in our 100% manual approach to modeling and drafting. Our expert team meticulously translates data into detailed models and drawings, ensuring that every element is captured accurately.",
+      },
+      {
+        title: "Rigorous Quality Control for Trusted Accuracy",
+        description: "Earning your trust means delivering impeccably accurate documents. Our dedicated Quality Control team conducts multiple checks on every deliverable, ensuring they meet our high standards. This thorough process is our commitment to saving you time and resources in the long run.",
+      },
+      {
+        title: "Customized to Your Standards",
+        description: "We adapt to your specific needs from the start. Whether it's integrating your Revit Templates or CAD Standards, we ensure a seamless transition from our delivery to your design phase.",
+      },
+      {
+        title: "Dedicated Support & Revisions",
+        description: "Our commitment to your satisfaction extends beyond delivery. We offer comprehensive support, including demonstrations on using Point Cloud in Revit or AutoCAD, and we're always ready to make revisions until you're completely satisfied.",
+      },
+      {
+        title: "A Small, Specialized Team",
+        description: "Our small, dedicated team ensures consistent quality and personalized service. We focus on building strong client relationships, ensuring familiarity and consistency across projects.",
+      },
+      {
+        title: "Ready When You Are",
+        description: "The best ability is availability. Our scanning techs are typically available to be on-site within a week of a signed contract, offering flexible and responsive service across the Northeast and the Nation.",
+      },
     ];
 
-    y = renderBulletList(doc, commitments, y, { fontSize: 10 });
+    const leftColumn = differencePoints.slice(0, 5);
+    const rightColumn = differencePoints.slice(5);
+
+    const leftX = PAGE.margin.left;
+    const rightX = PAGE.margin.left + PAGE.contentWidth / 2 + 15;
+    const colWidth = PAGE.contentWidth / 2 - 20;
+    let leftY = y;
+    let rightY = y;
+
+    // Render left column
+    leftColumn.forEach((point) => {
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(9)
+        .fillColor(COLORS.text)
+        .text(`• ${point.title}`, leftX, leftY, { width: colWidth });
+      const titleHeight = doc.heightOfString(`• ${point.title}`, { width: colWidth });
+      leftY += titleHeight + 2;
+
+      doc
+        .font("Helvetica")
+        .fontSize(8)
+        .fillColor(COLORS.textLight)
+        .text(point.description, leftX + 10, leftY, { width: colWidth - 10 });
+      const descHeight = doc.heightOfString(point.description, { width: colWidth - 10 });
+      leftY += descHeight + 10;
+    });
+
+    // Render right column
+    rightColumn.forEach((point) => {
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(9)
+        .fillColor(COLORS.text)
+        .text(`• ${point.title}`, rightX, rightY, { width: colWidth });
+      const titleHeight = doc.heightOfString(`• ${point.title}`, { width: colWidth });
+      rightY += titleHeight + 2;
+
+      doc
+        .font("Helvetica")
+        .fontSize(8)
+        .fillColor(COLORS.textLight)
+        .text(point.description, rightX + 10, rightY, { width: colWidth - 10 });
+      const descHeight = doc.heightOfString(point.description, { width: colWidth - 10 });
+      rightY += descHeight + 10;
+    });
+
+    y = Math.max(leftY, rightY);
   }
 
   // Footer
-  renderFooter(doc, "Scan2Plan - Professional 3D Scanning & BIM Services", 7);
+  renderFooter(doc, "Scan2Plan, Inc • 188 1st St, Troy NY, 12180 • (518) 362-2403 • admin@scan2plan.io • scan2plan.io", 7);
 
   doc.addPage();
 }
 
 /**
- * Pages 9-10: BIM Modeling Standards
- */
-/**
- * Pages 9-10: BIM Modeling Standards
+ * Pages 9-11: BIM Modeling Standards
+ * Renders 3 full-page images matching ProposalBIMStandards.tsx
  */
 function renderBIMStandardsPage(
   doc: PDFKit.PDFDocument,
   data: ProposalData,
   customContent?: string
 ): void {
-  let y: number = PAGE.margin.top;
-
-  // Title
-  y = renderSectionHeading(doc, "BIM Modeling Standards", y, {
-    fontSize: 18,
-    marginBottom: 20,
-  });
-
-  const introText = customContent
-    ? cleanText(customContent)
-    : "Our BIM models are developed according to industry-standard Level of Development (LoD) specifications. " +
-    "Below are the LoD levels commonly used in our projects. Your project deliverables are highlighted.";
-
-  y = renderParagraph(doc, introText, y, { fontSize: 10, lineGap: 6 });
-
-  y += 15;
-
-  // LoD Table
-  const lodColumns: TableColumn[] = [
-    { header: "LoD", key: "level", width: 60, align: "left" },
-    { header: "Description", key: "description", width: 120, align: "left" },
-    { header: "Elements Included", key: "elements", width: 170, align: "left" },
-    { header: "Use Cases", key: "useCases", width: 170, align: "left" },
+  const MODELLING_STANDARDS_IMAGES = [
+    "client/public/2024-modelling-standards-1.jpg",
+    "client/public/2024-modelling-standards-2.jpg",
+    "client/public/2024-modelling-standards-3.jpg",
   ];
 
-  const projectLods = new Set(data.scope.lodLevels.map((lod) => lod.replace("LOD ", "")));
-
-  const lodRows: TableRow[] = [
-    {
-      level: "LOD 200",
-      description: "Approximate geometry",
-      elements: "Walls, floors, roofs, major systems",
-      useCases: "Early design, feasibility",
-    },
-    {
-      level: "LOD 300",
-      description: "Precise geometry",
-      elements: "Detailed arch. and MEP elements",
-      useCases: "Construction docs, coordination",
-    },
-    {
-      level: "LOD 350",
-      description: "Coordination model",
-      elements: "All systems with connections",
-      useCases: "Clash detection, fab prep",
-    },
-    {
-      level: "LOD 350+",
-      description: "Enhanced detail",
-      elements: "Shop drawing level detail",
-      useCases: "Fabrication, as-built docs",
-    },
-  ];
-
-  y = renderTable(doc, lodColumns, lodRows, y, {
-    headerBg: COLORS.primary,
-    rowAltBg: COLORS.backgroundAlt,
-    fontSize: 9,
-    headerFontSize: 10,
-    rowHeight: 22,
-    headerHeight: 24,
-  });
-
-  y += 10;
-
-  // Project-specific note
-  if (projectLods.size > 0) {
-    const lodList = Array.from(projectLods)
-      .map((lod) => `LOD ${lod}`)
-      .join(", ");
-
-    const noteText =
-      `Your project will be delivered at ${lodList}, providing the appropriate level of detail ` +
-      `for your intended use case. All models include comprehensive metadata, accurate dimensions, ` +
-      `and proper family/type assignments for downstream workflows.`;
-
-    y = renderParagraph(doc, noteText, y, {
-      fontSize: 9,
-      color: COLORS.textMuted,
-      lineGap: 4,
-    });
-  }
-
-  // Footer
-  renderFooter(doc, "Scan2Plan - Professional 3D Scanning & BIM Services", 8);
-
-  // End of proposal
-  doc.font("Helvetica-Bold")
-    .fontSize(12)
-    .fillColor(COLORS.primary)
-    .text("Thank you for considering Scan2Plan", (PAGE.margin.left as number), PAGE.height - 100, {
-      width: PAGE.contentWidth,
-      align: "center",
-    });
-
-  doc
-    .font("Helvetica")
-    .fontSize(10)
-    .fillColor(COLORS.textMuted)
-    .text(
-      "We look forward to partnering with you on this project",
-      (PAGE.margin.left as number),
-      PAGE.height - 80,
-      {
-        width: PAGE.contentWidth,
+  // Render each image as a full page
+  MODELLING_STANDARDS_IMAGES.forEach((imagePath, index) => {
+    try {
+      // Full page image with minimal margins
+      doc.image(imagePath, 0, 0, {
+        width: PAGE.width,
+        height: PAGE.height,
+        fit: [PAGE.width, PAGE.height],
         align: "center",
-      }
-    );
+        valign: "center",
+      });
+    } catch (error) {
+      // Fallback if image not found - show placeholder text
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(16)
+        .fillColor(COLORS.primary)
+        .text(`BIM Modeling Standards - Page ${index + 1}`, PAGE.margin.left, PAGE.height / 2, {
+          width: PAGE.contentWidth,
+          align: "center",
+        });
+
+      doc
+        .font("Helvetica")
+        .fontSize(10)
+        .fillColor(COLORS.textMuted)
+        .text(
+          `Image not found: ${imagePath}`,
+          PAGE.margin.left,
+          PAGE.height / 2 + 30,
+          {
+            width: PAGE.contentWidth,
+            align: "center",
+          }
+        );
+    }
+
+    // Add new page for next image (except for the last one)
+    if (index < MODELLING_STANDARDS_IMAGES.length - 1) {
+      doc.addPage();
+    }
+  });
+
 }

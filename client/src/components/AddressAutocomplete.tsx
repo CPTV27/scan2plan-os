@@ -76,11 +76,10 @@ export function AddressAutocomplete({
         );
         const data = await response.json();
 
-        if (data.found && data.businessInfo?.address) {
-          const formattedAddress = data.businessInfo.address;
-          setInputValue(formattedAddress);
-          onChange(formattedAddress);
-          onPlaceSelected?.(formattedAddress, prediction.place_id);
+        if (data.formattedAddress) {
+          setInputValue(data.formattedAddress);
+          onChange(data.formattedAddress);
+          onPlaceSelected?.(data.formattedAddress, prediction.place_id);
         } else {
           setInputValue(prediction.description);
           onChange(prediction.description);
@@ -122,6 +121,11 @@ export function AddressAutocomplete({
         placeholder={placeholder}
         className={className}
         data-testid={testId}
+        autoComplete="one-time-code"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck="false"
+        name="address-search-field"
       />
       {isLoading && (
         <div className="absolute right-3 top-1/2 -translate-y-1/2">

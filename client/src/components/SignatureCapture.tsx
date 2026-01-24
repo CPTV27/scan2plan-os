@@ -1,18 +1,21 @@
 /**
  * SignatureCapture - Open-source signature capture component
- * 
+ *
  * Provides a canvas-based signature pad for capturing client signatures
  * on proposals without requiring PandaDoc subscription.
+ * Supports both drawn and typed signatures.
  */
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import SignatureCanvas from "react-signature-canvas";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Check, Eraser, Download, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Check, Eraser, Download, X, Pencil, Type } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface SignatureCaptureProps {
@@ -21,6 +24,7 @@ interface SignatureCaptureProps {
         signerName: string;
         signerEmail: string;
         signedAt: Date;
+        agreedToTerms: boolean;
     }) => void;
     onCancel?: () => void;
     proposalTitle?: string;
@@ -34,11 +38,40 @@ export function SignatureCapture({
     clientName,
 }: SignatureCaptureProps) {
     const sigCanvas = useRef<SignatureCanvas>(null);
+    const typedCanvas = useRef<HTMLCanvasElement>(null);
     const { toast } = useToast();
 
     const [signerName, setSignerName] = useState(clientName || "");
     const [signerEmail, setSignerEmail] = useState("");
     const [isEmpty, setIsEmpty] = useState(true);
+    const [agreedToTerms, setAgreedToTerms] = useState(false);
+    const [signatureMode, setSignatureMode] = useState<"draw" | "type">("draw");
+    const [typedSignature, setTypedSignature] = useState("");
+
+    // Generate typed signature image on canvas
+    useEffect(() => {
+        if (signatureMode === "type" && typedCanvas.current && typedSignature) {
+            const canvas = typedCanvas.current;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return;
+
+            // Clear canvas
+            ctx.fillStyle = "white";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw signature text in cursive style
+            ctx.fillStyle = "#1a365d";
+            ctx.font = "italic 48px 'Brush Script MT', 'Segoe Script', 'Dancing Script', cursive";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(typedSignature, canvas.width / 2, canvas.height / 2);
+        }
+    }, [typedSignature, signatureMode]);
+
+    const getTypedSignatureImage = (): string | null => {
+        if (!typedCanvas.current || !typedSignature.trim()) return null;
+        return typedCanvas.current.toDataURL("image/png");
+    };
 
     const handleClear = () => {
         sigCanvas.current?.clear();
@@ -50,7 +83,31 @@ export function SignatureCapture({
     };
 
     const handleSave = () => {
-        if (!sigCanvas.current || sigCanvas.current.isEmpty()) {
+        let signatureImage: string | null = null;
+
+        if (signatureMode === "draw") {
+            if (!sigCanvas.current || sigCanvas.current.isEmpty()) {
+                toast({
+                    title: "Signature required",
+                    description: "Please draw your signature before submitting.",
+                    variant: "destructive",
+                });
+                return;
+            }
+            signatureImage = sigCanvas.current.toDataURL("image/png");
+        } else {
+            if (!typedSignature.trim()) {
+                toast({
+                    title: "Signature required",
+                    description: "Please type your signature before submitting.",
+                    variant: "destructive",
+                });
+                return;
+            }
+            signatureImage = getTypedSignatureImage();
+        }
+
+        if (!signatureImage) {
             toast({
                 title: "Signature required",
                 description: "Please provide a signature before submitting.",
@@ -77,13 +134,21 @@ export function SignatureCapture({
             return;
         }
 
-        const signatureImage = sigCanvas.current.toDataURL("image/png");
+        if (!agreedToTerms) {
+            toast({
+                title: "Agreement required",
+                description: "Please agree to the terms and conditions before signing.",
+                variant: "destructive",
+            });
+            return;
+        }
 
         onSignatureComplete({
             signatureImage,
             signerName: signerName.trim(),
             signerEmail: signerEmail.trim(),
             signedAt: new Date(),
+            agreedToTerms: true,
         });
 
         toast({
@@ -143,45 +208,118 @@ export function SignatureCapture({
 
                 <Separator />
 
-                {/* Signature Canvas */}
+                {/* Signature Mode Tabs */}
                 <div className="space-y-2">
                     <Label>Signature *</Label>
-                    <div className="border-2 border-dashed rounded-lg p-1 bg-white">
-                        <SignatureCanvas
-                            ref={sigCanvas}
-                            canvasProps={{
-                                className: "w-full h-40 rounded cursor-crosshair",
-                                style: { touchAction: "none" }
-                            }}
-                            onEnd={handleEnd}
-                        />
+                    <Tabs value={signatureMode} onValueChange={(v) => setSignatureMode(v as "draw" | "type")}>
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="draw" className="gap-2">
+                                <Pencil className="w-4 h-4" />
+                                Draw
+                            </TabsTrigger>
+                            <TabsTrigger value="type" className="gap-2">
+                                <Type className="w-4 h-4" />
+                                Type
+                            </TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="draw" className="mt-3">
+                            <div className="border-2 border-dashed rounded-lg p-1 bg-white">
+                                <SignatureCanvas
+                                    ref={sigCanvas}
+                                    canvasProps={{
+                                        className: "w-full h-40 rounded cursor-crosshair",
+                                        style: { touchAction: "none" }
+                                    }}
+                                    onEnd={handleEnd}
+                                />
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2">
+                                Sign above using your mouse, trackpad, or touch screen
+                            </p>
+                        </TabsContent>
+
+                        <TabsContent value="type" className="mt-3 space-y-3">
+                            <Input
+                                placeholder="Type your full name as signature"
+                                value={typedSignature}
+                                onChange={(e) => setTypedSignature(e.target.value)}
+                                className="text-lg"
+                            />
+                            <div className="border-2 border-dashed rounded-lg p-1 bg-white">
+                                <canvas
+                                    ref={typedCanvas}
+                                    width={600}
+                                    height={160}
+                                    className="w-full h-40 rounded"
+                                />
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Your typed name will appear as a signature above
+                            </p>
+                        </TabsContent>
+                    </Tabs>
+                </div>
+
+                {/* E-Signature Consent Checkbox - Required for legal compliance */}
+                <div className="flex items-start space-x-3 p-4 border rounded-lg bg-gray-50">
+                    <Checkbox
+                        id="agreedToTerms"
+                        checked={agreedToTerms}
+                        onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
+                        className="mt-1"
+                    />
+                    <div className="space-y-1">
+                        <Label
+                            htmlFor="agreedToTerms"
+                            className="text-sm font-medium leading-none cursor-pointer"
+                        >
+                            I agree to sign this document electronically *
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                            By checking this box, I consent to conduct business electronically and agree that my
+                            electronic signature is legally binding under the ESIGN Act and UETA. I acknowledge
+                            receipt of this proposal and agree to the terms and conditions outlined in the document.
+                        </p>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                        Sign above using your mouse, trackpad, or touch screen
-                    </p>
                 </div>
 
                 {/* Action Buttons */}
                 <div className="flex items-center justify-between pt-4">
                     <div className="flex gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleClear}
-                            disabled={isEmpty}
-                        >
-                            <Eraser className="w-4 h-4 mr-2" />
-                            Clear
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleDownload}
-                            disabled={isEmpty}
-                        >
-                            <Download className="w-4 h-4 mr-2" />
-                            Download
-                        </Button>
+                        {signatureMode === "draw" && (
+                            <>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleClear}
+                                    disabled={isEmpty}
+                                >
+                                    <Eraser className="w-4 h-4 mr-2" />
+                                    Clear
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleDownload}
+                                    disabled={isEmpty}
+                                >
+                                    <Download className="w-4 h-4 mr-2" />
+                                    Download
+                                </Button>
+                            </>
+                        )}
+                        {signatureMode === "type" && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setTypedSignature("")}
+                                disabled={!typedSignature}
+                            >
+                                <Eraser className="w-4 h-4 mr-2" />
+                                Clear
+                            </Button>
+                        )}
                     </div>
                     <div className="flex gap-2">
                         {onCancel && (

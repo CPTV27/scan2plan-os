@@ -21,28 +21,39 @@ export function ProposalProjectPage({
   onBlur,
   disabled = false,
 }: ProposalProjectPageProps) {
+  const serviceType = data.serviceType || "Commercial";
+  const hasMatterport = data.hasMatterport || false;
+
+  // Check if Matterport item already exists in scope
+  const matterportText = serviceType === "Residential"
+    ? "Matterport Scan - A scanning technician will capture the interior of the residence."
+    : "Matterport Scan - A scanning technician will capture the interior of the property.";
+
+  const hasMatterportInScope = (data.scopeItems || []).some(
+    item => item.toLowerCase().includes("matterport")
+  );
+
   return (
     <div className="proposal-page min-h-[11in] p-16 bg-white relative">
       {/* Section Title */}
-      <h1 className="text-3xl font-bold text-[#4285f4] mb-8">The Project</h1>
+      <h1 className="text-3xl font-bold text-[#123da7] mb-8">The Project</h1>
 
       {/* Overview */}
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-[#4285f4] mb-3">Overview</h2>
+        <h2 className="text-xl font-semibold text-[#123da7] mb-3">Overview</h2>
         <EditableText
-          value={data.overview}
-          onChange={(v) => onChange("overview", v)}
+          value={data.overviewLine || `Service for ${data.overview || "Project Name, Address"}`}
+          onChange={(v) => onChange("overviewLine", v)}
           onBlur={onBlur}
           className="text-gray-700 leading-relaxed"
-          placeholder="Project overview description..."
-          multiline
+          placeholder="Service for Project Name, Address..."
           disabled={disabled}
         />
       </div>
 
       {/* Scope of Work */}
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-[#4285f4] mb-3">
+        <h2 className="text-xl font-semibold text-[#123da7] mb-3">
           Scope of Work
         </h2>
         <EditableList
@@ -53,11 +64,18 @@ export function ProposalProjectPage({
           disabled={disabled}
           itemClassName="text-gray-700"
         />
+        {/* Show Matterport item if enabled and not already in list */}
+        {hasMatterport && !hasMatterportInScope && (
+          <div className="flex items-start gap-2 mt-2">
+            <span className="text-gray-700">•</span>
+            <span className="text-gray-700">{matterportText}</span>
+          </div>
+        )}
       </div>
 
       {/* Deliverables */}
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-[#4285f4] mb-3">
+        <h2 className="text-xl font-semibold text-[#123da7] mb-3">
           Deliverables
         </h2>
         <EditableList
@@ -72,7 +90,7 @@ export function ProposalProjectPage({
 
       {/* Timeline */}
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-[#4285f4] mb-3">Timeline</h2>
+        <h2 className="text-xl font-semibold text-[#123da7] mb-3">Timeline</h2>
         <EditableText
           value={data.timelineIntro}
           onChange={(v) => onChange("timelineIntro", v)}

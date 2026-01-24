@@ -38,41 +38,49 @@ export function ProposalCoverPage({
       </div>
 
       {/* Middle Section: Proposal Title and Project Info */}
-      <div className="text-center space-y-8 flex-1 flex flex-col justify-center">
-        <h1 className="text-5xl font-bold tracking-wider">- PROPOSAL -</h1>
+      <div className="text-center space-y-8 flex-1 flex flex-col justify-center text-gray-900">
+        <h1 className="text-5xl font-bold tracking-wider text-gray-800">- PROPOSAL -</h1>
 
         <div className="space-y-4">
-          <h2 className="text-2xl font-semibold">
+          <h2 className="text-2xl font-semibold text-gray-800">
             Laser Scanning & Building Documentation
           </h2>
 
           <EditableText
-            value={data.projectTitle}
-            onChange={(v) => onChange("projectTitle", v)}
+            value={data.projectAddress
+              ? `${data.projectTitle}, ${data.projectAddress}`
+              : data.projectTitle}
+            onChange={(v) => {
+              // Store full address in projectTitle, clear projectAddress
+              onChange("projectTitle", v);
+              if (data.projectAddress) onChange("projectAddress", "");
+            }}
             onBlur={onBlur}
             as="h2"
-            className="text-xl font-bold"
-            placeholder="Street Address (e.g., 59 Nostrand Pkwy)"
+            className="text-xl font-bold text-gray-900"
+            placeholder="Full Project Address"
             disabled={disabled}
           />
 
-          <EditableText
-            value={data.projectAddress}
-            onChange={(v) => onChange("projectAddress", v)}
-            onBlur={onBlur}
-            className="text-lg text-gray-700"
-            placeholder="City, State ZIP"
-            disabled={disabled}
-          />
-
-          <EditableText
-            value={data.servicesLine}
-            onChange={(v) => onChange("servicesLine", v)}
-            onBlur={onBlur}
-            className="text-lg font-semibold"
-            placeholder="LoD 350 + MEPF"
-            disabled={disabled}
-          />
+          {/* Show per-area scope lines if multiple areas, otherwise single line */}
+          {data.areaScopeLines && data.areaScopeLines.length > 1 ? (
+            <div className="space-y-1">
+              {data.areaScopeLines.map((line, index) => (
+                <div key={index} className="text-base font-semibold text-gray-800">
+                  {line}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EditableText
+              value={data.servicesLine}
+              onChange={(v) => onChange("servicesLine", v)}
+              onBlur={onBlur}
+              className="text-lg font-semibold text-gray-800"
+              placeholder="LoD 350 + MEPF"
+              disabled={disabled}
+            />
+          )}
         </div>
       </div>
 

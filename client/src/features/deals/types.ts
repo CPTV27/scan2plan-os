@@ -111,6 +111,7 @@ export interface LeadDetailsTabProps {
   toast: any;
   documents?: LeadDocument[];
   uploadDocumentMutation: UseMutationResult<LeadDocument, Error, File, unknown>;
+  onLeadCreated?: (leadId: number) => void;
 }
 
 /**

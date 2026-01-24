@@ -6,10 +6,11 @@
 
 import PDFDocument from "pdfkit";
 
-// Brand colors
+// Brand colors - matches WYSIWYG components
 export const COLORS = {
-  primary: "#2563eb",
-  primaryDark: "#1e40af",
+  primary: "#123da7",
+  primaryDark: "#0e2f7a",
+  primaryLight: "#e8f0fe", // Light blue for table headers (matches WYSIWYG)
   text: "#1a1a2e",
   textLight: "#4b5563",
   textMuted: "#6b7280",
@@ -187,11 +188,13 @@ export function renderBulletList(
     color?: string;
     bulletChar?: string;
     indent?: number;
+    lineGap?: number;
   }
 ): number {
   const fontSize = options?.fontSize || 10;
   const bulletChar = options?.bulletChar || "•";
   const indent = options?.indent || 20;
+  const lineGap = options?.lineGap ?? 6;
   const bulletX = PAGE.margin.left + indent;
   const textX = bulletX + 15;
   const textWidth = PAGE.contentWidth - indent - 15;
@@ -205,7 +208,7 @@ export function renderBulletList(
     doc.text(bulletChar, bulletX, y);
     doc.text(item, textX, y, { width: textWidth });
     const itemHeight = doc.heightOfString(item, { width: textWidth });
-    y += itemHeight + 6;
+    y += itemHeight + lineGap;
   });
 
   return y + 10;
@@ -232,6 +235,7 @@ export function renderTable(
   y: number,
   options?: {
     headerBg?: string;
+    headerTextColor?: string;
     rowAltBg?: string;
     fontSize?: number;
     headerFontSize?: number;
@@ -254,7 +258,7 @@ export function renderTable(
   }
 
   // Header text
-  doc.font("Helvetica-Bold").fontSize(headerFontSize).fillColor(COLORS.text);
+  doc.font("Helvetica-Bold").fontSize(headerFontSize).fillColor(options?.headerTextColor || COLORS.text);
   let x = startX;
   columns.forEach((col) => {
     doc.text(col.header, x + 5, y + 6, {
@@ -267,7 +271,7 @@ export function renderTable(
   y += headerHeight;
 
   // Rows
-  doc.font("Helvetica").fontSize(fontSize);
+  doc.font("Helvetica").fontSize(fontSize).fillColor(COLORS.text);
   rows.forEach((row, idx) => {
     // Alternating background
     if (options?.rowAltBg && idx % 2 === 0) {
@@ -281,7 +285,7 @@ export function renderTable(
     x = startX;
     columns.forEach((col) => {
       const value = row[col.key]?.toString() || "";
-      doc.text(value, x + 5, y + 4, {
+      doc.fillColor(COLORS.text).text(value, x + 5, y + 4, {
         width: col.width - 10,
         align: col.align || "left",
       });

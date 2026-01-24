@@ -1,11 +1,13 @@
 import { useLeads } from "@/hooks/use-leads";
 import { useLocation } from "wouter";
 import { Sidebar, MobileHeader } from "@/components/Sidebar";
-import { NotificationBell } from "@/components/NotificationBell";
+// NotificationBell hidden for now
+// import { NotificationBell } from "@/components/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Search, AlertCircle, Loader2, RefreshCw, ChevronLeft, ChevronRight, DollarSign, Building2, Ruler, FileText, Trash2, Target, Phone, FileCheck, Handshake, Trophy, XCircle, ExternalLink, Link2, Brain, Star, Upload, FileSpreadsheet, Calculator, Briefcase, ShieldCheck, ShieldAlert, ShieldX, ShieldOff, Send, Users, FileDown } from "lucide-react";
-import { AIAssistant } from "@/components/AIAssistant";
+// AIAssistant hidden for now
+// import { AIAssistant } from "@/components/AIAssistant";
 import { AIActions } from "@/components/AIActions";
 import { ResearchButton, IntelligenceBadges } from "@/components/ResearchButton";
 import { QuickResearchButtons } from "@/components/QuickResearchButtons";
@@ -299,7 +301,8 @@ function DealCard({
               <span className="text-muted-foreground">Source:</span>
               <Badge
                 variant="secondary"
-                className="text-xs max-w-[80px] truncate"
+                className="text-xs max-w-[120px] truncate"
+                title={lead.leadSource}
                 data-testid={`badge-source-${lead.id}`}
               >
                 {lead.leadSource}
@@ -585,7 +588,8 @@ export default function Sales() {
   const [filterSource, setFilterSource] = useState<string>("all");
   const [filterQboStatus, setFilterQboStatus] = useState<string>("all");
   const [filterHasInvoice, setFilterHasInvoice] = useState<string>("all");
-  const [filterHotLeads, setFilterHotLeads] = useState(false);
+  // Hot leads filter removed - keeping state for potential future use
+  // const [filterHotLeads, setFilterHotLeads] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -801,12 +805,7 @@ export default function Sales() {
       (filterHasInvoice === 'yes' && hasInvoice) ||
       (filterHasInvoice === 'no' && !hasInvoice);
 
-    // Hot leads filter: high value OR high priority, not closed
-    const isHot = (Number(l.value) >= 10000 || (l.leadPriority || 0) >= 4) &&
-      l.dealStage !== 'Closed Won' && l.dealStage !== 'Closed Lost';
-    const matchesHot = !filterHotLeads || isHot;
-
-    return matchesSearch && matchesSource && matchesQboStatus && matchesInvoice && matchesHot;
+    return matchesSearch && matchesSource && matchesQboStatus && matchesInvoice;
   });
 
   const totalValue = leads?.reduce((sum, lead) => sum + Number(lead.value), 0) || 0;
@@ -830,50 +829,7 @@ export default function Sales() {
         <MobileHeader />
         <main className="flex-1 flex flex-col overflow-hidden">
           <header className="p-4 md:p-6 border-b border-border bg-card/50 backdrop-blur-sm flex-shrink-0">
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-display font-bold">Sales Pipeline</h2>
-                  <p className="text-muted-foreground text-sm mt-1">Manage deals through your sales funnel</p>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Button
-                    variant={filterHotLeads ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setFilterHotLeads(!filterHotLeads)}
-                    data-testid="button-hot-leads"
-                    className={filterHotLeads ? "bg-orange-500 hover:bg-orange-600" : ""}
-                  >
-                    🔥 Hot Leads
-                    {filterHotLeads && leads && (
-                      <Badge variant="secondary" className="ml-1 bg-white/20">
-                        {leads.filter(l =>
-                          (Number(l.value) >= 10000 || (l.leadPriority || 0) >= 4) &&
-                          l.dealStage !== 'Closed Won' && l.dealStage !== 'Closed Lost'
-                        ).length}
-                      </Badge>
-                    )}
-                  </Button>
-                  <NotificationBell />
-                  <AIAssistant />
-                  <Button
-                    variant="ghost"
-                    onClick={() => navigate("/sales/trash")}
-                    data-testid="button-view-trash"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" /> Trash
-                  </Button>
-                  <Button
-                    data-testid="button-new-lead"
-                    onClick={() => navigate("/deals/new")}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    New Deal
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
                 <div className="relative flex-1 min-w-[200px] max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
@@ -968,8 +924,24 @@ export default function Sales() {
                     </span>
                   </div>
                 </div>
+
+                <div className="flex items-center gap-2 ml-auto">
+                  <Button
+                    variant="ghost"
+                    onClick={() => navigate("/sales/trash")}
+                    data-testid="button-view-trash"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" /> Recently Deleted
+                  </Button>
+                  <Button
+                    data-testid="button-new-lead"
+                    onClick={() => navigate("/deals/new")}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    New Deal
+                  </Button>
+                </div>
               </div>
-            </div>
           </header>
 
           {/* Bulk Action Bar */}

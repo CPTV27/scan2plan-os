@@ -41,19 +41,21 @@ export default function ProposalBuilder() {
     enabled: !!leadId,
   });
 
-  // Fetch existing proposal for this lead
-  const { data: existingProposal, isLoading: proposalLoading } =
+  // Fetch quotes for this lead to build servicesLine
+  const { data: quotes } = useQuery<CpqQuote[]>({
+    queryKey: [`/api/leads/${leadId}/cpq-quotes`],
+    enabled: !!leadId,
+  });
+
+  // Fetch existing proposals for this lead
+  const { data: existingProposals, isLoading: proposalLoading } =
     useQuery<GeneratedProposal[]>({
       queryKey: [`/api/generated-proposals/lead/${leadId}`],
       enabled: !!leadId,
-      select: (data) => {
-        // Get the first (most recent) proposal
-        if (Array.isArray(data) && data.length > 0) {
-          return data[0];
-        }
-        return null;
-      },
     });
+
+  // Get the first (most recent) proposal
+  const existingProposal = existingProposals?.[0] ?? null;
 
   // Create proposal mutation
   const createMutation = useMutation({
@@ -82,6 +84,8 @@ export default function ProposalBuilder() {
           date: "",
         },
         projectData: data.projectData || {
+          serviceType: "Commercial" as const,
+          hasMatterport: false,
           overview: "",
           scopeItems: [],
           deliverables: [],
@@ -155,19 +159,161 @@ export default function ProposalBuilder() {
   }
 
   // Transform existing proposal to ProposalData if available
+  // Sync address from lead if it has changed
+  const existingCoverData = (existingProposal as any)?.coverData || {};
+  const leadAddress = lead?.projectAddress || "";
+
+  // Build per-area scope lines for display on cover page
+  const buildAreaScopeLines = (): string[] => {
+    const quote = quotes?.[0];
+    if (!quote?.areas) return existingCoverData.areaScopeLines || [];
+
+    const areas = (quote as any).areas as any[] || [];
+    if (areas.length === 0) return [];
+
+    return areas.map((area: any, index: number) => {
+      const areaName = area.name || `Area ${index + 1}`;
+      const disciplines = Array.isArray(area.disciplines) ? area.disciplines : [];
+
+      // Get LOD - check disciplineLods for architecture, or use gradeLod
+      let lod = "300";
+      if (area.disciplineLods && typeof area.disciplineLods === 'object') {
+        const archLod = area.disciplineLods["architecture"]?.toString();
+        if (archLod) {
+          lod = archLod;
+        } else {
+          // Get first discipline's LOD
+          const firstDiscipline = disciplines[0];
+          if (firstDiscipline && area.disciplineLods[firstDiscipline]) {
+            lod = area.disciplineLods[firstDiscipline].toString();
+          }
+        }
+      } else if (area.gradeLod) {
+        lod = area.gradeLod.toString();
+      }
+
+      // Normalize discipline names
+      const normalizedDisciplines = disciplines
+        .filter((d: string) => d && d.toLowerCase() !== "matterport")
+        .map((d: string) => {
+          const lower = d.toLowerCase();
+          if (lower.includes("mep")) return "MEPF";
+          if (lower.includes("struct")) return "Structure";
+          if (lower.includes("site") || lower.includes("topo")) return "Site";
+          if (lower.includes("arch")) return "Architecture";
+          return d.charAt(0).toUpperCase() + d.slice(1);
+        });
+
+      // Check for Matterport
+      const hasMatterport = disciplines.some((d: string) =>
+        d.toLowerCase().includes("matterport")
+      );
+
+      // Build the scope string
+      const parts: string[] = [`LoD ${lod}`];
+      if (normalizedDisciplines.length > 0) {
+        parts.push(normalizedDisciplines.join(" + "));
+      }
+      if (hasMatterport) {
+        parts.push("Matterport");
+      }
+
+      return `${areaName}: ${parts.join(" + ")}`;
+    });
+  };
+
+  // Build servicesLine from current quote data (single line summary)
+  const buildServicesLine = (): string => {
+    const quote = quotes?.[0];
+    if (!quote?.areas) return existingCoverData.servicesLine || "";
+
+    let highestLod = 0;
+    const disciplines = new Set<string>();
+    const services = new Set<string>();
+
+    const areas = (quote as any).areas as any[] || [];
+    areas.forEach((area: any) => {
+      // Extract LoD from disciplineLods - use architecture LoD as the primary one
+      if (area.disciplineLods && typeof area.disciplineLods === 'object') {
+        // Prefer architecture LoD as the main display value
+        const archLod = area.disciplineLods["architecture"];
+        if (archLod) {
+          const lodNum = parseInt(String(archLod), 10);
+          if (!isNaN(lodNum) && lodNum > highestLod) {
+            highestLod = lodNum;
+          }
+        } else {
+          // Fall back to first non-matterport discipline LoD
+          Object.entries(area.disciplineLods).forEach(([key, lod]: [string, any]) => {
+            if (key !== 'matterport' && lod) {
+              const lodNum = parseInt(String(lod), 10);
+              if (!isNaN(lodNum) && lodNum > highestLod) {
+                highestLod = lodNum;
+              }
+            }
+          });
+        }
+      }
+      // Also check gradeLod as fallback
+      if (area.gradeLod && highestLod === 0) {
+        const lodNum = parseInt(String(area.gradeLod), 10);
+        if (!isNaN(lodNum) && lodNum > highestLod) {
+          highestLod = lodNum;
+        }
+      }
+      // Extract disciplines
+      if (area.disciplines && Array.isArray(area.disciplines)) {
+        area.disciplines.forEach((d: string) => {
+          const lower = d.toLowerCase();
+          if (lower === 'matterport') {
+            services.add("Matterport 3D Tour");
+          } else if (lower !== 'architecture') {
+            const displayName = lower === 'mepf' ? 'MEPF' :
+                                lower === 'structural' ? 'Structural' :
+                                lower === 'structure' ? 'Structural' :
+                                lower === 'site' ? 'Site' : d.toUpperCase();
+            disciplines.add(displayName);
+          }
+        });
+      }
+    });
+
+    const parts = [];
+    if (highestLod > 0) parts.push(`LoD ${highestLod}`);
+    if (disciplines.size > 0) parts.push([...disciplines].join(' + '));
+    if (services.size > 0) parts.push([...services].join(' + '));
+    return parts.join(' + ') || existingCoverData.servicesLine || "";
+  };
+
+  // Use lead's current address for the proposal title (syncs if lead address changed)
+  // IMPORTANT: projectTitle contains the address for the estimate table display
+  // Don't fall back to client name - keep address separate from name
+  const areaScopeLines = buildAreaScopeLines();
+  const syncedCoverData = existingProposal ? {
+    projectTitle: leadAddress || "", // Use lead address, don't fall back to client name
+    projectAddress: "", // Combined into projectTitle now
+    servicesLine: buildServicesLine(),
+    areaScopeLines: areaScopeLines.length > 0 ? areaScopeLines : existingCoverData.areaScopeLines,
+    clientName: lead?.clientName || existingCoverData.clientName || "",
+    date: existingCoverData.date || "",
+  } : {
+    projectTitle: "",
+    projectAddress: "",
+    servicesLine: "",
+    areaScopeLines: [],
+    clientName: "",
+    date: "",
+  };
+
   const proposal: ProposalData | null = localProposal ||
     (existingProposal
       ? {
           id: existingProposal.id,
           leadId: existingProposal.leadId,
-          coverData: (existingProposal as any).coverData || {
-            projectTitle: "",
-            projectAddress: "",
-            servicesLine: "",
-            clientName: "",
-            date: "",
-          },
+          coverData: syncedCoverData,
           projectData: (existingProposal as any).projectData || {
+            serviceType: "Commercial" as const,
+            hasMatterport: false,
             overview: "",
             scopeItems: [],
             deliverables: [],

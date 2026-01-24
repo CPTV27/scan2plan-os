@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation, useRoute } from "wouter";
@@ -131,6 +131,7 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
   const [dispatch, setDispatch] = useState("troy");
   const [distance, setDistance] = useState<number | null>(null);
   const [distanceCalculated, setDistanceCalculated] = useState(false);
+  const distanceCalculatedLocallyRef = useRef(false); // Track if user calculated distance in this session
   const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
   const [customTravelCost, setCustomTravelCost] = useState<number | null>(null);
   const [services, setServices] = useState<Record<string, number>>({});
@@ -298,6 +299,7 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
       const data = await response.json();
       setDistance(data.distance);
       setDistanceCalculated(true);
+      distanceCalculatedLocallyRef.current = true; // Mark as calculated in this session
       toast({
         title: "Distance calculated",
         description: `${data.distance} miles from ${dispatch} to project location`,
@@ -329,8 +331,11 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
       setAreas(existingQuote.areas as Area[]);
       setRisks(existingQuote.risks as string[]);
       setDispatch(existingQuote.dispatchLocation);
-      setDistance(existingQuote.distance);
-      setDistanceCalculated(existingQuote.distance !== null && existingQuote.distance !== undefined);
+      // Only update distance state if not locally calculated in this session
+      if (!distanceCalculatedLocallyRef.current) {
+        setDistance(existingQuote.distance);
+        setDistanceCalculated(existingQuote.distance !== null && existingQuote.distance !== undefined);
+      }
       setCustomTravelCost(existingQuote.customTravelCost ? parseFloat(existingQuote.customTravelCost) : null);
       setServices(existingQuote.services as Record<string, number>);
 
@@ -672,7 +677,14 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
       services,
       scopingData: scopingMode ? scopingData : null,
       totalPrice,
-      pricingBreakdown: {},
+      pricingBreakdown: {
+        items: pricingItems.map(item => ({
+          label: item.label,
+          value: item.value,
+          isTotal: item.isTotal || false,
+          isDiscount: item.isDiscount || false,
+        })),
+      },
     };
 
     saveQuoteMutation.mutate(quoteData);
@@ -2185,7 +2197,14 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
       services,
       scopingData: scopingMode ? scopingData : null,
       totalPrice,
-      pricingBreakdown: {},
+      pricingBreakdown: {
+        items: pricingItems.map(item => ({
+          label: item.label,
+          value: item.value,
+          isTotal: item.isTotal || false,
+          isDiscount: item.isDiscount || false,
+        })),
+      },
     };
   }, [projectDetails, leadId, scopingMode, areas, risks, dispatch, distance, customTravelCost, services, scopingData, pricingItems]);
 
