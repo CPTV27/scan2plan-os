@@ -161,11 +161,27 @@ export async function setupAuth(app: Express) {
     passport.authenticate("google", { failureRedirect: "/login?error=auth_failed" }),
     (req, res) => {
       // Successful authentication
-      res.redirect("/");
+      console.log("[Auth] OAuth callback - user:", (req.user as any)?.email);
+      console.log("[Auth] Session ID:", req.sessionID);
+      console.log("[Auth] Session:", JSON.stringify(req.session));
+
+      // Ensure session is saved before redirect
+      req.session.save((err) => {
+        if (err) {
+          console.error("[Auth] Session save error:", err);
+        }
+        console.log("[Auth] Session saved, redirecting to /");
+        res.redirect("/");
+      });
     }
   );
 
   app.get("/api/auth/user", (req, res) => {
+    console.log("[Auth] /api/auth/user - sessionID:", req.sessionID);
+    console.log("[Auth] /api/auth/user - isAuthenticated:", req.isAuthenticated?.());
+    console.log("[Auth] /api/auth/user - user:", (req.user as any)?.email || "none");
+    console.log("[Auth] /api/auth/user - cookies:", req.headers.cookie ? "present" : "missing");
+
     if (req.isAuthenticated() && req.user) {
       res.json(req.user);
     } else {
