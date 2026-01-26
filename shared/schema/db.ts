@@ -186,6 +186,7 @@ export const leads = pgTable("leads", {
   signatureImage: text("signature_image"), // Base64 PNG of signature
   signerName: text("signer_name"), // Full name of person who signed
   signerEmail: text("signer_email"), // Email of person who signed
+  signerTitle: text("signer_title"), // Title/role of person who signed
   signedAt: timestamp("signed_at"), // When proposal was signed
   signatureProposalId: integer("signature_proposal_id"), // Which proposal version to use for signature
   // Signature Audit Trail (for ESIGN Act compliance)
