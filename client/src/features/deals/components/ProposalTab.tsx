@@ -173,16 +173,32 @@ export function ProposalTab({ lead }: ProposalTabProps) {
 
       setSignatureUrl(data.signatureUrl);
 
-      // Automatically copy to clipboard
-      await navigator.clipboard.writeText(data.signatureUrl);
+      // Automatically copy to clipboard with fallback
+      let copiedSuccessfully = false;
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(data.signatureUrl);
+          copiedSuccessfully = true;
+        }
+      } catch (clipboardError) {
+        console.warn("Clipboard API failed:", clipboardError);
+      }
 
       const selectedProposal = sortedProposals.find(p => p.id === proposalId);
-      toast({
-        title: "✓ Link Copied to Clipboard!",
-        description: selectedProposal
-          ? `Proposal v${selectedProposal.version || 1} signature link is ready to paste. Link expires in 7 days.`
-          : "Signature link is ready to paste. Link expires in 7 days.",
-      });
+
+      if (copiedSuccessfully) {
+        toast({
+          title: "✓ Link Copied to Clipboard!",
+          description: selectedProposal
+            ? `Proposal v${selectedProposal.version || 1} signature link is ready to paste. Link expires in 7 days.`
+            : "Signature link is ready to paste. Link expires in 7 days.",
+        });
+      } else {
+        toast({
+          title: "Signature link generated",
+          description: "Copy the link below to send to your client.",
+        });
+      }
     } catch (error) {
       toast({
         title: "Failed to generate link",
