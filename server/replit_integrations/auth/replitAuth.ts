@@ -59,7 +59,7 @@ export async function setupAuth(app: Express) {
       store: new PgSession({
         conString: process.env.DATABASE_URL,
         tableName: "sessions",
-        createTableIfMissing: false, // Table already exists
+        createTableIfMissing: true, // Auto-create if missing
       }),
       secret: sessionSecret || "dev-secret-change-in-production",
       resave: false,
