@@ -173,12 +173,15 @@ export function ProposalTab({ lead }: ProposalTabProps) {
 
       setSignatureUrl(data.signatureUrl);
 
+      // Automatically copy to clipboard
+      await navigator.clipboard.writeText(data.signatureUrl);
+
       const selectedProposal = sortedProposals.find(p => p.id === proposalId);
       toast({
-        title: "Signature link generated",
+        title: "✓ Link Copied to Clipboard!",
         description: selectedProposal
-          ? `Using proposal v${selectedProposal.version || 1}. Copy the link below to send to your client.`
-          : "Copy the link below to send to your client",
+          ? `Proposal v${selectedProposal.version || 1} signature link is ready to paste. Link expires in 7 days.`
+          : "Signature link is ready to paste. Link expires in 7 days.",
       });
     } catch (error) {
       toast({

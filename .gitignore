@@ -5,7 +5,10 @@ server/public
 vite.config.ts.*
 *.tar.gz
 claude.exe
-resources/
+resources/*
+!resources/documentation
+resources/documentation/*
+!resources/documentation/products and descriptions.csv
 
 # Environment variables - NEVER commit secrets
 .env

@@ -1,0 +1,491 @@
+"Product/Service Name","Variant Name","Quantity on hand","Item type","Single,parent or variant?","Category","SKU","Option 1 name","Option 1 value","Option 2 name","Option 2 value","Option 3 name","Option 3 value","Option 4 name","Option 4 value","Option 5 name","Option 5 value","Price","Cost","Income Account","Expense Account","Inventory asset account","Sales Description","Purchase Description","Reorder Point"
+"2D / 3D Floor Plan Combo","",0,"Service","Single","HVT","HVT 2D / 3D PKG","","","","","","","","","","",99,"0","Sales","","","Schematic Floor Plans & juicy full-color furnished Floor Plans  in one package",,0
+"2D Floor Plan","",0,"Service","Single","HVT","HVT 2ND TOUR","","","","","","","","","","",50,"0","Sales","","","Order Schematic Floor Plans directly from the tour; deliver labeled 2D plans with total area and ANSI GLA option (where needed). Marketing-grade (not construction).",,0
+"3D Floor Plan","",0,"Service","Single","HVT","HVT 3D TOUR","","","","","","","","","","",65,"0","Sales","","","Order juicy full-color furnished Floor Plans directly from the tour; quick read of entire space; realistic looks, more detail; attracts serious buyer interest",,0
+"Annotations","",0,"Service","Single","HVT","HVT ANNOT","","","","","","","","","","",150,"0","Sales","","","Conversion-oriented tags for amenities, promos, menus, product links, and wayfinding—styled and positioned per Matterport guidance to reduce drop-off and drive clicks.",,0
+"CAD Interior Elevations","",0,"Service","Single","CAD","CAD INT ELEV","","","","","","","","","","","0","0","Sales","","","CAD Interior Elevations (per sheet) - dwg & pdf",,0
+"CAD Interior Package","",0,"Service","Single","CAD","CAD INT PKG","","","","","","","","","","","0","0","Sales","","","CAD Interior Package
+
+A set of architectural drawings (.dwg & .pdf) delivered in Scan2Plan’s CAD standard.
+
+Deliverables include:
+
+• Floor Plan(s)
+• Up to 6 sections or interior elevations
+• Reflected Ceiling Plan(s)",,0
+"CAD + MEPF Standard Package","",0,"Service","Single","CAD","CAD MEPF STD PKG","","","","","","","","","","","0","0","Sales","","","CAD + MEPF Standard Package
+Deliverables include:
+• Floor Plans  • Reflected Ceiling Plans
+• Up to 4 sections or interior elevations
+• Exterior Elevations
+• Roof Plan
+A set of architectural drawings (.dwg & .pdf) delivered in Scan2Plan’s LoD 200 CAD standard.
+
+Deliverables include:
+• Floor Plans
+• Up to 4 sections or interior elevations
+• Exterior Elevations
+• Roof Plan",,0
+"CAD Sections","",0,"Service","Single","CAD","CAD SEC","","","","","","","","","","","0","0","Sales","","","CAD Sections (per sheet) - dwg & pdf",,0
+"CAD Standard Package","",0,"Service","Single","CAD","CAD STD PKG","","","","","","","","","","","0","0","Sales","","","CAD Standard Package
+
+A set of architectural drawings (.dwg & .pdf) delivered in Scan2Plan’s CAD standard.
+
+Deliverables include:
+• Floor Plans
+• Up to 4 sections or interior elevations
+• Exterior Elevations
+• Roof Plan",,0
+"CAD + Structure + MEPF + Site Package","",0,"Service","Single","CAD","CAD STC MEPF PKG","","","","","","","","","","","0","0","Sales","","","CAD + Structure + MEPF + Site Package",,0
+"CAD + Structure Standard Package","",0,"Service","Single","CAD","CAD STC STD PKG","","","","","","","","","","","0","0","Sales","","","CAD + Structure Standard Package
+A set of architectural drawings (.dwg & .pdf) delivered in Scan2Plan’s LoD 200 CAD standard.
+
+Deliverables include:
+• Floor Plans  • Reflected Ceiling Plans
+• Up to 4 sections or interior elevations
+• Exterior Elevations
+• Roof Plan
+A set of architectural drawings (.dwg & .pdf) delivered in Scan2Plan’s LoD 200 CAD standard.
+
+Deliverables include:
+• Floor Plans
+• Up to 4 sections or interior elevations
+• Exterior Elevations
+• Roof Plan",,0
+"Credit","",0,"Service","Single","Price Mods","PM CRE","","","","","","","","","","","0","0","Sales","","","Credit",,0
+"Credit Card 3%","",0,"Service","Single","Price Mods","PM CRE CRD","","","","","","","","","","","0","0","Sales","","","Credit Card 3%",,0
+"Discount","",0,"Service","Single","Price Mods","PM DIS","","","","","","","","","","","0","0","Sales","","","Discount",,0
+"Estimated 50% due upon project activation","",0,"Service","Single","Price Mods","PM 50% DUE","","","","","","","","","","","0","0","Sales","","","Estimated 50% due upon project activation",,0
+"Expedited Service","",0,"Service","Single","Price Mods","PM EXP SER","","","","","","","","","","","0","0","Sales","","","Expedited Service",,0
+"Exposed Ceilings","",0,"Service","Single","Add Ons","AO EXP CEIL","","","","","","","","","","","0","0","Sales","","","Any visible details of exposed ceilings
+will be included . Specific size, shape,
+location, and orientation will be
+indicated. Includes scanning above
+ceiling tile, where appropriate.
+Assistance is required for the moving
+and returning of ceiling tiles.",,0
+"Fire / Flood","",0,"Service","Single","Price Mods","PM FIR FLD","","","","","","","","","","","0","0","Sales","","","Fire / Flood",,0
+"Georeferencing","",0,"Service","Single","Add Ons","AO GEOREF","","","","","","","","","","","0","0","Sales","","","Georeferencing (Survey-grade): Point cloud data coordinates Georeferenced using GNSS System. Establish shared coordinates tied to civil survey control (EPSG/State Plane); set Revit Shared Site, verify against a linked survey DWG, and publish coordinates for downstream DWG/IFC exports so models land in the right spot in Civil 3D/GIS. Includes QC report + test DWG export.",,0
+"Google Street View Publishing","",0,"Service","Single","HVT","HVT GOOGLE","","","","","","","","","","",150,"0","Sales","","","We publish your Matterport tour to your Google Maps business listing and Street View as connected 360° panospheres (the blue circles), with a quick QA on placement and links.",,0
+"Grade - LoD 200","",0,"Service","Single","Added Disciplines","AD GRADE 200","","","","","","","","","","","0","0","Sales","","","Scan2Plan Grade Service includes modeling and drafting of the building grade 20' surrounding the building. Basic topography with approx dimentions of features and buildings",,0
+"Grade - LoD 300","",0,"Service","Single","Added Disciplines","AD GRADE 300","","","","","","","","","","","0","0","Sales","","","Scan2Plan Grade Service includes modeling and drafting of the building grade 20' surrounding the building. Basic topography with added details like type, pattern and basic ground features",,0
+"Grade - LoD 350","",0,"Service","Single","Added Disciplines","AD GRADE 350","","","","","","","","","","","0","0","Sales","","","Scan2Plan Grade Service includes modeling and drafting of the building grade 20' surrounding the building. Detailed topography including land development features, finishes, flower beds, shrubbery, trees in sidewalk boxes or on mowed land",,0
+"Hours","",0,"Service","Single",,,"","","","","","","","","","","0","0","Sales","","",,,0
+"IFC / DXF Model","",0,"Service","Single","Add Ons","AO IFC DXF","","","","","","","","","","","0","0","Sales","","","Converted from Revit (.rvt) into .ifc or .dxf, file format.",,0
+"Landscape Service - LoD 200","",0,"Service","Single","S2P","S2P LNDSCP 200","","","","","","","","","","",,,"Sales","","","Scan2Plan Landscape Service includes modeling and drafting of the property’s current topographic features.
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 300 Revit Model 
+• CAD site plan
+Basic topography with approx dimentions of features and buildings
+Topographic services are provided for the use of design purposes only. The documentation is not a land survey.",,0
+"Landscape Service - LoD 300","",0,"Service","Single","S2P","S2P LNDSCP 300","","","","","","","","","","","0","0","Sales","","","Scan2Plan Landscape Service includes modeling and drafting of the property’s current topographic features.
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 300 Revit Model 
+• CAD site plan
+Basic topography with details like type, pattern and basic ground features
+Topographic services are provided for the use of design purposes only. The documentation is not a land survey.",,0
+"Landscape Service - LoD 350","",0,"Service","Single","S2P","S2P LNDSCP 350","","","","","","","","","","","0","0","Sales","","","Scan2Plan Landscape Service includes modeling and drafting of the property’s current topographic features.
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 300 Revit Model 
+• CAD site plan
+Detailed topography with land development features, finishes, rooftop, equipment, trees & foliage etc.
+Topographic services are provided for the use of design purposes only. The documentation is not a land survey.",,0
+"LiDAR Scanning and Point Cloud Registration","",0,"Service","Single","S2P","S2P LID SCN PNT CLD REG","","","","","","","","","","","0","0","Sales","","","A scanning technician will perform the LiDAR capture and preliminary point cloud registration on-site. A registration technician will clean and register the colorized point cloud. 
+
+Deliverables include:
+• Colorized Point Cloud (.rcp format)
+• Registration Report
+• Actual Square Footage Audit
+• Upon request we can deliver in E57, .xyz or other point cloud formats.",,0
+"Matterport 3D Tour","",0,"Service","Single","Add Ons","AO MAT 3D TOUR","","","","","","","","","","","0","0","Sales","","","High resolution 360 photo documentation and virtual tour walkthrough. An excellent remote collaboration tool, easily shared and viewed on any mobile or desktop device, Includes 3D dollhouse, floor plan views, and site-specific custom annotations.",,0
+"Matterport 3D Tour - HVT","",0,"Service","Single","HVT","HVT MAT 3D TOUR","","","","","","","","","","",0.1,"0","Sales","","","Pro-calibrated capture with branded start view, and privacy-safe publishing. Optimized for engagement across web, booking engines, and social.",,0
+"Matterport 3D Tour Package","",0,"Service","Single","HVT","HVT MAT 3D TOUR PKG","","","","","","","","","","","0","0","Sales","","","3D Tour + Photos + 2D Floor Plan",,0
+"MEPF LoD 200","",0,"Service","Single","Added Disciplines","AD MEPF 200","","","","","","","","","","","0","0","Sales","","","Any visible mechanical, electrical, plumbing, HVAC and fire safety components will be included in the BIM and/or working drawings. Specific size, shape, location, and orientation will be indicated. Adds generic systems with approximate size/location for space-claim and early coordination—no fabrication intent.",,0
+"MEPF LoD 300","",0,"Service","Single","Added Disciplines","AD MEPF 300","","","","","","","","","","","0","0","Sales","","","Any visible mechanical, electrical, plumbing, HVAC and fire safety components will be included in the BIM and/or working drawings. Specific size, shape, location, and orientation will be indicated. Adds accurately sized/placed elements suitable for measured quantities and CDs; coordination-ready geometry.",,0
+"MEPF LoD 350","",0,"Service","Single","Added Disciplines","AD MEPF 350","","","","","","","","","","","0","0","Sales","","","Any visible mechanical, electrical, plumbing, HVAC and fire safety components will be included in the BIM and/or working drawings. Specific size, shape, location, and orientation will be indicated. Adds connections, supports, and interface features so penetrations/mounting align across trades for clash resolution.",,0
+"Net 60","",0,"Service","Single","Price Mods","PM NET 60","","","","","","","","","","","0","0","Sales","","","NET 60",,0
+"Net 90","",0,"Service","Single","Price Mods","PM NET 90","","","","","","","","","","","0","0","Sales","","","NET 90",,0
+"No Power","",0,"Service","Single","Price Mods","PM NO POW","","","","","","","","","","","0","0","Sales","","","No Power",,0
+"Occupied","",0,"Service","Single","Price Mods","PM OCC","","","","","","","","","","","0","0","Sales","","","Occupied",,0
+"Photography","",0,"Service","Single","HVT","HVT PHOTOG","","","","","","","","","","",50,"0","Sales","","","Hi Resolution HDR Photo Gallery",,0
+"Rhino Model","",0,"Service","Single","Add Ons","AO RHINO MDL","","","","","","","","","","","0","0","Sales","","","3D DWG Model with discreet geometry converted from Revit for Rinoceros fidelity",,0
+"Risk Factor - Occupied","",0,"Service","Single",,,"","","","","","","","","","","0","0","Sales","","",,,0
+"Scan2Plan ACAD Commercial - LoD 200","",0,"Service","Single","S2P","S2P ACAD COM 200","","","","","","","","","","","0","0","Sales","","","Scan2Plan Commercial Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft building.
+
+Includes interior and exterior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 200 Archicad Model  -  (Approximate Geometry / Schematic Level) Project Type: Feasibility, Concept Design, Permits, Purpose: Diagrammatic geometry, spatial validation",,0
+"Scan2Plan ACAD Commercial - LoD 300","",0,"Service","Single","S2P","S2P ACAD COM 300","","","","","","","","","","","0","0","Sales","","","Scan2Plan Commercial Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft building.
+
+Includes interior and exterior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 300 Archicad Model (Accurate Geometry / Construction‑Ready) Project Type: Renovations, Retrofits, Purpose: Accurate geometry for coordination + take-offs",,0
+"Scan2Plan ACAD Commercial - LoD 350","",0,"Service","Single","S2P","S2P ACAD COM 350","","","","","","","","","","","0","0","Sales","","","Scan2Plan Commercial Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft building.
+
+Includes interior and exterior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 350 Archicad Model (Precise Geometry / Specialized Detail) Project Type: Historic Preservation, Adaptive Reuse Purpose: Detail-rich model for clash detection + fabrication-level planning",,0
+"Scan2Plan ACAD Residential - LoD 200","",0,"Service","Single","S2P","S2P ACAD RES 200","","","","","","","","","","","0","0","Sales","","","Scan2Plan Residential Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft residence.
+
+Includes interior and exterior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 200 Archicad Model -  (Approximate Geometry / Schematic Level) Project Type: Feasibility, Concept Design, Permits, Purpose: Diagrammatic geometry, spatial validation",,0
+"Scan2Plan ACAD Residential - LoD 300","",0,"Service","Single","S2P","S2P ACAD RES 300","","","","","","","","","","","0","0","Sales","","","Scan2Plan Residential Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft residence.
+
+Includes interior and exterior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 300 Archicad Model  (Accurate Geometry / Construction‑Ready) Project Type: Renovations, Retrofits, Purpose: Accurate geometry for coordination + take-offs",,0
+"Scan2Plan ACAD Residential - LoD 350","",0,"Service","Single","S2P","S2P ACAD RES 350","","","","","","","","","","","0","0","Sales","","","Scan2Plan Residential Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft residence.
+
+Includes interior and exterior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 350 Archicad Model  (Precise Geometry / Specialized Detail) Project Type: Historic Preservation, Adaptive Reuse Purpose: Detail-rich model for clash detection + fabrication-level planning",,0
+"Scan2Plan Commercial - LoD 200","",0,"Service","Single","S2P","S2P COM 200","","","","","","","","","","","0","0","Sales","","","Scan2Plan Commercial Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft building.
+
+Includes interior and exterior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 200 Revit Model -  (Approximate Geometry / Schematic Level) Project Type: Feasibility, Concept Design, Permits, Purpose: Diagrammatic geometry, spatial validation",,0
+"Scan2Plan Commercial - LoD 200 (EXT-ONLY)","",0,"Service","Single","S2P","S2P COM EXT 200","","","","","","","","","","","0","0","Sales","","","Scan2Plan Commercial Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft building.
+
+Includes exterior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 200 Revit Model -  (Approximate Geometry / Schematic Level) Project Type: Feasibility, Concept Design, Permits, Purpose: Diagrammatic geometry, spatial validation",,0
+"Scan2Plan Commercial - LoD 200 (INT-ONLY)","",0,"Service","Single","S2P","S2P COM INT 200","","","","","","","","","","","0","0","Sales","","","Scan2Plan Commercial Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft building.
+
+Includes interior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 200 Revit Model -  (Approximate Geometry / Schematic Level) Project Type: Feasibility, Concept Design, Permits, Purpose: Diagrammatic geometry, spatial validation",,0
+"Scan2Plan Commercial - LoD 300","",0,"Service","Single","S2P","S2P COM 300","","","","","","","","","","","0","0","Sales","","","Scan2Plan Commercial Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft building.
+
+Includes interior and exterior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 300 Revit Model  (Accurate Geometry / Construction‑Ready) Project Type: Renovations, Retrofits, Purpose: Accurate geometry for coordination + take-offs",,0
+"Scan2Plan Commercial - LoD 300 (EXT-ONLY)","",0,"Service","Single","S2P","S2P COM EXT 300","","","","","","","","","","","0","0","Sales","","","Scan2Plan Commercial Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft building.
+
+Includes exterior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 300 Revit Model  (Accurate Geometry / Construction‑Ready) Project Type: Renovations, Retrofits, Purpose: Accurate geometry for coordination + take-offs",,0
+"Scan2Plan Commercial - LoD 300 (INT-ONLY)","",0,"Service","Single","S2P","S2P COM INT 300","","","","","","","","","","","0","0","Sales","","","Scan2Plan Commercial Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft building.
+
+Includes interior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 300 Revit Model  (Accurate Geometry / Construction‑Ready) Project Type: Renovations, Retrofits, Purpose: Accurate geometry for coordination + take-offs",,0
+"Scan2Plan Commercial - LoD 350","",0,"Service","Single","S2P","S2P COM 350","","","","","","","","","","","0","0","Sales","","","Scan2Plan Commercial Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft building.
+
+Includes interior and exterior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 350 Revit Model  (Precise Geometry / Specialized Detail) Project Type: Historic Preservation, Adaptive Reuse Purpose: Detail-rich model for clash detection + fabrication-level planning",,0
+"Scan2Plan Commercial - LoD 350 (EXT-ONLY)","",0,"Service","Single","S2P","S2P COM EXT 350","","","","","","","","","","","0","0","Sales","","","Scan2Plan Commercial Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft building.
+
+Includes exterior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 350 Revit Model  (Precise Geometry / Specialized Detail) Project Type: Historic Preservation, Adaptive Reuse Purpose: Detail-rich model for clash detection + fabrication-level planning",,0
+"Scan2Plan Commercial - LoD 350 (INT-ONLY)","",0,"Service","Single","S2P","S2P COM INT 350","","","","","","","","","","","0","0","Sales","","","Scan2Plan Commercial Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft building.
+
+Includes interior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 350 Revit Model  (Precise Geometry / Specialized Detail) Project Type: Historic Preservation, Adaptive Reuse Purpose: Detail-rich model for clash detection + fabrication-level planning",,0
+"Scan2Plan Residential - LoD 200","",0,"Service","Single","S2P","S2P RES 200","","","","","","","","","","","0","0","Sales","","","Scan2Plan Residential Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft residence.
+
+Includes interior and exterior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 200 Revit Model -  (Approximate Geometry / Schematic Level) Project Type: Feasibility, Concept Design, Permits, Purpose: Diagrammatic geometry, spatial validation",,0
+"Scan2Plan Residential - LoD 200 (EXT-ONLY)","",0,"Service","Single","S2P","S2P RES EXT 200","","","","","","","","","","","0","0","Sales","","","Scan2Plan Residential Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft residence.
+
+Includes exterior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 200 Revit Model -  (Approximate Geometry / Schematic Level) Project Type: Feasibility, Concept Design, Permits, Purpose: Diagrammatic geometry, spatial validation",,0
+"Scan2Plan Residential - LoD 200 (INT-ONLY)","",0,"Service","Single","S2P","S2P RES INT 200","","","","","","","","","","","0","0","Sales","","","Scan2Plan Residential Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft residence.
+
+Includes interior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 200 Revit Model -  (Approximate Geometry / Schematic Level) Project Type: Feasibility, Concept Design, Permits, Purpose: Diagrammatic geometry, spatial validation",,0
+"Scan2Plan Residential - LoD 300","",0,"Service","Single","S2P","S2P RES 300","","","","","","","","","","","0","0","Sales","","","Scan2Plan Residential Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft residence.
+
+Includes interior and exterior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 300 Revit Model  (Accurate Geometry / Construction‑Ready) Project Type: Renovations, Retrofits, Purpose: Accurate geometry for coordination + take-offs",,0
+"Scan2Plan Residential - LoD 300 (EXT-ONLY)","",0,"Service","Single","S2P","S2P RES EXT 300","","","","","","","","","","","0","0","Sales","","","Scan2Plan Residential Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft residence.
+
+Includes exterior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 300 Revit Model  (Accurate Geometry / Construction‑Ready) Project Type: Renovations, Retrofits, Purpose: Accurate geometry for coordination + take-offs",,0
+"Scan2Plan Residential - LoD 300 (INT-ONLY)","",0,"Service","Single","S2P","S2P RES INT 300","","","","","","","","","","","0","0","Sales","","","Scan2Plan Residential Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft residence.
+
+Includes interior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 300 Revit Model  (Accurate Geometry / Construction‑Ready) Project Type: Renovations, Retrofits, Purpose: Accurate geometry for coordination + take-offs",,0
+"Scan2Plan Residential - LoD 350","",0,"Service","Single","S2P","S2P RES 350","","","","","","","","","","","0","0","Sales","","","Scan2Plan Residential Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft residence.
+
+Includes interior and exterior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 350 Revit Model  (Precise Geometry / Specialized Detail) Project Type: Historic Preservation, Adaptive Reuse Purpose: Detail-rich model for clash detection + fabrication-level planning",,0
+"Scan2Plan Residential - LoD 350 (EXT-ONLY)","",0,"Service","Single","S2P","S2P RES EXT 350","","","","","","","","","","","0","0","Sales","","","Scan2Plan Residential Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft residence.
+
+Includes exterior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 350 Revit Model  (Precise Geometry / Specialized Detail) Project Type: Historic Preservation, Adaptive Reuse Purpose: Detail-rich model for clash detection + fabrication-level planning",,0
+"Scan2Plan Residential - LoD 350 (INT-ONLY)","",0,"Service","Single","S2P","S2P RES INT 350","","","","","","","","","","","0","0","Sales","","","Scan2Plan Residential Service for the property located at ______
+_____
+
+Scan2Plan will provide BIM existing conditions documentation for the 
+_________ sqft residence.
+
+Includes interior LiDAR point cloud capture, registration, modeling, QC and project management. 
+
+Scanning and delivery times depend on the total area scanned and modeled. 
+
+Deliverables include:
+
+• Total Square Footage Audit
+• Colorized Point Cloud (.rcp format) 
+• LoD 350 Revit Model  (Precise Geometry / Specialized Detail) Project Type: Historic Preservation, Adaptive Reuse Purpose: Detail-rich model for clash detection + fabrication-level planning",,0
+"Services","",0,"Service","Single",,,"","","","","","","","","","","0","0","Sales","","",,,0
+"Sketchup Model","",0,"Service","Single","Add Ons","AO SKETCH MOD","","","","","","","","","","","0","0","Sales","","",".skp Model with discreet geometry converted from Revit for Sketchup fidelity",,0
+"Structural Modeling - LoD 200","",0,"Service","Single","Added Disciplines","AD STR MOD 200","","","","","","","","","","","0","0","Sales","","","Any visible structural components will be included in the BIM and/or working drawings. Specific size, shape, location, and orientation will be indicated. Adds generic systems with approximate size/location for space-claim and early coordination—no fabrication intent.",,0
+"Structural Modeling - LoD 300","",0,"Service","Single","Added Disciplines","AD STR MOD 300","","","","","","","","","","","0","0","Sales","","","Any visible structural components will be included in the BIM and/or working drawings. Specific size, shape, location, and orientation will be indicated. Adds accurately sized/placed elements suitable for measured quantities and CDs; coordination-ready geometry.",,0
+"Structural Modeling - LoD 350","",0,"Service","Single","Added Disciplines","AD STR MOD 350","","","","","","","","","","","0","0","Sales","","","Any visible structural components will be included in the BIM and/or working drawings. Specific size, shape, location, and orientation will be indicated. Adds connections, supports, and interface features so penetrations/mounting align across trades for clash resolution.",,0
+"travel","",0,"Service","Single",,,"","","","","","","","","","","0","0","Sales","","",,,0
+"Vectorworks Model","",0,"Service","Single","Add Ons","AO VCT MDL","","","","","","","","","","","0","0","Sales","","","Revit, IFC and/or DWG with discreet geometry converted from Revit for Vectorworks fidelity",,0
