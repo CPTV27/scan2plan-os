@@ -116,26 +116,27 @@ export function ClientSignaturePage() {
     // Success state after signing
     if (signed) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-white p-4">
-                <Card className="max-w-lg w-full border-gray-200">
+            <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#ffffff' }}>
+                <Card className="max-w-lg w-full shadow-lg" style={{ backgroundColor: '#ffffff', borderColor: '#e5e7eb' }}>
                     <CardHeader>
-                        <div className="flex items-center gap-2 text-green-600">
+                        <div className="flex items-center gap-2" style={{ color: '#16a34a' }}>
                             <CheckCircle className="w-6 h-6" />
-                            <CardTitle className="text-gray-900">Proposal Signed Successfully!</CardTitle>
+                            <CardTitle style={{ color: '#111827' }}>Proposal Signed Successfully!</CardTitle>
                         </div>
-                        <CardDescription className="text-gray-600">
+                        <CardDescription style={{ color: '#4b5563' }}>
                             Thank you for signing the proposal. Your agreement has been recorded.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="p-4 bg-gray-50 rounded-lg text-sm space-y-2 border border-gray-200">
-                            <p className="text-gray-900"><strong>Project:</strong> {proposal.projectName}</p>
-                            <p className="text-gray-900"><strong>Date:</strong> {new Date().toLocaleString()}</p>
+                        <div className="p-4 rounded-lg text-sm space-y-2" style={{ backgroundColor: '#f9fafb', border: '1px solid #e5e7eb' }}>
+                            <p style={{ color: '#111827' }}><strong>Project:</strong> {proposal.projectName}</p>
+                            <p style={{ color: '#111827' }}><strong>Date:</strong> {new Date().toLocaleString()}</p>
                         </div>
 
                         {signedPdfUrl && (
                             <Button
-                                className="w-full gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                                className="w-full gap-2"
+                                style={{ backgroundColor: '#2563eb', color: '#ffffff', border: 'none' }}
                                 onClick={() => window.open(signedPdfUrl, '_blank')}
                             >
                                 <Download className="w-4 h-4" />
@@ -143,7 +144,7 @@ export function ClientSignaturePage() {
                             </Button>
                         )}
 
-                        <p className="text-sm text-gray-600 text-center">
+                        <p className="text-sm text-center" style={{ color: '#4b5563' }}>
                             A copy of the signed proposal has been sent to the Scan2Plan team.
                             They will be in touch shortly to begin your project.
                         </p>
@@ -156,31 +157,31 @@ export function ClientSignaturePage() {
     // Already signed state
     if (proposal.isSigned) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-white p-4">
-                <Card className="max-w-md w-full border-gray-200">
+            <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#ffffff' }}>
+                <Card className="max-w-md w-full shadow-lg" style={{ backgroundColor: '#ffffff', borderColor: '#e5e7eb' }}>
                     <CardHeader>
-                        <div className="flex items-center gap-2 text-green-600">
+                        <div className="flex items-center gap-2" style={{ color: '#16a34a' }}>
                             <CheckCircle className="w-5 h-5" />
-                            <CardTitle className="text-gray-900">Proposal Already Signed</CardTitle>
+                            <CardTitle style={{ color: '#111827' }}>Proposal Already Signed</CardTitle>
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                        <p className="text-gray-600">
+                        <p style={{ color: '#4b5563' }}>
                             This proposal has already been signed.
                         </p>
                         {proposal.signerName && (
-                            <div className="p-3 bg-gray-50 rounded-lg text-sm border border-gray-200">
-                                <p className="text-gray-900"><strong>Signed by:</strong> {proposal.signerName}</p>
+                            <div className="p-3 rounded-lg text-sm" style={{ backgroundColor: '#f9fafb', border: '1px solid #e5e7eb' }}>
+                                <p style={{ color: '#111827' }}><strong>Signed by:</strong> {proposal.signerName}</p>
                                 {proposal.signedAt && (
-                                    <p className="text-gray-900"><strong>Date:</strong> {new Date(proposal.signedAt).toLocaleString()}</p>
+                                    <p style={{ color: '#111827' }}><strong>Date:</strong> {new Date(proposal.signedAt).toLocaleString()}</p>
                                 )}
                             </div>
                         )}
 
                         {token && (
                             <Button
-                                variant="outline"
-                                className="w-full gap-2 border-gray-300 text-gray-900 hover:bg-gray-50"
+                                className="w-full gap-2"
+                                style={{ backgroundColor: '#2563eb', color: '#ffffff', border: 'none' }}
                                 onClick={() => window.open(`/api/public/proposals/${token}/signed-pdf`, '_blank')}
                             >
                                 <Download className="w-4 h-4" />
