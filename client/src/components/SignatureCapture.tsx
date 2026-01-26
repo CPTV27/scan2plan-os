@@ -23,6 +23,7 @@ interface SignatureCaptureProps {
         signatureImage: string;
         signerName: string;
         signerEmail: string;
+        signerTitle: string;
         signedAt: Date;
         agreedToTerms: boolean;
     }) => void;
@@ -43,6 +44,7 @@ export function SignatureCapture({
 
     const [signerName, setSignerName] = useState(clientName || "");
     const [signerEmail, setSignerEmail] = useState("");
+    const [signerTitle, setSignerTitle] = useState("");
     const [isEmpty, setIsEmpty] = useState(true);
     const [agreedToTerms, setAgreedToTerms] = useState(false);
     const [signatureMode, setSignatureMode] = useState<"draw" | "type">("draw");
@@ -134,6 +136,15 @@ export function SignatureCapture({
             return;
         }
 
+        if (!signerTitle.trim()) {
+            toast({
+                title: "Title required",
+                description: "Please enter your title or role.",
+                variant: "destructive",
+            });
+            return;
+        }
+
         if (!agreedToTerms) {
             toast({
                 title: "Agreement required",
@@ -147,6 +158,7 @@ export function SignatureCapture({
             signatureImage,
             signerName: signerName.trim(),
             signerEmail: signerEmail.trim(),
+            signerTitle: signerTitle.trim(),
             signedAt: new Date(),
             agreedToTerms: true,
         });
@@ -202,6 +214,15 @@ export function SignatureCapture({
                             placeholder="john@example.com"
                             value={signerEmail}
                             onChange={(e) => setSignerEmail(e.target.value)}
+                        />
+                    </div>
+                    <div className="space-y-2 col-span-2 sm:col-span-1">
+                        <Label htmlFor="signerTitle">Title / Role *</Label>
+                        <Input
+                            id="signerTitle"
+                            placeholder="Project Manager, Owner, etc."
+                            value={signerTitle}
+                            onChange={(e) => setSignerTitle(e.target.value)}
                         />
                     </div>
                 </div>

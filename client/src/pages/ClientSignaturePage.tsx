@@ -65,6 +65,7 @@ export function ClientSignaturePage() {
         signatureImage: string;
         signerName: string;
         signerEmail: string;
+        signerTitle: string;
         signedAt: Date;
     }) => {
         if (!token) return;

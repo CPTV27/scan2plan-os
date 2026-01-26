@@ -41,6 +41,15 @@ const PAGE = {
   contentWidth: 484, // 612 - 64*2
 };
 
+// Signature data for signed PDFs
+export interface SignatureData {
+  signatureImage: string;
+  signerName: string;
+  signerEmail: string;
+  signerTitle: string;
+  signedAt: Date | string;
+}
+
 // Full proposal data structure (matches WYSIWYG ProposalData)
 export interface WYSIWYGProposalData {
   id: number;
@@ -51,6 +60,7 @@ export interface WYSIWYGProposalData {
   paymentData: ProposalPaymentData;
   subtotal: number;
   total: number;
+  signatureData?: SignatureData; // Optional: filled in for signed PDFs
 }
 
 /**
@@ -702,7 +712,7 @@ function renderEstimatePage(
  * Page 5: Payment Page
  * Matches ProposalPaymentPage.tsx
  */
-function renderPaymentPage(doc: PDFKit.PDFDocument, data: ProposalPaymentData): void {
+function renderPaymentPage(doc: PDFKit.PDFDocument, data: ProposalPaymentData, signatureData?: SignatureData): void {
   let y = PAGE.margin;
 
   // Title
@@ -776,21 +786,46 @@ function renderPaymentPage(doc: PDFKit.PDFDocument, data: ProposalPaymentData): 
   const sigWidth = 200;
   const col2X = PAGE.margin + sigWidth + 40;
 
-  // Row 1
+  // Row 1: Signature and Date
+  if (signatureData?.signatureImage) {
+    // Draw actual signature image
+    try {
+      const base64Data = signatureData.signatureImage.replace(/^data:image\/\w+;base64,/, "");
+      const signatureBuffer = Buffer.from(base64Data, "base64");
+      doc.image(signatureBuffer, PAGE.margin, y - 20, { width: 150, height: 45 });
+    } catch (error) {
+      console.warn("[WYSIWYG PDF] Could not embed signature image:", error);
+    }
+  }
   drawLine(doc, PAGE.margin, y + 24, PAGE.margin + sigWidth, y + 24, COLORS.border);
   doc.font("Inter").fontSize(9).fillColor(COLORS.textLight).text("Client Signature", PAGE.margin, y + 28);
 
+  // Date field
+  if (signatureData?.signedAt) {
+    const signedDate = new Date(signatureData.signedAt).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    doc.font("Inter").fontSize(11).fillColor(COLORS.text).text(signedDate, col2X, y + 5);
+  }
   drawLine(doc, col2X, y + 24, col2X + sigWidth, y + 24, COLORS.border);
-  doc.text("Date", col2X, y + 28);
+  doc.font("Inter").fontSize(9).fillColor(COLORS.textLight).text("Date", col2X, y + 28);
 
   y += 50;
 
-  // Row 2
+  // Row 2: Print Name and Title
+  if (signatureData?.signerName) {
+    doc.font("Inter").fontSize(11).fillColor(COLORS.text).text(signatureData.signerName, PAGE.margin, y + 5);
+  }
   drawLine(doc, PAGE.margin, y + 24, PAGE.margin + sigWidth, y + 24, COLORS.border);
-  doc.text("Print Name", PAGE.margin, y + 28);
+  doc.font("Inter").fontSize(9).fillColor(COLORS.textLight).text("Print Name", PAGE.margin, y + 28);
 
+  if (signatureData?.signerTitle) {
+    doc.font("Inter").fontSize(11).fillColor(COLORS.text).text(signatureData.signerTitle, col2X, y + 5);
+  }
   drawLine(doc, col2X, y + 24, col2X + sigWidth, y + 24, COLORS.border);
-  doc.text("Title", col2X, y + 28);
+  doc.font("Inter").fontSize(9).fillColor(COLORS.textLight).text("Title", col2X, y + 28);
 
   renderFooter(doc);
 }
@@ -1110,9 +1145,9 @@ export async function generateWYSIWYGPdf(
   doc.addPage();
   renderEstimatePage(doc, data.lineItems, data.coverData, data.leadId, data.total);
 
-  // Page 5: Payment
+  // Page 5: Payment (with signature if provided)
   doc.addPage();
-  renderPaymentPage(doc, data.paymentData);
+  renderPaymentPage(doc, data.paymentData, data.signatureData);
 
   // Page 6: Capabilities
   doc.addPage();

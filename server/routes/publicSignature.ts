@@ -180,12 +180,12 @@ publicSignatureRouter.post(
     "/api/public/proposals/:token/sign",
     asyncHandler(async (req, res) => {
         const { token } = req.params;
-        const { signatureImage, signerName, signerEmail, agreedToTerms } = req.body;
+        const { signatureImage, signerName, signerEmail, signerTitle, agreedToTerms } = req.body;
 
         // Validate required fields including e-consent
-        if (!signatureImage || !signerName || !signerEmail) {
+        if (!signatureImage || !signerName || !signerEmail || !signerTitle) {
             return res.status(400).json({
-                message: "signatureImage, signerName, and signerEmail are required"
+                message: "signatureImage, signerName, signerEmail, and signerTitle are required"
             });
         }
 
@@ -246,6 +246,7 @@ publicSignatureRouter.post(
             signatureImage,
             signerName,
             signerEmail,
+            signerTitle,
             signedAt,
             signerIpAddress,
             signerUserAgent,
@@ -292,6 +293,7 @@ publicSignatureRouter.get(
         const signatureImage = (lead as any).signatureImage;
         const signerName = (lead as any).signerName;
         const signerEmail = (lead as any).signerEmail;
+        const signerTitle = (lead as any).signerTitle || "";
 
         if (!signedAt || !signatureImage) {
             return res.status(400).json({ message: "This proposal has not been signed yet" });
@@ -325,7 +327,7 @@ publicSignatureRouter.get(
                 const sp = savedProposal as any;
 
                 if (sp.coverData && sp.lineItems) {
-                    // Use WYSIWYG generator for the full proposal
+                    // Use WYSIWYG generator with signature data embedded in Acknowledgement section
                     const wysiwygData: WYSIWYGProposalData = {
                         id: sp.id,
                         leadId: lead.id,
@@ -347,83 +349,19 @@ publicSignatureRouter.get(
                         },
                         subtotal: Number(sp.subtotal) || 0,
                         total: Number(sp.total) || 0,
+                        // Include signature data to fill in Acknowledgement section
+                        signatureData: {
+                            signatureImage,
+                            signerName,
+                            signerEmail,
+                            signerTitle,
+                            signedAt,
+                        },
                     };
 
                     log(`INFO: Generating signed WYSIWYG PDF for lead ${lead.id}`);
 
                     const pdfDoc = await generateWYSIWYGPdf(wysiwygData);
-
-                    // Add signature page at the end
-                    pdfDoc.addPage();
-
-                    let y = 72;
-
-                    // Signature section - no title, just the signature
-                    pdfDoc
-                        .font("Helvetica-Bold")
-                        .fontSize(14)
-                        .fillColor("#1f2937")
-                        .text("Client Acceptance", 72, y);
-
-                    y += 40;
-
-                    // Signature image
-                    if (signatureImage) {
-                        try {
-                            const base64Data = signatureImage.replace(/^data:image\/\w+;base64,/, "");
-                            const signatureBuffer = Buffer.from(base64Data, "base64");
-                            pdfDoc.image(signatureBuffer, 72, y, { width: 200, height: 60 });
-                            y += 70;
-                        } catch (error) {
-                            log(`WARN: Could not embed signature image: ${error}`);
-                            pdfDoc
-                                .font("Helvetica-Oblique")
-                                .fontSize(10)
-                                .fillColor("#6b7280")
-                                .text("[Signature on file]", 72, y);
-                            y += 25;
-                        }
-                    }
-
-                    // Signature line
-                    pdfDoc
-                        .moveTo(72, y)
-                        .lineTo(272, y)
-                        .strokeColor("#9ca3af")
-                        .lineWidth(1)
-                        .stroke();
-
-                    y += 20;
-
-                    // Signer details
-                    pdfDoc
-                        .font("Helvetica")
-                        .fontSize(10)
-                        .fillColor("#4b5563")
-                        .text(signerName, 72, y);
-
-                    y += 16;
-                    pdfDoc.text(signerEmail, 72, y);
-
-                    y += 16;
-                    pdfDoc.text(new Date(signedAt).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                    }), 72, y);
-
-                    y += 40;
-
-                    // Legal text
-                    pdfDoc
-                        .font("Helvetica")
-                        .fontSize(8)
-                        .fillColor("#6b7280")
-                        .text(
-                            "This electronic signature is legally binding under the ESIGN Act and UETA. " +
-                            "By signing, the client agrees to the terms and conditions outlined in this proposal.",
-                            72, y, { width: 468 }
-                        );
 
                     res.setHeader('Content-Type', 'application/pdf');
                     res.setHeader('Content-Disposition',
