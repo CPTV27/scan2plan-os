@@ -262,12 +262,12 @@ export function SignatureCapture({
                 </div>
 
                 {/* E-Signature Consent Checkbox - Required for legal compliance */}
-                <div className="flex items-start space-x-3 p-4 border rounded-lg bg-gray-50">
+                <div className="flex items-start space-x-3 p-4 border rounded-lg bg-white">
                     <Checkbox
                         id="agreedToTerms"
                         checked={agreedToTerms}
                         onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
-                        className="mt-1"
+                        className="mt-1 h-5 w-5 border-2 border-gray-400 data-[state=checked]:border-primary"
                     />
                     <div className="space-y-1">
                         <Label
