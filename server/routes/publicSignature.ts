@@ -292,28 +292,18 @@ publicSignatureRouter.get(
         const signatureImage = (lead as any).signatureImage;
         const signerName = (lead as any).signerName;
         const signerEmail = (lead as any).signerEmail;
-        const signerIpAddress = (lead as any).signerIpAddress || 'Not recorded';
-        const signerUserAgent = (lead as any).signerUserAgent || 'Not recorded';
-        const documentHash = (lead as any).documentHash || 'Not available';
 
         if (!signedAt || !signatureImage) {
             return res.status(400).json({ message: "This proposal has not been signed yet" });
         }
 
-        // Fetch quote for this lead
-        const quotes = await cpqStorage.getQuotesByLeadId(lead.id);
-        const quote: any = quotes.find((q: any) => q.isLatest) || quotes[0] || null;
-
         // Check for saved WYSIWYG proposal
-        // Use signatureProposalId if set, otherwise use most recent
         const signatureProposalId = (lead as any).signatureProposalId;
-        let proposalData;
 
         try {
             let savedProposal;
 
             if (signatureProposalId) {
-                // Use specific proposal version selected for signature
                 const [specificProposal] = await db
                     .select()
                     .from(generatedProposals)
@@ -322,7 +312,6 @@ publicSignatureRouter.get(
                 savedProposal = specificProposal;
                 log(`INFO: Using specific proposal ${signatureProposalId} for signed PDF`);
             } else {
-                // Fall back to most recent
                 const savedProposals = await db
                     .select()
                     .from(generatedProposals)
@@ -336,283 +325,134 @@ publicSignatureRouter.get(
                 const sp = savedProposal as any;
 
                 if (sp.coverData && sp.lineItems) {
-                    proposalData = {
-                        projectTitle: sp.coverData.projectTitle || lead.projectName || lead.clientName || "Project",
-                        clientName: sp.coverData.clientName || lead.clientName || "",
-                        date: sp.coverData.date || new Date().toLocaleDateString("en-US"),
-                        location: sp.coverData.projectAddress || lead.projectAddress || "",
-                        overview: {
-                            projectName: sp.coverData.projectTitle || lead.projectName || "",
-                            address: sp.coverData.projectAddress || lead.projectAddress || "",
-                            buildingType: lead.buildingType || "Commercial",
-                            sqft: Number(lead.sqft) || 0,
-                            description: sp.projectData?.overview || "",
+                    // Use WYSIWYG generator for the full proposal
+                    const wysiwygData: WYSIWYGProposalData = {
+                        id: sp.id,
+                        leadId: lead.id,
+                        coverData: sp.coverData,
+                        projectData: sp.projectData || {
+                            serviceType: "Commercial",
+                            hasMatterport: false,
+                            overview: "",
+                            scopeItems: [],
+                            deliverables: [],
+                            timelineIntro: "",
+                            milestones: [],
                         },
-                        scope: {
-                            scopeSummary: sp.projectData?.scopeItems?.join("; ") || "",
-                            disciplines: sp.coverData.servicesLine || "",
-                            deliverables: sp.projectData?.deliverables?.join(", ") || "Revit Model",
-                            lodLevels: [],
+                        lineItems: sp.lineItems,
+                        paymentData: sp.paymentData || {
+                            terms: [],
+                            paymentMethods: [],
+                            acknowledgementDate: "",
                         },
-                        timeline: {
-                            duration: sp.projectData?.timelineIntro || "4-6 weeks",
-                            milestones: sp.projectData?.milestones || [],
-                        },
-                        lineItems: sp.lineItems.map((item: any) => ({
-                            item: item.itemName,
-                            description: item.description,
-                            qty: item.qty,
-                            rate: item.rate,
-                            amount: item.amount,
-                        })),
                         subtotal: Number(sp.subtotal) || 0,
                         total: Number(sp.total) || 0,
-                        paymentTerms: {
-                            structure: sp.paymentData?.terms?.[0] || "50% upfront, 50% upon delivery",
-                            upfrontAmount: (Number(sp.total) || 0) * 0.5,
-                            totalAmount: Number(sp.total) || 0,
-                            methods: sp.paymentData?.paymentMethods || ["ACH", "Check"],
-                            terms: "Net 30",
-                        },
                     };
+
+                    log(`INFO: Generating signed WYSIWYG PDF for lead ${lead.id}`);
+
+                    const pdfDoc = await generateWYSIWYGPdf(wysiwygData);
+
+                    // Add signature page at the end
+                    pdfDoc.addPage();
+
+                    let y = 72;
+
+                    // Signature section - no title, just the signature
+                    pdfDoc
+                        .font("Helvetica-Bold")
+                        .fontSize(14)
+                        .fillColor("#1f2937")
+                        .text("Client Acceptance", 72, y);
+
+                    y += 40;
+
+                    // Signature image
+                    if (signatureImage) {
+                        try {
+                            const base64Data = signatureImage.replace(/^data:image\/\w+;base64,/, "");
+                            const signatureBuffer = Buffer.from(base64Data, "base64");
+                            pdfDoc.image(signatureBuffer, 72, y, { width: 200, height: 60 });
+                            y += 70;
+                        } catch (error) {
+                            log(`WARN: Could not embed signature image: ${error}`);
+                            pdfDoc
+                                .font("Helvetica-Oblique")
+                                .fontSize(10)
+                                .fillColor("#6b7280")
+                                .text("[Signature on file]", 72, y);
+                            y += 25;
+                        }
+                    }
+
+                    // Signature line
+                    pdfDoc
+                        .moveTo(72, y)
+                        .lineTo(272, y)
+                        .strokeColor("#9ca3af")
+                        .lineWidth(1)
+                        .stroke();
+
+                    y += 20;
+
+                    // Signer details
+                    pdfDoc
+                        .font("Helvetica")
+                        .fontSize(10)
+                        .fillColor("#4b5563")
+                        .text(signerName, 72, y);
+
+                    y += 16;
+                    pdfDoc.text(signerEmail, 72, y);
+
+                    y += 16;
+                    pdfDoc.text(new Date(signedAt).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                    }), 72, y);
+
+                    y += 40;
+
+                    // Legal text
+                    pdfDoc
+                        .font("Helvetica")
+                        .fontSize(8)
+                        .fillColor("#6b7280")
+                        .text(
+                            "This electronic signature is legally binding under the ESIGN Act and UETA. " +
+                            "By signing, the client agrees to the terms and conditions outlined in this proposal.",
+                            72, y, { width: 468 }
+                        );
+
+                    res.setHeader('Content-Type', 'application/pdf');
+                    res.setHeader('Content-Disposition',
+                        `attachment; filename="Scan2Plan_Signed_Proposal_${lead.clientName?.replace(/[^a-zA-Z0-9]/g, '_') || 'Client'}.pdf"`);
+
+                    pdfDoc.pipe(res);
+                    pdfDoc.end();
+                    return;
                 }
             }
         } catch (error: any) {
-            log(`WARN: Could not fetch saved proposal for signed PDF: ${error?.message}`);
+            log(`WARN: Could not generate signed WYSIWYG PDF: ${error?.message}`);
         }
 
-        // Fall back to fresh data if no saved proposal
-        if (!proposalData) {
-            proposalData = mapProposalData(lead, quote);
-        }
+        // Fallback to legacy generator if no WYSIWYG proposal found
+        const quotes = await cpqStorage.getQuotesByLeadId(lead.id);
+        const quote: any = quotes.find((q: any) => q.isLatest) || quotes[0] || null;
+        const proposalData = mapProposalData(lead, quote);
 
-        log(`INFO: Generating signed proposal PDF for lead ${lead.id}`);
+        log(`INFO: Generating signed PDF using legacy generator for lead ${lead.id}`);
 
-        // Generate proposal PDF
-        const proposalPdfDoc = await generateProposalPDF(proposalData);
+        const pdfDoc = await generateProposalPDF(proposalData);
 
-        // Collect proposal PDF into buffer
-        const proposalChunks: Buffer[] = [];
-        await new Promise<void>((resolve, reject) => {
-            proposalPdfDoc.on('data', (chunk: Buffer) => proposalChunks.push(chunk));
-            proposalPdfDoc.on('end', () => resolve());
-            proposalPdfDoc.on('error', (err: Error) => reject(err));
-            proposalPdfDoc.end();
-        });
-
-        // Create new PDF with proposal + signature page
-        const signedDoc = new PDFDocument({
-            size: "LETTER",
-            margins: { top: 72, bottom: 72, left: 72, right: 72 },
-            info: {
-                Title: `Signed Proposal - ${proposalData.projectTitle}`,
-                Author: "Scan2Plan",
-                Subject: "Signed Proposal Document",
-            },
-        });
-
-        // Stream signed PDF to response
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition',
             `attachment; filename="Scan2Plan_Signed_Proposal_${lead.clientName?.replace(/[^a-zA-Z0-9]/g, '_') || 'Client'}.pdf"`);
 
-        signedDoc.pipe(res);
-
-        // Add signature acceptance page
-        let y = 72;
-
-        // Header
-        signedDoc
-            .font("Helvetica-Bold")
-            .fontSize(24)
-            .fillColor("#1a365d")
-            .text("Proposal Acceptance", 72, y, { width: 468, align: "center" });
-
-        y += 50;
-
-        // Acceptance text
-        signedDoc
-            .font("Helvetica")
-            .fontSize(12)
-            .fillColor("#374151")
-            .text(
-                `This document confirms that the proposal for "${proposalData.projectTitle}" ` +
-                `has been reviewed and accepted by the undersigned client.`,
-                72, y, { width: 468 }
-            );
-
-        y += 60;
-
-        // Proposal details box
-        signedDoc
-            .fillColor("#f3f4f6")
-            .rect(72, y, 468, 120)
-            .fill();
-
-        signedDoc
-            .font("Helvetica-Bold")
-            .fontSize(11)
-            .fillColor("#1f2937")
-            .text("Project Details", 90, y + 15);
-
-        signedDoc
-            .font("Helvetica")
-            .fontSize(10)
-            .fillColor("#4b5563");
-
-        const details = [
-            ["Project:", proposalData.projectTitle || "N/A"],
-            ["Client:", proposalData.clientName || "N/A"],
-            ["Location:", proposalData.location || "N/A"],
-            ["Total Value:", `$${proposalData.total?.toLocaleString() || "0"}`],
-        ];
-
-        let detailY = y + 35;
-        for (const [label, value] of details) {
-            signedDoc
-                .font("Helvetica-Bold")
-                .text(label, 90, detailY, { continued: true })
-                .font("Helvetica")
-                .text(` ${value}`);
-            detailY += 18;
-        }
-
-        y += 140;
-
-        // Signature section
-        signedDoc
-            .font("Helvetica-Bold")
-            .fontSize(11)
-            .fillColor("#1f2937")
-            .text("Client Signature", 72, y);
-
-        y += 25;
-
-        // Signature image
-        if (signatureImage) {
-            try {
-                // Decode base64 signature image
-                const base64Data = signatureImage.replace(/^data:image\/\w+;base64,/, "");
-                const signatureBuffer = Buffer.from(base64Data, "base64");
-
-                signedDoc.image(signatureBuffer, 72, y, { width: 250, height: 80 });
-                y += 90;
-            } catch (error) {
-                log(`WARN: Could not embed signature image: ${error}`);
-                signedDoc
-                    .font("Helvetica-Oblique")
-                    .fontSize(10)
-                    .fillColor("#6b7280")
-                    .text("[Signature on file]", 72, y);
-                y += 25;
-            }
-        }
-
-        // Signature line
-        signedDoc
-            .moveTo(72, y)
-            .lineTo(322, y)
-            .strokeColor("#9ca3af")
-            .stroke();
-
-        y += 15;
-
-        // Signer details
-        signedDoc
-            .font("Helvetica")
-            .fontSize(10)
-            .fillColor("#4b5563")
-            .text(`Signed by: ${signerName}`, 72, y);
-
-        y += 18;
-        signedDoc.text(`Email: ${signerEmail}`, 72, y);
-
-        y += 18;
-        signedDoc.text(`Date: ${new Date(signedAt).toLocaleString()}`, 72, y);
-
-        y += 40;
-
-        // Legal text
-        signedDoc
-            .font("Helvetica")
-            .fontSize(9)
-            .fillColor("#6b7280")
-            .text(
-                "By signing above, the client acknowledges receipt of the proposal, agrees to the terms " +
-                "and conditions outlined therein, and authorizes Scan2Plan to proceed with the project " +
-                "as specified. This electronic signature is legally binding under the ESIGN Act and UETA.",
-                72, y, { width: 468 }
-            );
-
-        y += 50;
-
-        // Audit Trail / Certificate of Completion
-        signedDoc
-            .fillColor("#f8fafc")
-            .rect(72, y, 468, 130)
-            .fill();
-
-        signedDoc
-            .strokeColor("#e5e7eb")
-            .rect(72, y, 468, 130)
-            .stroke();
-
-        signedDoc
-            .font("Helvetica-Bold")
-            .fontSize(10)
-            .fillColor("#1f2937")
-            .text("Certificate of Completion - Audit Trail", 90, y + 12);
-
-        signedDoc
-            .font("Helvetica")
-            .fontSize(8)
-            .fillColor("#4b5563");
-
-        const auditY = y + 30;
-        const auditItems = [
-            ["Signer:", signerName],
-            ["Email:", signerEmail],
-            ["Signed At:", new Date(signedAt).toISOString()],
-            ["IP Address:", signerIpAddress],
-            ["User Agent:", signerUserAgent.length > 60 ? signerUserAgent.substring(0, 60) + '...' : signerUserAgent],
-            ["Document Hash:", documentHash.substring(0, 32) + '...'],
-        ];
-
-        let auditItemY = auditY;
-        for (const [label, value] of auditItems) {
-            signedDoc
-                .font("Helvetica-Bold")
-                .text(label, 90, auditItemY, { continued: true, width: 80 })
-                .font("Helvetica")
-                .text(` ${value}`, { width: 368 });
-            auditItemY += 14;
-        }
-
-        // Footer
-        const footerY = 720;
-        signedDoc
-            .moveTo(72, footerY)
-            .lineTo(540, footerY)
-            .strokeColor("#d1d5db")
-            .stroke();
-
-        signedDoc
-            .font("Helvetica")
-            .fontSize(8)
-            .fillColor("#9ca3af")
-            .text(
-                "Scan2Plan, Inc • 188 1st St, Troy NY, 12180 • (518) 362-2403 • admin@scan2plan.io • scan2plan.io",
-                72, footerY + 10, { width: 468, align: "center" }
-            );
-
-        signedDoc
-            .fontSize(8)
-            .text(
-                `Document ID: ${token.substring(0, 16)}... | Hash: ${documentHash.substring(0, 16)}... | Generated: ${new Date().toISOString()}`,
-                72, footerY + 22, { width: 468, align: "center" }
-            );
-
-        signedDoc.end();
+        pdfDoc.pipe(res);
+        pdfDoc.end();
     })
 );
 
