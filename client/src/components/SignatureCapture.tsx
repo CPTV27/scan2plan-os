@@ -57,9 +57,8 @@ export function SignatureCapture({
             const ctx = canvas.getContext("2d");
             if (!ctx) return;
 
-            // Clear canvas
-            ctx.fillStyle = "white";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Clear canvas with transparency (not white)
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             // Draw signature text in cursive style
             ctx.fillStyle = "#1a365d";
@@ -248,6 +247,7 @@ export function SignatureCapture({
                             <div className="border-2 border-dashed rounded-lg p-1 bg-white">
                                 <SignatureCanvas
                                     ref={sigCanvas}
+                                    backgroundColor="rgba(255,255,255,0)"
                                     canvasProps={{
                                         className: "w-full h-40 rounded cursor-crosshair",
                                         style: { touchAction: "none" }
@@ -283,21 +283,21 @@ export function SignatureCapture({
                 </div>
 
                 {/* E-Signature Consent Checkbox - Required for legal compliance */}
-                <div className="flex items-start space-x-3 p-4 border rounded-lg bg-white">
+                <div className="flex items-start space-x-3 p-4 border border-gray-300 rounded-lg bg-gray-50">
                     <Checkbox
                         id="agreedToTerms"
                         checked={agreedToTerms}
                         onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
-                        className="mt-1 h-5 w-5 border-2 border-gray-400 data-[state=checked]:border-primary"
+                        className="mt-0.5 h-5 w-5 border-2 border-gray-400 data-[state=checked]:border-primary"
                     />
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                         <Label
                             htmlFor="agreedToTerms"
-                            className="text-sm font-medium leading-none cursor-pointer"
+                            className="text-sm font-semibold text-gray-900 cursor-pointer"
                         >
                             I agree to sign this document electronically *
                         </Label>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-sm text-gray-600 leading-relaxed">
                             By checking this box, I consent to conduct business electronically and agree that my
                             electronic signature is legally binding under the ESIGN Act and UETA. I acknowledge
                             receipt of this proposal and agree to the terms and conditions outlined in the document.

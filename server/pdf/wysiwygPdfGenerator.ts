@@ -788,11 +788,12 @@ function renderPaymentPage(doc: PDFKit.PDFDocument, data: ProposalPaymentData, s
 
   // Row 1: Signature and Date
   if (signatureData?.signatureImage) {
-    // Draw actual signature image
+    // Draw actual signature image with transparent background, positioned above the line
     try {
       const base64Data = signatureData.signatureImage.replace(/^data:image\/\w+;base64,/, "");
       const signatureBuffer = Buffer.from(base64Data, "base64");
-      doc.image(signatureBuffer, PAGE.margin, y - 20, { width: 150, height: 45 });
+      // Position signature so it sits just above the signature line (line is at y + 24)
+      doc.image(signatureBuffer, PAGE.margin, y - 5, { width: 150, height: 30 });
     } catch (error) {
       console.warn("[WYSIWYG PDF] Could not embed signature image:", error);
     }
