@@ -9,6 +9,7 @@ interface PricingLineItem {
   editable?: boolean;
   isDiscount?: boolean;
   isTotal?: boolean;
+  isAreaHeader?: boolean;
   upteamCost?: number;
 }
 
@@ -54,7 +55,18 @@ export default function PricingSummary({ items, onEdit, totalClientPrice, totalU
       <CardContent className="space-y-3">
         {items.map((item, index) => {
           const sqftData = extractSqftAndRate(item.label, item.value);
-          
+
+          // Area header - render with border, no value
+          if (item.isAreaHeader) {
+            return (
+              <div key={index} className="border border-border rounded-md p-2 mt-4 first:mt-0 bg-muted/30">
+                <span className="text-sm font-semibold text-foreground">
+                  {item.label}
+                </span>
+              </div>
+            );
+          }
+
           return (
             <div key={index}>
               {item.isTotal && index > 0 && <Separator className="my-4" />}

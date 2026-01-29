@@ -74,6 +74,7 @@ interface PricingLineItem {
   editable?: boolean;
   isDiscount?: boolean;
   isTotal?: boolean;
+  isAreaHeader?: boolean;
   upteamCost?: number;
 }
 
@@ -778,7 +779,7 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
       "13": "Infrastructure / Roads / Bridges",
       "14": "Built Landscape",
       "15": "Natural Landscape",
-      "16": "ACT (Above/Below Acoustic Ceiling Tiles) [rate pending]",
+      "16": "Above Ceiling Tiles (ACT)",
     };
 
     const disciplineMap: Record<string, string> = {
@@ -1767,9 +1768,10 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
         const areaName = area.name || `Area ${areaIndex + 1}`;
         const buildingTypeLabel = BUILDING_TYPES.find(bt => bt.id === area.buildingType)?.label || "";
         items.push({
-          label: `── ${areaName}${buildingTypeLabel ? ` (${buildingTypeLabel})` : ''} ──`,
+          label: `${areaName}${buildingTypeLabel ? ` (${buildingTypeLabel})` : ''}`,
           value: 0,
           editable: false,
+          isAreaHeader: true,
         });
       }
       const inputValue = isLandscape ? parseFloat(area.squareFeet) || 0 : parseInt(area.squareFeet) || 0;

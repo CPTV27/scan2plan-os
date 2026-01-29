@@ -17,7 +17,7 @@ const BUILDING_TYPES = [
   { value: "13", label: "Infrastructure / Roads / Bridges" },
   { value: "14", label: "Built Landscape" },
   { value: "15", label: "Natural Landscape" },
-  { value: "16", label: "ACT (Above/Below Acoustic Ceiling Tiles) [rate pending]" },
+  { value: "16", label: "Above Ceiling Tiles (ACT)" },
 ];
 
 interface BuildingTypeSelectProps {
