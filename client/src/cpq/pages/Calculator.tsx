@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuoteAutosave } from "@/hooks/use-quote-autosave";
 import { AutosaveStatus } from "@/components/AutosaveStatus";
 import type { Quote } from "@shared/schema";
+import { BUILDING_TYPES } from "@/features/cpq/pricing";
 import { Button } from "@/components/ui/button";
 import { Plus, Save, Download, FileText, ExternalLink, Loader2 } from "lucide-react";
 import JSZip from "jszip";
@@ -41,6 +42,13 @@ interface Facade {
   label: string;
 }
 
+interface CustomLineItem {
+  id: string;
+  name: string;
+  pricePerSqft: string;
+  sqft: string;
+}
+
 interface Area {
   id: string;
   name: string;
@@ -57,6 +65,7 @@ interface Area {
   gradeLod: string;
   includeCad: boolean;
   additionalElevations: number;
+  customLineItems: CustomLineItem[];
 }
 
 interface PricingLineItem {
@@ -125,7 +134,7 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
     notes: "",
   });
   const [areas, setAreas] = useState<Area[]>([
-    { id: "1", name: "", buildingType: "", squareFeet: "", scope: "full", disciplines: [], disciplineLods: {}, mixedInteriorLod: "300", mixedExteriorLod: "300", numberOfRoofs: 0, facades: [], gradeAroundBuilding: false, gradeLod: "300", includeCad: false, additionalElevations: 0 },
+    { id: "1", name: "", buildingType: "", squareFeet: "", scope: "full", disciplines: [], disciplineLods: {}, mixedInteriorLod: "300", mixedExteriorLod: "300", numberOfRoofs: 0, facades: [], gradeAroundBuilding: false, gradeLod: "300", includeCad: false, additionalElevations: 0, customLineItems: [] },
   ]);
   const [risks, setRisks] = useState<string[]>([]);
   const [dispatch, setDispatch] = useState("troy");
@@ -184,7 +193,7 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
     setProjectDetails((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleAreaChange = (id: string, field: keyof Area, value: string | boolean | number | Facade[]) => {
+  const handleAreaChange = (id: string, field: keyof Area, value: string | boolean | number | Facade[] | CustomLineItem[]) => {
     setAreas((prev) =>
       prev.map((area) => {
         if (area.id !== id) return area;
@@ -221,7 +230,7 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
   const addArea = () => {
     setAreas((prev) => [
       ...prev,
-      { id: Date.now().toString(), name: "", buildingType: "", squareFeet: "", scope: "full", disciplines: [], disciplineLods: {}, mixedInteriorLod: "300", mixedExteriorLod: "300", numberOfRoofs: 0, facades: [], gradeAroundBuilding: false, gradeLod: "300", includeCad: false, additionalElevations: 0 },
+      { id: Date.now().toString(), name: "", buildingType: "", squareFeet: "", scope: "full", disciplines: [], disciplineLods: {}, mixedInteriorLod: "300", mixedExteriorLod: "300", numberOfRoofs: 0, facades: [], gradeAroundBuilding: false, gradeLod: "300", includeCad: false, additionalElevations: 0, customLineItems: [] },
     ]);
   };
 
@@ -934,14 +943,24 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
     const dispatchLabel = dispatchMap[dispatch] || dispatch;
     text += `Dispatch Location: ${dispatchLabel}\n`;
     if (distanceCalculated && distance !== null) {
-      const totalSqft = areas.reduce((sum, area) => {
+      // Calculate standard sqft and landscape acres separately for scan days
+      const standardSqft = areas.reduce((sum, area) => {
         const isLandscape = area.buildingType === "14" || area.buildingType === "15";
-        const inputValue = parseInt(area.squareFeet) || 0;
-        return sum + (isLandscape ? inputValue * 43560 : inputValue);
+        if (isLandscape) return sum;
+        return sum + (parseInt(area.squareFeet) || 0);
       }, 0);
-      const estimatedScanDays = Math.ceil(totalSqft / 10000);
+      const landscapeAcres = areas.reduce((sum, area) => {
+        const isLandscape = area.buildingType === "14" || area.buildingType === "15";
+        if (!isLandscape) return sum;
+        return sum + (parseFloat(area.squareFeet) || 0);
+      }, 0);
+      const totalSqft = standardSqft + Math.round(landscapeAcres * 43560);
+      // Scan days: 10,000 sqft/day for standard + 5 acres/day for landscape
+      const standardScanDays = Math.ceil(standardSqft / 10000);
+      const landscapeScanDays = Math.ceil(landscapeAcres / 5);
+      const estimatedScanDays = Math.max(1, standardScanDays + landscapeScanDays);
       text += `Distance: ${distance} miles\n`;
-      text += `Estimated Scan Days: ${estimatedScanDays}\n`;
+      text += `Estimated Scan Days: ${estimatedScanDays}${landscapeAcres > 0 ? ` (${landscapeScanDays} landscape + ${standardScanDays} standard)` : ''}\n`;
 
       if (dispatch === "brooklyn") {
         const isTierB = totalSqft >= 10000 && totalSqft < 50000;
@@ -1736,13 +1755,27 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
     // Fallback upteam multiplier if database rate not found
     const UPTEAM_MULTIPLIER_FALLBACK = 0.65;
 
-    areas.forEach((area) => {
+    // Track if we have multiple areas for grouping headers
+    const hasMultipleAreas = areas.length > 1;
+
+    areas.forEach((area, areaIndex) => {
       const isLandscape = area.buildingType === "14" || area.buildingType === "15";
       const isACT = area.buildingType === "16";
+
+      // Add area header for multi-area quotes
+      if (hasMultipleAreas && (area.name || area.squareFeet)) {
+        const areaName = area.name || `Area ${areaIndex + 1}`;
+        const buildingTypeLabel = BUILDING_TYPES.find(bt => bt.id === area.buildingType)?.label || "";
+        items.push({
+          label: `── ${areaName}${buildingTypeLabel ? ` (${buildingTypeLabel})` : ''} ──`,
+          value: 0,
+          editable: false,
+        });
+      }
       const inputValue = isLandscape ? parseFloat(area.squareFeet) || 0 : parseInt(area.squareFeet) || 0;
 
       const scope = area.scope || "full";
-      const disciplines = isLandscape ? ["site"] : isACT ? ["mepf"] : (area.disciplines.length > 0 ? area.disciplines : []);
+      const disciplines = isLandscape ? ["site"] : isACT ? ["act"] : (area.disciplines.length > 0 ? area.disciplines : []);
 
       // Helper function to calculate pricing for a discipline with a specific lod and scope portion
       const calculateDisciplinePricing = (discipline: string, lod: string, scopePortion: number, scopeType: string) => {
@@ -1759,9 +1792,10 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
           upteamLineCost = lineTotal * UPTEAM_MULTIPLIER_FALLBACK;
         } else if (isACT) {
           const sqft = Math.max(inputValue, 3000);
-          lineTotal = sqft * 2.00 * scopePortion;
+          // ACT pricing not yet configured - show $0
+          lineTotal = 0;
           areaLabel = `${sqft.toLocaleString()} sqft`;
-          upteamLineCost = lineTotal * UPTEAM_MULTIPLIER_FALLBACK;
+          upteamLineCost = 0;
         } else if (discipline === "matterport") {
           const sqft = Math.max(inputValue, 3000);
           lineTotal = sqft * 0.10;
@@ -1881,9 +1915,13 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
 
           if (!isLandscape && !isACT && discipline !== "matterport") {
             if (scope === "interior") {
-              scopeDiscount = lineTotal * 0.25;
-              upteamScopeDiscount = upteamLineCost * 0.25;
-              scopeLabel = " (Interior Only -25%)";
+              // Interior-only discount applies only to Architecture
+              // MEPF and Structure are full price for interior scope
+              if (discipline === "architecture" || discipline === "site") {
+                scopeDiscount = lineTotal * 0.25;
+                upteamScopeDiscount = upteamLineCost * 0.25;
+                scopeLabel = " (Interior Only -25%)";
+              }
             } else if (scope === "exterior") {
               scopeDiscount = lineTotal * 0.50;
               upteamScopeDiscount = upteamLineCost * 0.50;
@@ -1905,16 +1943,44 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
             otherDisciplinesTotal += lineTotal;
           }
 
+          // Format discipline label - special handling for ACT
+          const disciplineLabel = discipline === "act"
+            ? "ACT (Above Ceiling Tiles)"
+            : discipline === "mepf"
+              ? "MEPF"
+              : discipline.charAt(0).toUpperCase() + discipline.slice(1);
+
           items.push({
             label: discipline === "matterport"
               ? `Matterport Virtual Tours (${areaLabel})`
-              : `${discipline.charAt(0).toUpperCase() + discipline.slice(1)} (${areaLabel}, LOD ${lod})${scopeLabel}`,
+              : `${disciplineLabel} (${areaLabel}, LOD ${lod})${scopeLabel}`,
             value: lineTotal,
             editable: true,
             upteamCost: upteamLineCost,
           });
         }
       });
+
+      // Process custom line items for this area
+      if (area.customLineItems && area.customLineItems.length > 0) {
+        area.customLineItems.forEach((customItem) => {
+          const itemSqft = parseInt(customItem.sqft) || 0;
+          const itemPricePerSqft = parseFloat(customItem.pricePerSqft) || 0;
+          const itemTotal = itemSqft * itemPricePerSqft;
+
+          if (itemTotal > 0) {
+            const areaPrefix = hasMultipleAreas && area.name ? `${area.name} - ` : '';
+            items.push({
+              label: `${areaPrefix}${customItem.name || 'Custom Item'} (${itemSqft.toLocaleString()} sqft @ $${itemPricePerSqft.toFixed(2)}/sqft)`,
+              value: itemTotal,
+              editable: true,
+              upteamCost: itemTotal * UPTEAM_MULTIPLIER_FALLBACK,
+            });
+            otherDisciplinesTotal += itemTotal;
+            upteamCost += itemTotal * UPTEAM_MULTIPLIER_FALLBACK;
+          }
+        });
+      }
     });
 
     const baseSubtotal = archBaseTotal + otherDisciplinesTotal;
@@ -1961,12 +2027,27 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
       });
       runningTotal += customTravelCost;
     } else if (distanceCalculated && distance && distance > 0) {
-      const totalSqft = areas.reduce((sum, area) => {
+      // Calculate standard sqft and landscape acres separately
+      const standardSqft = areas.reduce((sum, area) => {
         const isLandscape = area.buildingType === "14" || area.buildingType === "15";
+        if (isLandscape) return sum;
         const inputValue = parseInt(area.squareFeet) || 0;
-        return sum + (isLandscape ? inputValue * 43560 : inputValue);
+        return sum + inputValue;
       }, 0);
-      const estimatedScanDays = Math.ceil(totalSqft / 10000);
+      const landscapeAcres = areas.reduce((sum, area) => {
+        const isLandscape = area.buildingType === "14" || area.buildingType === "15";
+        if (!isLandscape) return sum;
+        const inputValue = parseFloat(area.squareFeet) || 0;
+        return sum + inputValue;
+      }, 0);
+
+      // Scan days: 10,000 sqft/day for standard + 5 acres/day for landscape
+      const standardScanDays = Math.ceil(standardSqft / 10000);
+      const landscapeScanDays = Math.ceil(landscapeAcres / 5);
+      const estimatedScanDays = Math.max(1, standardScanDays + landscapeScanDays);
+
+      // Total sqft for tier calculations (landscape converted to sqft equivalent)
+      const totalSqft = standardSqft + Math.round(landscapeAcres * 43560);
 
       let travelCost = 0;
       let travelLabel = "";
@@ -2152,15 +2233,17 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
         isTotal: true,
       });
 
-      const totalSqft = areas.reduce((sum, area) => {
+      // Effective price per sqft - exclude landscape areas (they're priced per acre)
+      const standardSqftForEffective = areas.reduce((sum, area) => {
         const isLandscape = area.buildingType === "14" || area.buildingType === "15";
+        if (isLandscape) return sum; // Exclude landscape from effective $/sqft
         const inputValue = parseInt(area.squareFeet) || 0;
-        return sum + (isLandscape ? inputValue * 43560 : inputValue);
+        return sum + inputValue;
       }, 0);
-      if (totalSqft > 0) {
-        const effectivePricePerSqft = runningTotal / totalSqft;
+      if (standardSqftForEffective > 0) {
+        const effectivePricePerSqft = runningTotal / standardSqftForEffective;
         items.push({
-          label: `Effective Price per Sq Ft (${totalSqft.toLocaleString()} sqft)`,
+          label: `Effective Price per Sq Ft (${standardSqftForEffective.toLocaleString()} sqft)`,
           value: effectivePricePerSqft,
           editable: false,
         });

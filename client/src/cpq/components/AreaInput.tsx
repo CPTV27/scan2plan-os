@@ -2,7 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Trash2, Plus } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
@@ -53,6 +53,13 @@ interface Facade {
   label: string;
 }
 
+interface CustomLineItem {
+  id: string;
+  name: string;
+  pricePerSqft: string;
+  sqft: string;
+}
+
 interface Area {
   id: string;
   name: string;
@@ -69,12 +76,13 @@ interface Area {
   gradeLod: string;
   includeCad: boolean;
   additionalElevations: number;
+  customLineItems: CustomLineItem[];
 }
 
 interface AreaInputProps {
   area: Area;
   index: number;
-  onChange: (id: string, field: keyof Area, value: string | boolean | number | Facade[]) => void;
+  onChange: (id: string, field: keyof Area, value: string | boolean | number | Facade[] | CustomLineItem[]) => void;
   onDisciplineChange: (areaId: string, disciplineId: string, checked: boolean) => void;
   onLodChange: (areaId: string, disciplineId: string, value: string) => void;
   onRemove: (id: string) => void;
@@ -371,7 +379,7 @@ export default function AreaInput({ area, index, onChange, onDisciplineChange, o
               <h4 className="font-semibold text-sm">CAD Deliverable</h4>
               <Card className={`p-3 transition-colors ${area.includeCad ? "border-primary bg-accent" : ""}`}>
                 <div className="space-y-3">
-                  <div 
+                  <div
                     className="flex items-start gap-3 cursor-pointer hover-elevate rounded p-2 -m-2"
                     onClick={() => onChange(area.id, 'includeCad', !area.includeCad)}
                   >
@@ -389,7 +397,7 @@ export default function AreaInput({ area, index, onChange, onDisciplineChange, o
                         Include CAD Conversion (PDF & DWG)
                       </Label>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {area.scope === "interior" 
+                        {area.scope === "interior"
                           ? "Interior Package: Floor plans, 8 interior elevations, 1 section, RCPs (if MEP in scope)"
                           : "Standard Package: Floor plans, exterior elevations, up to 2 sections, RCPs (if MEP in scope)"}
                       </p>
@@ -424,6 +432,108 @@ export default function AreaInput({ area, index, onChange, onDisciplineChange, o
             </div>
           </>
         )}
+
+        {/* Custom Line Items Section */}
+        <Separator className="my-4" />
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="font-semibold text-sm">Custom Line Items</h4>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const newItems = [...(area.customLineItems || []), { id: Date.now().toString(), name: "", pricePerSqft: "", sqft: "" }];
+                onChange(area.id, 'customLineItems', newItems);
+              }}
+              data-testid={`button-add-custom-item-${index}`}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add Item
+            </Button>
+          </div>
+
+          {(area.customLineItems || []).length > 0 && (
+            <div className="space-y-3">
+              {(area.customLineItems || []).map((item, itemIndex) => {
+                const itemSqft = parseInt(item.sqft) || 0;
+                const itemRate = parseFloat(item.pricePerSqft) || 0;
+                const itemTotal = itemSqft * itemRate;
+
+                return (
+                  <Card key={item.id} className="p-3">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Input
+                          placeholder="Item name (e.g., Signage, FFE)"
+                          value={item.name}
+                          onChange={(e) => {
+                            const newItems = [...(area.customLineItems || [])];
+                            newItems[itemIndex] = { ...item, name: e.target.value };
+                            onChange(area.id, 'customLineItems', newItems);
+                          }}
+                          className="flex-1 mr-2"
+                          data-testid={`input-custom-item-name-${index}-${itemIndex}`}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const newItems = (area.customLineItems || []).filter((_, i) => i !== itemIndex);
+                            onChange(area.id, 'customLineItems', newItems);
+                          }}
+                          data-testid={`button-remove-custom-item-${index}-${itemIndex}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">$/sqft</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={item.pricePerSqft}
+                            onChange={(e) => {
+                              const newItems = [...(area.customLineItems || [])];
+                              newItems[itemIndex] = { ...item, pricePerSqft: e.target.value };
+                              onChange(area.id, 'customLineItems', newItems);
+                            }}
+                            className="font-mono"
+                            data-testid={`input-custom-item-rate-${index}-${itemIndex}`}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">Sq Ft</Label>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={item.sqft}
+                            onChange={(e) => {
+                              const newItems = [...(area.customLineItems || [])];
+                              newItems[itemIndex] = { ...item, sqft: e.target.value };
+                              onChange(area.id, 'customLineItems', newItems);
+                            }}
+                            className="font-mono"
+                            data-testid={`input-custom-item-sqft-${index}-${itemIndex}`}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">Total</Label>
+                          <div className="h-9 px-3 py-2 bg-muted rounded-md font-mono text-sm">
+                            ${itemTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     </Card>
   );

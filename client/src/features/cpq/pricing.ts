@@ -190,6 +190,7 @@ export const DISCIPLINES = [
   { id: "mepf", label: "MEP/F" },
   { id: "structure", label: "Structure" },
   { id: "site", label: "Grade" },
+  { id: "act", label: "ACT (Above Ceiling Tiles)" },
 ];
 
 export const LOD_OPTIONS = [
@@ -650,7 +651,7 @@ export function calculatePricing(
     const disciplines = isLandscape
       ? ["site"]
       : isACT
-        ? ["mepf"]
+        ? ["act"]
         : area.disciplines.length > 0
           ? area.disciplines
           : [];
@@ -674,9 +675,10 @@ export function calculatePricing(
         upteamLineCost = lineTotal * UPTEAM_MULTIPLIER;
       } else if (isACT) {
         const sqft = Math.max(inputValue, 3000);
-        lineTotal = sqft * 2.0;
+        // ACT pricing not yet configured - show $0
+        lineTotal = 0;
         areaLabel = `${sqft.toLocaleString()} sqft`;
-        upteamLineCost = lineTotal * UPTEAM_MULTIPLIER;
+        upteamLineCost = 0;
       } else {
         const sqft = Math.max(inputValue, 3000);
         const scopeMultiplier = SCOPE_MULTIPLIERS[disciplineScope] || SCOPE_MULTIPLIERS.full;
@@ -706,7 +708,13 @@ export function calculatePricing(
         } else {
           // Single LOD: Use standard calculation
           const ratePerSqft = getPricingRate(area.buildingType, sqft, discipline, lod);
-          const effectiveMultiplier = scopeMultiplier.interior + scopeMultiplier.exterior;
+
+          // For interior-only scope: MEPF and Structure are full price (no discount)
+          // Only Architecture and Site get the interior-only reduction
+          let effectiveMultiplier = scopeMultiplier.interior + scopeMultiplier.exterior;
+          if (disciplineScope === "interior" && (discipline === "mepf" || discipline === "structure")) {
+            effectiveMultiplier = 1.0; // Full price for MEPF/Structure on interior-only
+          }
 
           lineTotal = sqft * ratePerSqft * effectiveMultiplier;
           areaLabel = `${sqft.toLocaleString()} sqft`;

@@ -100,7 +100,7 @@ export default function PricingSummary({ items, onEdit, totalClientPrice, totalU
                   </span>
                 )}
               </div>
-              {sqftData && !item.isTotal && !item.isDiscount && (
+              {sqftData && !item.isTotal && !item.isDiscount && sqftData.rate > 0.001 && (
                 <div className="flex items-center justify-end mt-0.5">
                   <span className="font-mono text-xs text-muted-foreground/70">
                     ${sqftData.rate.toFixed(2)}/sqft
@@ -138,7 +138,7 @@ export default function PricingSummary({ items, onEdit, totalClientPrice, totalU
                           ${(item.upteamCost || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
-                      {sqftData && (
+                      {sqftData && sqftData.rate > 0.001 && (
                         <div className="flex items-center justify-end">
                           <span className="font-mono text-xs text-muted-foreground/70">
                             ${sqftData.rate.toFixed(2)}/sqft
