@@ -42,9 +42,15 @@ export function ProposalCoverPage({
         <h1 className="text-5xl font-bold tracking-wider text-gray-800">- PROPOSAL -</h1>
 
         <div className="space-y-4">
-          <h2 className="text-2xl font-semibold text-gray-800">
-            Laser Scanning & Building Documentation
-          </h2>
+          <EditableText
+            value={data.serviceTitle || "Laser Scanning & Building Documentation"}
+            onChange={(v) => onChange("serviceTitle", v)}
+            onBlur={onBlur}
+            as="h2"
+            className="text-2xl font-semibold text-gray-800"
+            placeholder="Laser Scanning & Building Documentation"
+            disabled={disabled}
+          />
 
           <EditableText
             value={data.projectAddress
@@ -66,9 +72,19 @@ export function ProposalCoverPage({
           {data.areaScopeLines && data.areaScopeLines.length > 1 ? (
             <div className="space-y-1">
               {data.areaScopeLines.map((line, index) => (
-                <div key={index} className="text-base font-semibold text-gray-800">
-                  {line}
-                </div>
+                <EditableText
+                  key={index}
+                  value={line}
+                  onChange={(v) => {
+                    const newLines = [...data.areaScopeLines!];
+                    newLines[index] = v;
+                    onChange("areaScopeLines", newLines as any);
+                  }}
+                  onBlur={onBlur}
+                  className="text-base font-semibold text-gray-800"
+                  placeholder={`Area ${index + 1} scope`}
+                  disabled={disabled}
+                />
               ))}
             </div>
           ) : (

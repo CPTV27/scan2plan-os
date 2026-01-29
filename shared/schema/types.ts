@@ -93,6 +93,7 @@ export interface ProposalLineItem {
 export interface ProposalCoverData {
   projectTitle: string;       // "30 Cooper Sq (1F, basement Sub-basement)"
   projectAddress: string;     // "New York, NY 10003"
+  serviceTitle?: string;      // "Laser Scanning & Building Documentation" (editable)
   servicesLine: string;       // "LoD 350 + MEPF + Structure + Matterport + CAD" (single area fallback)
   areaScopeLines?: string[];  // Per-area scope lines: ["Area 1: LoD 300 + Architecture", "Area 2: LoD 350 + MEPF"]
   clientName: string;         // "HENSON ARCHITECTURE"
