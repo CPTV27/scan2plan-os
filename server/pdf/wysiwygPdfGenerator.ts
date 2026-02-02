@@ -184,94 +184,122 @@ function renderFooter(doc: PDFKit.PDFDocument): void {
  * Matches ProposalCoverPage.tsx exactly
  */
 function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalCoverData): void {
-  const centerX = PAGE.width / 2;
-  let y = PAGE.margin;
+  // WYSIWYG uses: flex flex-col justify-between min-h-[11in] p-16
+  // This distributes 3 sections: top (logo+contact), middle (title), bottom (legal+footer)
 
-  // Logo (w-48 = 192px in WYSIWYG, mb-6 = 24px margin)
+  // Calculate section positions to match flexbox justify-between
+  const topSectionY = PAGE.margin;
+  const footerY = PAGE.height - PAGE.margin - 20; // Footer at bottom
+  const legalY = footerY - 70; // Legal text above footer
+
+  // =====================
+  // TOP SECTION: Logo + Company Info
+  // =====================
+  let y = topSectionY;
+
+  // Logo (w-48 = 192px, centered, mb-6 = 24px margin-bottom)
   const logoPath = path.join(process.cwd(), "client", "public", "logo-cover.png");
+  const logoWidth = 192;
+  const logoHeight = 100; // Approximate logo height
   if (fs.existsSync(logoPath)) {
-    doc.image(logoPath, centerX - 96, y, { width: 192 });
-    y += 140; // Logo height plus margin-bottom
+    doc.image(logoPath, (PAGE.width - logoWidth) / 2, y, { width: logoWidth });
+    y += logoHeight + 24; // mb-6 = 24px
   } else {
-    y += 60;
+    y += 40;
   }
 
-  // Company contact info (text-sm = 14px in WYSIWYG, space-y-0.5 = 2px)
-  doc.font("Roboto").fontSize(10).fillColor(COLORS.textLight);
+  // Company contact info (text-sm = 14px, space-y-0.5 = 2px between lines)
+  const contactFontSize = 11;
+  const contactLineHeight = contactFontSize + 4; // space-y-0.5
+  doc.font("Roboto").fontSize(contactFontSize).fillColor(COLORS.textLight);
   doc.text("188 1st St, Troy, NY 12180", PAGE.margin, y, { width: PAGE.contentWidth, align: "center" });
-  y += 14;
+  y += contactLineHeight;
   doc.text("(518) 362-2403 / admin@scan2plan.io", PAGE.margin, y, { width: PAGE.contentWidth, align: "center" });
-  y += 14;
+  y += contactLineHeight;
   doc.text("www.scan2plan.io", PAGE.margin, y, { width: PAGE.contentWidth, align: "center" });
 
-  // Middle section: "- PROPOSAL -" title (text-5xl = 48px, tracking-wider)
-  // Position in center of page - space-y-8 = 32px between elements
-  y = PAGE.height / 2 - 100;
-  doc.font("Roboto-Bold").fontSize(40).fillColor(COLORS.text);
+  const topSectionEnd = y + contactFontSize;
+
+  // =====================
+  // MIDDLE SECTION: Proposal Title & Project Info
+  // WYSIWYG uses: flex-1 flex flex-col justify-center space-y-8
+  // This section is vertically centered in the remaining space
+  // =====================
+
+  // Calculate the middle content to center it
+  const middleContentHeight = 200; // Approximate height of middle content
+  const availableMiddleSpace = legalY - topSectionEnd - 40; // Space between top and legal
+  const middleSectionStart = topSectionEnd + (availableMiddleSpace - middleContentHeight) / 2;
+
+  y = middleSectionStart;
+
+  // "- PROPOSAL -" title (text-5xl = 48px, tracking-wider, font-bold)
+  doc.font("Roboto-Bold").fontSize(42).fillColor(COLORS.text);
   doc.text("- PROPOSAL -", PAGE.margin, y, {
     width: PAGE.contentWidth,
     align: "center",
-    characterSpacing: 3,
+    characterSpacing: 4,
   });
+  y += 70; // space-y-8 = 32px, but account for large font
 
-  // Subtitle: "Laser Scanning & Building Documentation" (text-2xl = 24px)
-  y += 60;
+  // Subtitle: service title (text-2xl = 24px, font-semibold)
   doc.font("Roboto").fontSize(20).fillColor(COLORS.text);
   doc.text(data.serviceTitle || "Laser Scanning & Building Documentation", PAGE.margin, y, {
     width: PAGE.contentWidth,
     align: "center",
   });
+  y += 40; // space-y-4 = 16px between items in space-y-4 div
 
   // Project Address (text-xl = 20px, font-bold)
-  y += 40;
   const fullAddress = data.projectAddress
     ? `${data.projectTitle}, ${data.projectAddress}`
     : data.projectTitle;
-  doc.font("Roboto-Bold").fontSize(18).fillColor(COLORS.text);
+  doc.font("Roboto-Bold").fontSize(16).fillColor(COLORS.text);
   doc.text(fullAddress || "", PAGE.margin, y, {
     width: PAGE.contentWidth,
     align: "center",
     lineGap: 4,
   });
 
-  // Calculate height of address text
+  // Calculate height of address text for positioning next element
   const addressHeight = doc.heightOfString(fullAddress || "", { width: PAGE.contentWidth, lineGap: 4 });
+  y += addressHeight + 16; // space-y-4
 
-  // Services Line or Area Scope Lines (text-lg = 18px, font-semibold)
-  y += addressHeight + 24;
+  // Services Line or Area Scope Lines (text-lg/text-base = 18px/16px, font-semibold)
   const areaScopeLines = (data as any).areaScopeLines as string[] | undefined;
   if (areaScopeLines && areaScopeLines.length > 1) {
-    // Multiple areas - show each on its own line
-    doc.font("Roboto-Bold").fontSize(16).fillColor(COLORS.text);
+    // Multiple areas - space-y-1 = 4px between lines
+    doc.font("Roboto-Bold").fontSize(14).fillColor(COLORS.text);
     areaScopeLines.forEach((line) => {
       doc.text(line, PAGE.margin, y, { width: PAGE.contentWidth, align: "center" });
-      y += 22;
+      y += 20;
     });
   } else {
-    // Single service line
-    doc.font("Roboto-Bold").fontSize(16).fillColor(COLORS.text);
+    // Single service line (text-lg = 18px)
+    doc.font("Roboto-Bold").fontSize(15).fillColor(COLORS.text);
     doc.text(data.servicesLine || "", PAGE.margin, y, {
       width: PAGE.contentWidth,
       align: "center",
     });
   }
 
-  // Bottom section: Legal paragraph (text-sm = 14px in WYSIWYG, but 10 for PDF)
-  const footerY = 710;
-  const legalY = footerY - 80;
+  // =====================
+  // BOTTOM SECTION: Legal Text + Footer
+  // =====================
 
-  const legalText = `Scan2Plan, Inc. hereby proposes the following engagement to ${data.clientName || "[Client Name]"}. Use of the services offered by Scan2Plan constitutes acceptance of this proposal dated ${data.date || new Date().toLocaleDateString()}.`;
+  // Legal paragraph (text-sm = 14px, leading-relaxed)
+  const legalText = `Scan2Plan, Inc., a Delaware corporation ("S2P") hereby proposes to provide the services set forth below to ${data.clientName || "[Client Name]"}. Use of the services or the project deliverables described herein constitutes acceptance by the client. This Proposal is dated ${data.date || new Date().toLocaleDateString()}.`;
 
   doc.font("Roboto").fontSize(10).fillColor(COLORS.text);
   doc.text(legalText, PAGE.margin, legalY, {
     width: PAGE.contentWidth,
     align: "center",
-    lineGap: 3,
+    lineGap: 4,
   });
 
-  // Footer
-  drawLine(doc, PAGE.margin, footerY - 8, PAGE.width - PAGE.margin, footerY - 8, COLORS.borderLight);
-  doc.font("Roboto").fontSize(8).fillColor(COLORS.textMuted);
+  // Footer (border-t border-gray-300 pt-3, text-xs text-gray-500)
+  drawLine(doc, PAGE.margin, footerY - 12, PAGE.width - PAGE.margin, footerY - 12, COLORS.border);
+  doc.font("Roboto").fontSize(9).fillColor(COLORS.textMuted);
   doc.text(
     "Scan2Plan, Inc • 188 1st St, Troy NY, 12180 • (518) 362-2403 • admin@scan2plan.io • scan2plan.io",
     PAGE.margin,
@@ -548,18 +576,23 @@ function renderEstimatePage(
   doc.text(coverData.date || "", metaX + 90, y);
   y += 32;
 
-  // Table layout matching WYSIWYG ProposalEstimateTable.tsx
-  // WYSIWYG uses: ITEM (55%), QTY (w-16/64px), RATE (w-20/80px), AMOUNT (w-24/96px)
+  // Table layout matching WYSIWYG ProposalEstimateTable.tsx exactly
+  // WYSIWYG uses: ITEM (flex), QTY (w-16=64px), RATE (w-20=80px), AMOUNT (w-24=96px)
   const tableX = PAGE.margin;
-  const colWidths = {
-    item: 260,   // ~55% of contentWidth for ITEM column (name + description)
-    qty: 60,     // QTY column
-    rate: 72,    // RATE column
-    amount: 92,  // AMOUNT column
+  const fixedColWidths = {
+    qty: 64,     // w-16 = 64px
+    rate: 80,    // w-20 = 80px
+    amount: 96,  // w-24 = 96px
   };
-  const tableWidth = colWidths.item + colWidths.qty + colWidths.rate + colWidths.amount;
-  const headerHeight = 28;
-  const cellPadding = 12;
+  const colWidths = {
+    item: PAGE.contentWidth - fixedColWidths.qty - fixedColWidths.rate - fixedColWidths.amount, // Remaining space
+    qty: fixedColWidths.qty,
+    rate: fixedColWidths.rate,
+    amount: fixedColWidths.amount,
+  };
+  const tableWidth = PAGE.contentWidth;
+  const headerHeight = 32;  // p-3 = 12px padding top + bottom + text
+  const cellPadding = 12;   // p-3 = 12px
 
   // Table header (solid blue background)
   doc.rect(tableX, y, tableWidth, headerHeight).fill(COLORS.primary);
@@ -878,12 +911,12 @@ function renderPaymentPage(
 function renderCapabilitiesPage(doc: PDFKit.PDFDocument): void {
   let y = PAGE.margin;
 
-  // Spacing constants matching WYSIWYG Tailwind classes
+  // Spacing constants matching WYSIWYG Tailwind classes exactly
   const SPACING = {
-    sectionGap: 20,      // space-y-6 = 24px, but tighter for PDF
-    bulletGap: 6,        // space-y-1.5 = 6px
-    nestedBulletGap: 4,  // space-y-1 = 4px
-    afterHeader: 8,      // mb-2 = 8px
+    sectionGap: 24,      // space-y-6 = 24px
+    bulletGap: 8,        // space-y-1.5 = 6px + line height compensation
+    nestedBulletGap: 6,  // space-y-1 = 4px + line height compensation
+    afterHeader: 10,     // mb-2 = 8px + some breathing room
     bulletIndent: 16,    // ml-4 = 16px
     nestedIndent: 24,    // ml-6 = 24px
   };
