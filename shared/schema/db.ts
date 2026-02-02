@@ -83,6 +83,7 @@ export const leads = pgTable("leads", {
   // Timeline & Payment
   timeline: text("timeline"), // e.g., "4 weeks"
   paymentTerms: text("payment_terms"), // owner, partner, etc.
+  customPaymentTerms: text("custom_payment_terms"), // Custom terms text when paymentTerms is "custom"
   // CPQ Integration
   quoteUrl: text("quote_url"), // Link to generated quote from CPQ tool
   quoteVersion: integer("quote_version"), // Current version number from CPQ (V1, V2, etc.)

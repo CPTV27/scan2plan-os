@@ -23,7 +23,6 @@ const BUILDING_TYPES = [
   { value: "13", label: "Infrastructure / Roads / Bridges" },
   { value: "14", label: "Built Landscape" },
   { value: "15", label: "Natural Landscape" },
-  { value: "16", label: "Above Ceiling Tiles (ACT)" },
 ];
 
 const PROJECT_SCOPES = [
@@ -77,6 +76,11 @@ interface Area {
   includeCad: boolean;
   additionalElevations: number;
   customLineItems: CustomLineItem[];
+  // Above Ceiling Tiles and Below Floor scanning
+  includeAboveCeiling: boolean;
+  aboveCeilingSqft: string;
+  includeBelowFloor: boolean;
+  belowFloorSqft: string;
 }
 
 interface AreaInputProps {
@@ -91,8 +95,7 @@ interface AreaInputProps {
 
 export default function AreaInput({ area, index, onChange, onDisciplineChange, onLodChange, onRemove, canRemove }: AreaInputProps) {
   const isLandscape = area.buildingType === "14" || area.buildingType === "15";
-  const isACT = area.buildingType === "16";
-  const isSimplifiedUI = isLandscape || isACT;
+  const isSimplifiedUI = isLandscape;
   
   return (
     <Card className="p-4">
@@ -245,9 +248,9 @@ export default function AreaInput({ area, index, onChange, onDisciplineChange, o
               <Label htmlFor={`lod-${area.id}`} className="text-sm font-medium">
                 Select LoD
               </Label>
-              <Select 
-                value={area.disciplineLods[isACT ? "mepf" : "site"] || "300"} 
-                onValueChange={(value) => onLodChange(area.id, isACT ? "mepf" : "site", value)}
+              <Select
+                value={area.disciplineLods["site"] || "300"}
+                onValueChange={(value) => onLodChange(area.id, "site", value)}
               >
                 <SelectTrigger id={`lod-${area.id}`} data-testid={`select-lod-simplified-${index}`}>
                   <SelectValue />
@@ -372,7 +375,7 @@ export default function AreaInput({ area, index, onChange, onDisciplineChange, o
         )}
 
         {/* CAD Deliverable Section */}
-        {!isLandscape && !isACT && (
+        {!isLandscape && (
           <>
             <Separator className="my-4" />
             <div className="space-y-3">
@@ -534,6 +537,111 @@ export default function AreaInput({ area, index, onChange, onDisciplineChange, o
             </div>
           )}
         </div>
+
+        {/* Above Ceiling Tiles and Below Floor Scanning */}
+        {!isLandscape && (
+          <>
+            <Separator className="my-4" />
+            <div className="space-y-3">
+              <h4 className="font-semibold text-sm">Additional Scanning Areas</h4>
+              <p className="text-xs text-muted-foreground">
+                Priced at 50% of the architecture rate for this area
+              </p>
+
+              {/* Above Ceiling Tiles */}
+              <Card className={`p-3 transition-colors ${area.includeAboveCeiling ? "border-primary bg-accent" : ""}`}>
+                <div className="space-y-3">
+                  <div
+                    className="flex items-start gap-3 cursor-pointer hover-elevate rounded p-2 -m-2"
+                    onClick={() => onChange(area.id, 'includeAboveCeiling', !area.includeAboveCeiling)}
+                  >
+                    <Checkbox
+                      id={`${area.id}-above-ceiling`}
+                      checked={area.includeAboveCeiling || false}
+                      onCheckedChange={(checked) => onChange(area.id, 'includeAboveCeiling', checked as boolean)}
+                      data-testid={`checkbox-area-${index}-above-ceiling`}
+                    />
+                    <div className="flex-1">
+                      <Label
+                        htmlFor={`${area.id}-above-ceiling`}
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        Above Ceiling Tiles
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Scanning of plenum space above drop ceilings
+                      </p>
+                    </div>
+                  </div>
+
+                  {area.includeAboveCeiling && (
+                    <div className="space-y-2 pl-8">
+                      <Label htmlFor={`above-ceiling-sqft-${area.id}`} className="text-sm font-medium">
+                        Square Footage
+                      </Label>
+                      <Input
+                        id={`above-ceiling-sqft-${area.id}`}
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={area.aboveCeilingSqft || ""}
+                        onChange={(e) => onChange(area.id, 'aboveCeilingSqft', e.target.value)}
+                        className="font-mono w-32"
+                        data-testid={`input-above-ceiling-sqft-${index}`}
+                      />
+                    </div>
+                  )}
+                </div>
+              </Card>
+
+              {/* Below Floor */}
+              <Card className={`p-3 transition-colors ${area.includeBelowFloor ? "border-primary bg-accent" : ""}`}>
+                <div className="space-y-3">
+                  <div
+                    className="flex items-start gap-3 cursor-pointer hover-elevate rounded p-2 -m-2"
+                    onClick={() => onChange(area.id, 'includeBelowFloor', !area.includeBelowFloor)}
+                  >
+                    <Checkbox
+                      id={`${area.id}-below-floor`}
+                      checked={area.includeBelowFloor || false}
+                      onCheckedChange={(checked) => onChange(area.id, 'includeBelowFloor', checked as boolean)}
+                      data-testid={`checkbox-area-${index}-below-floor`}
+                    />
+                    <div className="flex-1">
+                      <Label
+                        htmlFor={`${area.id}-below-floor`}
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        Below Floor
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Scanning of raised floor voids or crawl spaces
+                      </p>
+                    </div>
+                  </div>
+
+                  {area.includeBelowFloor && (
+                    <div className="space-y-2 pl-8">
+                      <Label htmlFor={`below-floor-sqft-${area.id}`} className="text-sm font-medium">
+                        Square Footage
+                      </Label>
+                      <Input
+                        id={`below-floor-sqft-${area.id}`}
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={area.belowFloorSqft || ""}
+                        onChange={(e) => onChange(area.id, 'belowFloorSqft', e.target.value)}
+                        className="font-mono w-32"
+                        data-testid={`input-below-floor-sqft-${index}`}
+                      />
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </div>
+          </>
+        )}
       </div>
     </Card>
   );

@@ -66,6 +66,11 @@ interface Area {
   includeCad: boolean;
   additionalElevations: number;
   customLineItems: CustomLineItem[];
+  // Above Ceiling Tiles and Below Floor scanning
+  includeAboveCeiling: boolean;
+  aboveCeilingSqft: string;
+  includeBelowFloor: boolean;
+  belowFloorSqft: string;
 }
 
 interface PricingLineItem {
@@ -135,7 +140,7 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
     notes: "",
   });
   const [areas, setAreas] = useState<Area[]>([
-    { id: "1", name: "", buildingType: "", squareFeet: "", scope: "full", disciplines: [], disciplineLods: {}, mixedInteriorLod: "300", mixedExteriorLod: "300", numberOfRoofs: 0, facades: [], gradeAroundBuilding: false, gradeLod: "300", includeCad: false, additionalElevations: 0, customLineItems: [] },
+    { id: "1", name: "", buildingType: "", squareFeet: "", scope: "full", disciplines: [], disciplineLods: {}, mixedInteriorLod: "300", mixedExteriorLod: "300", numberOfRoofs: 0, facades: [], gradeAroundBuilding: false, gradeLod: "300", includeCad: false, additionalElevations: 0, customLineItems: [], includeAboveCeiling: false, aboveCeilingSqft: "", includeBelowFloor: false, belowFloorSqft: "" },
   ]);
   const [risks, setRisks] = useState<string[]>([]);
   const [dispatch, setDispatch] = useState("troy");
@@ -208,16 +213,10 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
 
         if (field === "buildingType" && typeof value === "string") {
           const isLandscape = value === "14" || value === "15";
-          const isACT = value === "16";
 
           if (isLandscape) {
             updatedArea.disciplines = ["site"];
             updatedArea.disciplineLods = { site: updatedArea.disciplineLods.site || "300" };
-            updatedArea.includeCad = false;
-            updatedArea.additionalElevations = 0;
-          } else if (isACT) {
-            updatedArea.disciplines = ["mepf"];
-            updatedArea.disciplineLods = { mepf: updatedArea.disciplineLods.mepf || "300" };
             updatedArea.includeCad = false;
             updatedArea.additionalElevations = 0;
           }
@@ -231,7 +230,7 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
   const addArea = () => {
     setAreas((prev) => [
       ...prev,
-      { id: Date.now().toString(), name: "", buildingType: "", squareFeet: "", scope: "full", disciplines: [], disciplineLods: {}, mixedInteriorLod: "300", mixedExteriorLod: "300", numberOfRoofs: 0, facades: [], gradeAroundBuilding: false, gradeLod: "300", includeCad: false, additionalElevations: 0, customLineItems: [] },
+      { id: Date.now().toString(), name: "", buildingType: "", squareFeet: "", scope: "full", disciplines: [], disciplineLods: {}, mixedInteriorLod: "300", mixedExteriorLod: "300", numberOfRoofs: 0, facades: [], gradeAroundBuilding: false, gradeLod: "300", includeCad: false, additionalElevations: 0, customLineItems: [], includeAboveCeiling: false, aboveCeilingSqft: "", includeBelowFloor: false, belowFloorSqft: "" },
     ]);
   };
 
@@ -779,7 +778,6 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
       "13": "Infrastructure / Roads / Bridges",
       "14": "Built Landscape",
       "15": "Natural Landscape",
-      "16": "Above Ceiling Tiles (ACT)",
     };
 
     const disciplineMap: Record<string, string> = {
@@ -1761,7 +1759,6 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
 
     areas.forEach((area, areaIndex) => {
       const isLandscape = area.buildingType === "14" || area.buildingType === "15";
-      const isACT = area.buildingType === "16";
 
       // Add area header for multi-area quotes
       if (hasMultipleAreas && (area.name || area.squareFeet)) {
@@ -1777,7 +1774,7 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
       const inputValue = isLandscape ? parseFloat(area.squareFeet) || 0 : parseInt(area.squareFeet) || 0;
 
       const scope = area.scope || "full";
-      const disciplines = isLandscape ? ["site"] : isACT ? ["act"] : (area.disciplines.length > 0 ? area.disciplines : []);
+      const disciplines = isLandscape ? ["site"] : (area.disciplines.length > 0 ? area.disciplines : []);
 
       // Helper function to calculate pricing for a discipline with a specific lod and scope portion
       const calculateDisciplinePricing = (discipline: string, lod: string, scopePortion: number, scopeType: string) => {
@@ -1792,12 +1789,6 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
           lineTotal = acres * perAcreRate * scopePortion;
           areaLabel = `${acres} acres (${sqft.toLocaleString()} sqft)`;
           upteamLineCost = lineTotal * UPTEAM_MULTIPLIER_FALLBACK;
-        } else if (isACT) {
-          const sqft = Math.max(inputValue, 3000);
-          // ACT pricing not yet configured - show $0
-          lineTotal = 0;
-          areaLabel = `${sqft.toLocaleString()} sqft`;
-          upteamLineCost = 0;
         } else if (discipline === "matterport") {
           const sqft = Math.max(inputValue, 3000);
           lineTotal = sqft * 0.10;
@@ -1835,7 +1826,7 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
 
       disciplines.forEach((discipline) => {
         // Handle Roof/Facades Only Scope - create separate line items for each facade/roof entry
-        if (scope === "roof" && discipline !== "matterport" && !isLandscape && !isACT) {
+        if (scope === "roof" && discipline !== "matterport" && !isLandscape) {
           const lod = area.disciplineLods[discipline] || "300";
           const facades = area.facades || [];
 
@@ -1867,7 +1858,7 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
         }
 
         // Handle Mixed Scope - create two line items (Interior + Exterior)
-        if (scope === "mixed" && discipline !== "matterport" && !isLandscape && !isACT) {
+        if (scope === "mixed" && discipline !== "matterport" && !isLandscape) {
           // Interior portion at 65%
           const interiorLod = area.mixedInteriorLod || "300";
           const interior = calculateDisciplinePricing(discipline, interiorLod, 0.65, "interior");
@@ -1915,7 +1906,7 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
           let upteamScopeDiscount = 0;
           let scopeLabel = "";
 
-          if (!isLandscape && !isACT && discipline !== "matterport") {
+          if (!isLandscape && discipline !== "matterport") {
             if (scope === "interior") {
               // Interior-only discount applies only to Architecture
               // MEPF and Structure are full price for interior scope
@@ -1982,6 +1973,54 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
             upteamCost += itemTotal * UPTEAM_MULTIPLIER_FALLBACK;
           }
         });
+      }
+
+      // Above Ceiling Tiles and Below Floor pricing (50% of architecture rate)
+      if (!isLandscape) {
+        const areaPrefix = hasMultipleAreas && area.name ? `${area.name} - ` : '';
+        const baseSqft = Math.max(parseInt(area.squareFeet) || 0, 3000);
+        const archLod = area.disciplineLods["architecture"] || "300";
+
+        // Get the architecture rate for this area to use as base for 50% calculation
+        const archRatePerSqft = getPricingRate(area.buildingType, baseSqft, "architecture", archLod);
+        let baseArchRate = archRatePerSqft > 0 ? archRatePerSqft : 2.50;
+        const lodMultiplier: Record<string, number> = { "200": 1.0, "300": 1.3, "350": 1.5 };
+        if (archRatePerSqft <= 0) {
+          baseArchRate = baseArchRate * (lodMultiplier[archLod] || 1.0);
+        }
+        const halfArchRate = baseArchRate * 0.5;
+
+        // Above Ceiling Tiles
+        if (area.includeAboveCeiling && area.aboveCeilingSqft) {
+          const actSqft = parseInt(area.aboveCeilingSqft) || 0;
+          if (actSqft > 0) {
+            const actTotal = actSqft * halfArchRate;
+            items.push({
+              label: `${areaPrefix}Above Ceiling Tiles (${actSqft.toLocaleString()} sqft @ $${halfArchRate.toFixed(3)}/sqft)`,
+              value: actTotal,
+              editable: true,
+              upteamCost: actTotal * UPTEAM_MULTIPLIER_FALLBACK,
+            });
+            otherDisciplinesTotal += actTotal;
+            upteamCost += actTotal * UPTEAM_MULTIPLIER_FALLBACK;
+          }
+        }
+
+        // Below Floor
+        if (area.includeBelowFloor && area.belowFloorSqft) {
+          const bfSqft = parseInt(area.belowFloorSqft) || 0;
+          if (bfSqft > 0) {
+            const bfTotal = bfSqft * halfArchRate;
+            items.push({
+              label: `${areaPrefix}Below Floor (${bfSqft.toLocaleString()} sqft @ $${halfArchRate.toFixed(3)}/sqft)`,
+              value: bfTotal,
+              editable: true,
+              upteamCost: bfTotal * UPTEAM_MULTIPLIER_FALLBACK,
+            });
+            otherDisciplinesTotal += bfTotal;
+            upteamCost += bfTotal * UPTEAM_MULTIPLIER_FALLBACK;
+          }
+        }
       }
     });
 
@@ -2153,8 +2192,7 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
       if (!area.includeCad) return;
 
       const isLandscape = area.buildingType === "14" || area.buildingType === "15";
-      const isACT = area.buildingType === "16";
-      if (isLandscape || isACT) return; // CAD not available for landscape/ACT
+      if (isLandscape) return; // CAD not available for landscape
 
       const sqft = Math.max(parseInt(area.squareFeet) || 0, 3000);
       const disciplineCount = area.disciplines.filter(d => d !== "matterport").length;

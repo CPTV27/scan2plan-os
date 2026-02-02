@@ -208,7 +208,7 @@ export const CPQ_PAYMENT_TERMS = [
   "net60",
   "net90",
   "standard",
-  "other",
+  "custom",
 ] as const;
 
 export type CpqPaymentTerm = typeof CPQ_PAYMENT_TERMS[number];
@@ -223,7 +223,7 @@ export const CPQ_PAYMENT_TERMS_DISPLAY: Record<CpqPaymentTerm, string> = {
   net60: "Net 60 (+10%)",
   net90: "Net 90 (+15%)",
   standard: "Standard",
-  other: "Other",
+  custom: "Custom",
 };
 
 export const CPQ_PAYMENT_TERM_PERCENTAGES: Record<CpqPaymentTerm, number> = {
@@ -236,7 +236,7 @@ export const CPQ_PAYMENT_TERM_PERCENTAGES: Record<CpqPaymentTerm, number> = {
   net60: 10,
   net90: 15,
   standard: 0,
-  other: 0,
+  custom: 0,
 };
 
 export const CPQ_BIM_SOFTWARE = [

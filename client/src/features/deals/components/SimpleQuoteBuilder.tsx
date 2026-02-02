@@ -1648,7 +1648,7 @@ export default function SimpleQuoteBuilder({
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {CPQ_PAYMENT_TERMS.filter(t => t !== "other").map((term) => (
+                                            {CPQ_PAYMENT_TERMS.filter(t => t !== "custom").map((term) => (
                                                 <SelectItem key={term} value={term}>
                                                     {CPQ_PAYMENT_TERMS_DISPLAY[term]}
                                                 </SelectItem>

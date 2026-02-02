@@ -1957,7 +1957,7 @@ Thanks!`.trim();
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {CPQ_PAYMENT_TERMS.filter(term => term !== "other").map((term) => (
+                      {CPQ_PAYMENT_TERMS.filter(term => term !== "custom").map((term) => (
                         <SelectItem key={term} value={term}>
                           {CPQ_PAYMENT_TERMS_DISPLAY[term]}
                         </SelectItem>

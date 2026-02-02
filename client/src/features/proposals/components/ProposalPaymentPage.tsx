@@ -62,10 +62,20 @@ export function ProposalPaymentPage({
           Acknowledgement
         </h2>
         <p className="text-gray-700 mb-6 leading-relaxed">
-          By signing below, the client acknowledges receipt of this proposal
-          and agrees to the terms and conditions set forth herein, including
-          the payment schedule and scope of work. This proposal is valid for
-          30 days from the date issued.
+          Client acknowledges receipt of and agrees to be bound by S2P's{" "}
+          <a
+            href="https://www.scan2plan.io/scan2plan-terms-conditions"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#123da7] underline hover:text-[#0f2d7a]"
+          >
+            General Terms and Conditions
+          </a>{" "}
+          which are incorporated herein by reference.
+        </p>
+        <p className="text-gray-700 mb-6 leading-relaxed">
+          In witness whereof the parties hereto have caused this agreement to be
+          executed as of the date(s) written below.
         </p>
 
         {/* Signature Lines */}

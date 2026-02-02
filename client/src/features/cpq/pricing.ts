@@ -182,7 +182,6 @@ export const BUILDING_TYPES = [
   { id: "13", label: "Infrastructure / Roads / Bridges" },
   { id: "14", label: "Built Landscape" },
   { id: "15", label: "Natural Landscape" },
-  { id: "16", label: "ACT (Above Ceiling Tiles)" },
 ];
 
 export const DISCIPLINES = [
@@ -190,7 +189,6 @@ export const DISCIPLINES = [
   { id: "mepf", label: "MEP/F" },
   { id: "structure", label: "Structure" },
   { id: "site", label: "Grade" },
-  { id: "act", label: "ACT (Above Ceiling Tiles)" },
 ];
 
 export const LOD_OPTIONS = [
@@ -641,7 +639,6 @@ export function calculatePricing(
   areas.forEach((area) => {
     // Check buildingType for landscape (14-15) - kind field deprecated
     const isLandscape = isLandscapeBuildingType(area.buildingType) || area.kind === "landscape";
-    const isACT = area.buildingType === "16";
     // For landscape: squareFeet contains acres, for standard: contains sqft
     const inputValue = isLandscape
       ? parseFloat(area.squareFeet) || 0
@@ -650,11 +647,9 @@ export function calculatePricing(
     const scope = area.scope || "full";
     const disciplines = isLandscape
       ? ["site"]
-      : isACT
-        ? ["act"]
-        : area.disciplines.length > 0
-          ? area.disciplines
-          : [];
+      : area.disciplines.length > 0
+        ? area.disciplines
+        : [];
 
     disciplines.forEach((discipline) => {
       // Get per-discipline LoD if available, otherwise use default area LoD
@@ -673,12 +668,6 @@ export function calculatePricing(
         lineTotal = acres * perAcreRate;
         areaLabel = `${acres} acres (${sqft.toLocaleString()} sqft)`;
         upteamLineCost = lineTotal * UPTEAM_MULTIPLIER;
-      } else if (isACT) {
-        const sqft = Math.max(inputValue, 3000);
-        // ACT pricing not yet configured - show $0
-        lineTotal = 0;
-        areaLabel = `${sqft.toLocaleString()} sqft`;
-        upteamLineCost = 0;
       } else {
         const sqft = Math.max(inputValue, 3000);
         const scopeMultiplier = SCOPE_MULTIPLIERS[disciplineScope] || SCOPE_MULTIPLIERS.full;

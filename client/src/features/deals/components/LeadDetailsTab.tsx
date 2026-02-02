@@ -732,7 +732,7 @@ export function LeadDetailsTab({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {CPQ_PAYMENT_TERMS.filter(term => term !== "other").map((term) => (
+                              {CPQ_PAYMENT_TERMS.map((term) => (
                                 <SelectItem key={term} value={term}>
                                   {CPQ_PAYMENT_TERMS_DISPLAY[term]}
                                 </SelectItem>
@@ -744,6 +744,28 @@ export function LeadDetailsTab({
                       </HungryField>
                     )}
                   />
+
+                  {form.watch("paymentTerms") === "custom" && (
+                    <FormField
+                      control={form.control}
+                      name="customPaymentTerms"
+                      render={({ field }) => (
+                        <FormItem className="mt-3">
+                          <FormLabel>Custom Payment Terms</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Enter custom payment terms..."
+                              {...field}
+                              value={field.value || ""}
+                              rows={3}
+                              data-testid="textarea-custom-payment-terms"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
               </CardContent>
             </Card>
