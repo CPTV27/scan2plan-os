@@ -1430,15 +1430,26 @@ export async function generateWYSIWYGPdf(
   });
 
   // Register Roboto fonts (matching Google Docs style)
+  // If fonts fail to load, fall back to Helvetica (built-in)
+  let useRoboto = false;
   try {
     if (fs.existsSync(FONTS.regular) && fs.existsSync(FONTS.bold)) {
       doc.registerFont("Roboto", FONTS.regular);
       doc.registerFont("Roboto-Bold", FONTS.bold);
+      useRoboto = true;
+      console.log("[WYSIWYG PDF] Roboto fonts registered successfully");
     } else {
-      console.warn("[WYSIWYG PDF] Roboto fonts not found, using system fallback");
+      console.warn("[WYSIWYG PDF] Roboto font files not found at:", FONTS.regular, FONTS.bold);
     }
   } catch (error) {
-    console.warn("[WYSIWYG PDF] Failed to register fonts:", error);
+    console.warn("[WYSIWYG PDF] Failed to register Roboto fonts, using Helvetica fallback:", error);
+  }
+
+  // If Roboto failed, register Helvetica aliases so the same font names work
+  if (!useRoboto) {
+    console.log("[WYSIWYG PDF] Using Helvetica fallback fonts");
+    doc.registerFont("Roboto", "Helvetica");
+    doc.registerFont("Roboto-Bold", "Helvetica-Bold");
   }
 
   // Page 1: Cover
