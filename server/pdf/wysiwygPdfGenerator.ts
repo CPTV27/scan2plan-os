@@ -9,10 +9,10 @@ import PDFDocument from "pdfkit";
 import path from "path";
 import fs from "fs";
 
-// Font paths
+// Font paths - Using Roboto to match Google Docs style proposals
 const FONTS = {
-  regular: path.join(process.cwd(), "server", "fonts", "Inter_18pt-Regular.ttf"),
-  bold: path.join(process.cwd(), "server", "fonts", "Inter_18pt-Bold.ttf"),
+  regular: path.join(process.cwd(), "server", "fonts", "Roboto-Regular.ttf"),
+  bold: path.join(process.cwd(), "server", "fonts", "Roboto-Bold.ttf"),
 };
 import type {
   ProposalCoverData,
@@ -168,7 +168,7 @@ function renderFooter(doc: PDFKit.PDFDocument): void {
   drawLine(doc, PAGE.margin, footerY - 12, PAGE.width - PAGE.margin, footerY - 12, COLORS.borderLight);
 
   doc
-    .font("Inter")
+    .font("Roboto")
     .fontSize(8)
     .fillColor(COLORS.textMuted)
     .text(
@@ -198,7 +198,7 @@ function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalCoverData): void
 
   // Company contact info (below the logo)
   doc
-    .font("Inter")
+    .font("Roboto")
     .fontSize(10)
     .fillColor(COLORS.textLight)
     .text("188 1st St, Troy, NY 12180", PAGE.margin, y, { width: PAGE.contentWidth, align: "center" });
@@ -210,7 +210,7 @@ function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalCoverData): void
   // Middle section: "- PROPOSAL -" title
   y = PAGE.height / 2 - 80;
   doc
-    .font("Inter-Bold")
+    .font("Roboto-Bold")
     .fontSize(36)
     .fillColor(COLORS.text)
     .text("- PROPOSAL -", PAGE.margin, y, {
@@ -222,7 +222,7 @@ function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalCoverData): void
   // Subtitle: "Laser Scanning & Building Documentation"
   y += 55;
   doc
-    .font("Inter")
+    .font("Roboto")
     .fontSize(TYPOGRAPHY.subtitle)
     .fillColor(COLORS.text)
     .text("Laser Scanning & Building Documentation", PAGE.margin, y, {
@@ -236,7 +236,7 @@ function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalCoverData): void
     ? `${data.projectTitle}, ${data.projectAddress}`
     : data.projectTitle;
   doc
-    .font("Inter")
+    .font("Roboto")
     .fontSize(20)
     .fillColor(COLORS.text)
     .text(fullAddress || "", PAGE.margin, y, {
@@ -250,7 +250,7 @@ function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalCoverData): void
   const areaScopeLines = (data as any).areaScopeLines as string[] | undefined;
   if (areaScopeLines && areaScopeLines.length > 1) {
     // Multiple areas - show each on its own line
-    doc.font("Inter").fontSize(18).fillColor(COLORS.text);
+    doc.font("Roboto").fontSize(18).fillColor(COLORS.text);
     areaScopeLines.forEach((line) => {
       doc.text(line, PAGE.margin, y, { width: PAGE.contentWidth, align: "center" });
       y += 24;
@@ -258,7 +258,7 @@ function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalCoverData): void
   } else {
     // Single service line
     doc
-      .font("Inter")
+      .font("Roboto")
       .fontSize(18)
       .fillColor(COLORS.text)
       .text(data.servicesLine || "", PAGE.margin, y, {
@@ -275,7 +275,7 @@ function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalCoverData): void
   const legalText = `Scan2Plan, Inc., a Delaware corporation ("S2P") hereby proposes to provide the services set forth below to ${data.clientName || "[Client Name]"}. Use of the services or the project deliverables described herein constitutes acceptance by the client. This Proposal is dated ${data.date || new Date().toLocaleDateString()}.`;
 
   doc
-    .font("Inter")
+    .font("Roboto")
     .fontSize(10)
     .fillColor(COLORS.text)
     .text(legalText, PAGE.margin, legalY, {
@@ -288,7 +288,7 @@ function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalCoverData): void
   // Footer - well within page bounds
   drawLine(doc, PAGE.margin, footerY - 12, PAGE.width - PAGE.margin, footerY - 12, COLORS.borderLight);
   doc
-    .font("Inter")
+    .font("Roboto")
     .fontSize(8)
     .fillColor(COLORS.textMuted)
     .text(
@@ -308,30 +308,30 @@ function renderAboutPage(doc: PDFKit.PDFDocument): void {
 
   // Title with trademark symbol
   doc
-    .font("Inter-Bold")
+    .font("Roboto-Bold")
     .fontSize(TYPOGRAPHY.pageTitle)
     .fillColor(COLORS.primary)
     .text("About Scan2Plan", PAGE.margin, y, { continued: true });
-  doc.font("Inter").fontSize(14).text("\u00AE", { continued: false });
+  doc.font("Roboto").fontSize(14).text("\u00AE", { continued: false });
   y += TYPOGRAPHY.afterPageTitle;
 
   // About paragraphs matching example proposals
-  doc.font("Inter").fontSize(TYPOGRAPHY.bodyText).fillColor(COLORS.text);
+  doc.font("Roboto").fontSize(TYPOGRAPHY.bodyText).fillColor(COLORS.text);
 
   doc.text("We began in 2018 with a simple goal of helping firms ", PAGE.margin, y, {
     width: PAGE.contentWidth,
     lineGap: TYPOGRAPHY.bodyLineGap,
     continued: true
   });
-  doc.font("Inter-Bold").text("focus on design", {
+  doc.font("Roboto-Bold").text("focus on design", {
     continued: true,
     underline: true
   });
-  doc.font("Inter").text(".", { continued: false, underline: false });
+  doc.font("Roboto").text(".", { continued: false, underline: false });
   y += 32;
 
   const para2 = "We're an on-demand LiDAR to BIM/CAD team that can model any building in weeks. This can be done within any scope, budget or schedule. We've scanned over 1,000 buildings (~10M sqft).";
-  doc.font("Inter").text(para2, PAGE.margin, y, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap });
+  doc.font("Roboto").text(para2, PAGE.margin, y, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap });
   y += doc.heightOfString(para2, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap }) + TYPOGRAPHY.betweenParagraphs;
 
   const para3 = "We use LiDAR scanners for 3D mapping with extreme accuracy. We deliver professionally drafted 3D BIM and 2D CAD for comprehensive existing conditions documentation. Our Point Cloud datasets serve as a verifiable single-source-of-truth for coordination and risk-mitigation across projects.";
@@ -351,7 +351,7 @@ function renderAboutPage(doc: PDFKit.PDFDocument): void {
 
   // Why Scan2Plan section
   doc
-    .font("Inter-Bold")
+    .font("Roboto-Bold")
     .fontSize(TYPOGRAPHY.pageTitle)
     .fillColor(COLORS.primary)
     .text("Why Scan2Plan?", PAGE.margin, y);
@@ -376,7 +376,7 @@ function renderAboutPage(doc: PDFKit.PDFDocument): void {
   const leftX = PAGE.margin;
   const rightX = PAGE.margin + colWidth + 30;
 
-  doc.font("Inter").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
+  doc.font("Roboto").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
 
   // Render both columns with proper spacing
   let leftY = y;
@@ -404,7 +404,7 @@ function renderProjectPage(doc: PDFKit.PDFDocument, data: ProposalProjectData): 
 
   // Title
   doc
-    .font("Inter-Bold")
+    .font("Roboto-Bold")
     .fontSize(TYPOGRAPHY.pageTitle)
     .fillColor(COLORS.primary)
     .text("The Project", PAGE.margin, y);
@@ -412,7 +412,7 @@ function renderProjectPage(doc: PDFKit.PDFDocument, data: ProposalProjectData): 
 
   // Overview
   doc
-    .font("Inter-Bold")
+    .font("Roboto-Bold")
     .fontSize(TYPOGRAPHY.sectionHeading)
     .fillColor(COLORS.primary)
     .text("Overview", PAGE.margin, y);
@@ -421,7 +421,7 @@ function renderProjectPage(doc: PDFKit.PDFDocument, data: ProposalProjectData): 
   // Use overviewLine if set, otherwise fall back to legacy format
   const overviewText = data.overviewLine || `Service for ${data.overview || ""}`;
   doc
-    .font("Inter")
+    .font("Roboto")
     .fontSize(TYPOGRAPHY.bodyText)
     .fillColor(COLORS.text)
     .text(overviewText, PAGE.margin, y, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap });
@@ -430,13 +430,13 @@ function renderProjectPage(doc: PDFKit.PDFDocument, data: ProposalProjectData): 
   // Scope of Work
   if (data.scopeItems && data.scopeItems.length > 0) {
     doc
-      .font("Inter-Bold")
+      .font("Roboto-Bold")
       .fontSize(TYPOGRAPHY.sectionHeading)
       .fillColor(COLORS.primary)
       .text("Scope of Work", PAGE.margin, y);
     y += TYPOGRAPHY.afterSectionHeading;
 
-    doc.font("Inter").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
+    doc.font("Roboto").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
     data.scopeItems.forEach((item) => {
       doc.text(`\u2022  ${item}`, PAGE.margin + 10, y, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap });
       y += doc.heightOfString(`\u2022  ${item}`, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap }) + TYPOGRAPHY.betweenBullets;
@@ -447,13 +447,13 @@ function renderProjectPage(doc: PDFKit.PDFDocument, data: ProposalProjectData): 
   // Deliverables
   if (data.deliverables && data.deliverables.length > 0) {
     doc
-      .font("Inter-Bold")
+      .font("Roboto-Bold")
       .fontSize(TYPOGRAPHY.sectionHeading)
       .fillColor(COLORS.primary)
       .text("Deliverables", PAGE.margin, y);
     y += TYPOGRAPHY.afterSectionHeading;
 
-    doc.font("Inter").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
+    doc.font("Roboto").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
     data.deliverables.forEach((item) => {
       doc.text(`\u2022  ${item}`, PAGE.margin + 10, y, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap });
       y += doc.heightOfString(`\u2022  ${item}`, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap }) + TYPOGRAPHY.betweenBullets;
@@ -464,7 +464,7 @@ function renderProjectPage(doc: PDFKit.PDFDocument, data: ProposalProjectData): 
   // Timeline
   if (data.timelineIntro || (data.milestones && data.milestones.length > 0)) {
     doc
-      .font("Inter-Bold")
+      .font("Roboto-Bold")
       .fontSize(TYPOGRAPHY.sectionHeading)
       .fillColor(COLORS.primary)
       .text("Timeline", PAGE.margin, y);
@@ -472,7 +472,7 @@ function renderProjectPage(doc: PDFKit.PDFDocument, data: ProposalProjectData): 
 
     if (data.timelineIntro) {
       doc
-        .font("Inter")
+        .font("Roboto")
         .fontSize(TYPOGRAPHY.bodyText)
         .fillColor(COLORS.text)
         .text(data.timelineIntro, PAGE.margin, y, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap });
@@ -480,7 +480,7 @@ function renderProjectPage(doc: PDFKit.PDFDocument, data: ProposalProjectData): 
     }
 
     if (data.milestones && data.milestones.length > 0) {
-      doc.font("Inter").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
+      doc.font("Roboto").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
       data.milestones.forEach((item) => {
         doc.text(`\u2022  ${item}`, PAGE.margin + 10, y, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap });
         y += doc.heightOfString(`\u2022  ${item}`, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap }) + TYPOGRAPHY.betweenBullets;
@@ -506,14 +506,14 @@ function renderEstimatePage(
 
   // Header with company info (left) and logo (right)
   doc
-    .font("Inter-Bold")
+    .font("Roboto-Bold")
     .fontSize(14)
     .fillColor(COLORS.text)
     .text("SCAN2PLAN", PAGE.margin, y);
   y += 16;
 
   doc
-    .font("Inter")
+    .font("Roboto")
     .fontSize(9)
     .fillColor(COLORS.textLight)
     .text("188 1st St", PAGE.margin, y);
@@ -534,7 +534,7 @@ function renderEstimatePage(
 
   // Title
   doc
-    .font("Inter-Bold")
+    .font("Roboto-Bold")
     .fontSize(22)
     .fillColor(COLORS.primary)
     .text("Estimate", PAGE.margin, y);
@@ -542,7 +542,7 @@ function renderEstimatePage(
 
   // Address and Estimate info row
   doc
-    .font("Inter")
+    .font("Roboto")
     .fontSize(8)
     .fillColor(COLORS.textMuted)
     .text("ADDRESS", PAGE.margin, y);
@@ -555,13 +555,13 @@ function renderEstimatePage(
   // Address value - use projectTitle which contains the street address
   const addressValue = coverData.projectTitle || coverData.projectAddress || "";
   doc
-    .font("Inter-Bold")
+    .font("Roboto-Bold")
     .fontSize(10)
     .fillColor(COLORS.text)
     .text(addressValue, PAGE.margin, y, { width: 280 });
 
   doc
-    .font("Inter")
+    .font("Roboto")
     .fontSize(10)
     .text(`EST-${leadId}`, metaX, y);
   doc.text(coverData.date || "", metaX + 90, y);
@@ -582,7 +582,7 @@ function renderEstimatePage(
   doc.rect(tableX, y, tableWidth, headerHeight).fill(COLORS.primary);
 
   doc
-    .font("Inter-Bold")
+    .font("Roboto-Bold")
     .fontSize(10)
     .fillColor(COLORS.white);
 
@@ -613,18 +613,18 @@ function renderEstimatePage(
 
       // Check if it's a bullet point
       if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-') || trimmedLine.startsWith('*')) {
-        doc.font("Inter").fontSize(8).fillColor(COLORS.textLight);
+        doc.font("Roboto").fontSize(8).fillColor(COLORS.textLight);
         const bulletText = trimmedLine.replace(/^[•\-\*]\s*/, '• ');
         doc.text(bulletText, x + 8, currentY, { width: width - 8, lineGap: 1 });
         currentY += doc.heightOfString(bulletText, { width: width - 8, lineGap: 1 }) + 2;
       } else if (trimmedLine.includes(':') && trimmedLine.length < 40) {
         // Section headers (like "Deliverables include:")
-        doc.font("Inter-Bold").fontSize(8).fillColor(COLORS.text);
+        doc.font("Roboto-Bold").fontSize(8).fillColor(COLORS.text);
         doc.text(trimmedLine, x, currentY, { width });
         currentY += doc.heightOfString(trimmedLine, { width }) + 3;
       } else {
         // Regular paragraph text
-        doc.font("Inter").fontSize(8).fillColor(COLORS.textLight);
+        doc.font("Roboto").fontSize(8).fillColor(COLORS.textLight);
         doc.text(trimmedLine, x, currentY, { width, lineGap: 1 });
         currentY += doc.heightOfString(trimmedLine, { width, lineGap: 1 }) + 2;
       }
@@ -639,7 +639,7 @@ function renderEstimatePage(
     const description = item.description || "";
 
     // Calculate row height based on content
-    doc.font("Inter-Bold").fontSize(10);
+    doc.font("Roboto-Bold").fontSize(10);
     const nameHeight = doc.heightOfString(itemName, { width: colWidths.description - 24 });
 
     // Estimate description height
@@ -651,7 +651,7 @@ function renderEstimatePage(
         if (!trimmed) {
           descHeight += 6;
         } else {
-          doc.font("Inter").fontSize(8);
+          doc.font("Roboto").fontSize(8);
           descHeight += doc.heightOfString(trimmed, { width: colWidths.description - 32, lineGap: 1 }) + 2;
         }
       });
@@ -678,7 +678,7 @@ function renderEstimatePage(
     let textY = y + 8;
 
     // Item name (bold)
-    doc.font("Inter-Bold").fontSize(10).fillColor(COLORS.text);
+    doc.font("Roboto-Bold").fontSize(10).fillColor(COLORS.text);
     doc.text(itemName, textX, textY, { width: colWidths.description - 24 });
     textY += nameHeight + 4;
 
@@ -688,7 +688,7 @@ function renderEstimatePage(
     }
 
     // Qty column
-    doc.font("Inter").fontSize(10).fillColor(COLORS.text);
+    doc.font("Roboto").fontSize(10).fillColor(COLORS.text);
     doc.text(formatNumber(item.qty || 0), tableX + colWidths.description, y + 8, {
       width: colWidths.qty - 8,
       align: "right",
@@ -701,7 +701,7 @@ function renderEstimatePage(
     });
 
     // Amount column
-    doc.font("Inter-Bold").fontSize(10).fillColor(COLORS.text);
+    doc.font("Roboto-Bold").fontSize(10).fillColor(COLORS.text);
     doc.text(formatCurrency(item.amount || 0), tableX + colWidths.description + colWidths.qty + colWidths.rate, y + 8, {
       width: colWidths.amount - 8,
       align: "right",
@@ -717,7 +717,7 @@ function renderEstimatePage(
   doc.rect(tableX, y, tableWidth, totalRowHeight).fill("#f3f4f6");
 
   doc
-    .font("Inter-Bold")
+    .font("Roboto-Bold")
     .fontSize(11)
     .fillColor(COLORS.textLight)
     .text("TOTAL", tableX + colWidths.description + colWidths.qty, y + 9, {
@@ -726,7 +726,7 @@ function renderEstimatePage(
     });
 
   doc
-    .font("Inter-Bold")
+    .font("Roboto-Bold")
     .fontSize(14)
     .fillColor(COLORS.primary)
     .text(formatCurrency(total), tableX + colWidths.description + colWidths.qty + colWidths.rate, y + 8, {
@@ -739,7 +739,7 @@ function renderEstimatePage(
 
   // Signature section
   doc
-    .font("Inter")
+    .font("Roboto")
     .fontSize(9)
     .fillColor(COLORS.textMuted)
     .text("Accepted By", PAGE.margin, y);
@@ -753,7 +753,7 @@ function renderEstimatePage(
 
   // Notes
   doc
-    .font("Inter")
+    .font("Roboto")
     .fontSize(8)
     .fillColor(COLORS.textMuted)
     .text(
@@ -780,7 +780,7 @@ function renderPaymentPage(
 
   // Title - "Payment Terms" instead of just "Payment"
   doc
-    .font("Inter-Bold")
+    .font("Roboto-Bold")
     .fontSize(TYPOGRAPHY.pageTitle)
     .fillColor(COLORS.primary)
     .text("Payment Terms", PAGE.margin, y);
@@ -788,7 +788,7 @@ function renderPaymentPage(
 
   // Payment Terms bullets
   if (data.terms && data.terms.length > 0) {
-    doc.font("Inter").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
+    doc.font("Roboto").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
     data.terms.forEach((term) => {
       const bulletText = `\u2022  ${term}`;
       doc.text(bulletText, PAGE.margin + 10, y, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap });
@@ -799,14 +799,14 @@ function renderPaymentPage(
 
   // Accepted Forms of Payment
   doc
-    .font("Inter-Bold")
+    .font("Roboto-Bold")
     .fontSize(TYPOGRAPHY.sectionHeading)
     .fillColor(COLORS.primary)
     .text("Accepted Forms of Payment:", PAGE.margin, y);
   y += TYPOGRAPHY.afterSectionHeading;
 
   if (data.paymentMethods && data.paymentMethods.length > 0) {
-    doc.font("Inter").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
+    doc.font("Roboto").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
     data.paymentMethods.forEach((method, index) => {
       const numberedText = `${index + 1}. ${method}`;
       doc.text(numberedText, PAGE.margin + 10, y, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap });
@@ -817,7 +817,7 @@ function renderPaymentPage(
 
   // Acknowledgement section
   doc
-    .font("Inter-Bold")
+    .font("Roboto-Bold")
     .fontSize(TYPOGRAPHY.sectionHeading)
     .fillColor(COLORS.primary)
     .text("Acknowledgement:", PAGE.margin, y);
@@ -829,7 +829,7 @@ function renderPaymentPage(
     : data.acknowledgementDate || new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
   doc
-    .font("Inter")
+    .font("Roboto")
     .fontSize(TYPOGRAPHY.bodyText)
     .fillColor(COLORS.text)
     .text("Client acknowledges receipt of and agrees to be bound by S2P's ", PAGE.margin, y, {
@@ -848,13 +848,13 @@ function renderPaymentPage(
     .fillColor(COLORS.text)
     .text(` dated `, { continued: true, underline: false });
   doc
-    .font("Inter-Bold")
+    .font("Roboto-Bold")
     .text(ackDate, { continued: false });
 
   y += 32;
 
   doc
-    .font("Inter")
+    .font("Roboto")
     .fontSize(TYPOGRAPHY.bodyText)
     .fillColor(COLORS.text)
     .text(
@@ -866,7 +866,7 @@ function renderPaymentPage(
   y += TYPOGRAPHY.betweenParagraphs;
 
   doc
-    .font("Inter")
+    .font("Roboto")
     .fontSize(TYPOGRAPHY.bodyText)
     .fillColor(COLORS.text)
     .text(
@@ -912,42 +912,42 @@ function renderPaymentPage(
 
   // Name row
   if (signatureData?.signerName) {
-    doc.font("Inter").fontSize(11).fillColor(COLORS.text).text(signatureData.signerName, leftX, y);
+    doc.font("Roboto").fontSize(11).fillColor(COLORS.text).text(signatureData.signerName, leftX, y);
   }
   if (senderSignatureData?.signerName) {
-    doc.font("Inter").fontSize(11).fillColor(COLORS.text).text(senderSignatureData.signerName, rightX, y);
+    doc.font("Roboto").fontSize(11).fillColor(COLORS.text).text(senderSignatureData.signerName, rightX, y);
   }
   y += 16;
 
   // Label "Name"
-  doc.font("Inter").fontSize(9).fillColor(COLORS.textMuted).text("Name", leftX, y);
-  doc.font("Inter").fontSize(9).fillColor(COLORS.textMuted).text("", rightX, y); // No label on right for name
+  doc.font("Roboto").fontSize(9).fillColor(COLORS.textMuted).text("Name", leftX, y);
+  doc.font("Roboto").fontSize(9).fillColor(COLORS.textMuted).text("", rightX, y); // No label on right for name
   y += 20;
 
   // Company row
   if (signatureData?.signerTitle) {
     // Use signerTitle as company for client
-    doc.font("Inter").fontSize(11).fillColor(COLORS.text).text(signatureData.signerTitle, leftX, y);
+    doc.font("Roboto").fontSize(11).fillColor(COLORS.text).text(signatureData.signerTitle, leftX, y);
   }
   if (senderSignatureData?.signerTitle) {
     // Show "Scan2Plan, Inc." for sender
-    doc.font("Inter").fontSize(11).fillColor(COLORS.text).text("Scan2Plan, Inc.", rightX, y);
+    doc.font("Roboto").fontSize(11).fillColor(COLORS.text).text("Scan2Plan, Inc.", rightX, y);
   }
   y += 16;
 
   // Label "Company"
-  doc.font("Inter").fontSize(9).fillColor(COLORS.textMuted).text("Company", leftX, y);
-  doc.font("Inter").fontSize(9).fillColor(COLORS.textMuted).text("Company", rightX, y);
+  doc.font("Roboto").fontSize(9).fillColor(COLORS.textMuted).text("Company", leftX, y);
+  doc.font("Roboto").fontSize(9).fillColor(COLORS.textMuted).text("Company", rightX, y);
   y += 20;
 
   // Date row
   if (signatureData?.signedAt) {
     const clientDate = new Date(signatureData.signedAt).toLocaleDateString("en-CA"); // YYYY-MM-DD format
-    doc.font("Inter").fontSize(11).fillColor(COLORS.text).text(clientDate, leftX, y);
+    doc.font("Roboto").fontSize(11).fillColor(COLORS.text).text(clientDate, leftX, y);
   }
   if (senderSignatureData?.signedAt) {
     const senderDate = new Date(senderSignatureData.signedAt).toLocaleDateString("en-CA"); // YYYY-MM-DD format
-    doc.font("Inter").fontSize(11).fillColor(COLORS.text).text(senderDate, rightX, y);
+    doc.font("Roboto").fontSize(11).fillColor(COLORS.text).text(senderDate, rightX, y);
   }
 
   renderFooter(doc);
@@ -962,7 +962,7 @@ function renderCapabilitiesPage(doc: PDFKit.PDFDocument): void {
 
   // Title
   doc
-    .font("Inter-Bold")
+    .font("Roboto-Bold")
     .fontSize(TYPOGRAPHY.pageTitle)
     .fillColor(COLORS.primary)
     .text("Scan2Plan Capabilities", PAGE.margin, y);
@@ -970,12 +970,12 @@ function renderCapabilitiesPage(doc: PDFKit.PDFDocument): void {
 
   // Target Audience - "Scan2Plan is for:" in regular, professions in blue/bold
   doc
-    .font("Inter")
+    .font("Roboto")
     .fontSize(TYPOGRAPHY.bodyText)
     .fillColor(COLORS.text)
     .text("Scan2Plan is for: ", PAGE.margin, y, { continued: true });
   doc
-    .font("Inter-Bold")
+    .font("Roboto-Bold")
     .fillColor(COLORS.primary)
     .text("Architects, Structural Engineers, MEP Engineers, Interior Designers, Property Managers, Owner/Operators, Landscape Architects, Civil Engineers.", { continued: false });
   y += 50;
@@ -989,7 +989,7 @@ function renderCapabilitiesPage(doc: PDFKit.PDFDocument): void {
 
   // Helper to render nested bullet lists
   const renderBullet = (text: string, x: number, yPos: number, indent: number = 0, fontSize: number = 9) => {
-    doc.font("Inter").fontSize(fontSize).fillColor(COLORS.text);
+    doc.font("Roboto").fontSize(fontSize).fillColor(COLORS.text);
     const bulletX = x + indent;
     doc.text(`\u2022   ${text}`, bulletX, yPos, { width: colWidth - indent });
     return yPos + doc.heightOfString(`\u2022   ${text}`, { width: colWidth - indent }) + 3;
@@ -997,7 +997,7 @@ function renderCapabilitiesPage(doc: PDFKit.PDFDocument): void {
 
   // Helper to render linked bullet items
   const renderLinkedBullet = (text: string, url: string, x: number, yPos: number, indent: number = 0, fontSize: number = 9) => {
-    doc.font("Inter").fontSize(fontSize).fillColor(COLORS.primary);
+    doc.font("Roboto").fontSize(fontSize).fillColor(COLORS.primary);
     const bulletX = x + indent;
     const bulletText = `\u2022   ${text}`;
     doc.text(bulletText, bulletX, yPos, {
@@ -1010,7 +1010,7 @@ function renderCapabilitiesPage(doc: PDFKit.PDFDocument): void {
 
   // Helper to render section header
   const renderSectionHeader = (text: string, x: number, yPos: number) => {
-    doc.font("Inter-Bold").fontSize(13).fillColor(COLORS.text).text(text, x, yPos);
+    doc.font("Roboto-Bold").fontSize(13).fillColor(COLORS.text).text(text, x, yPos);
     return yPos + 16;
   };
 
@@ -1066,9 +1066,9 @@ function renderCapabilitiesPage(doc: PDFKit.PDFDocument): void {
 
   // Software Support at bottom
   const softwareY = Math.max(leftY, rightY) + 30;
-  doc.font("Inter").fontSize(10).fillColor(COLORS.text).text("We support: ", PAGE.margin, softwareY, { continued: true });
-  doc.font("Inter-Bold").fillColor(COLORS.primary).text("Revit, AutoCAD, Sketchup, Rhino, Vectorworks, Solidworks, Chief Architect, ArchiCAD, Civil 3D", { continued: true });
-  doc.font("Inter").fillColor(COLORS.text).text(", and others....", { continued: false });
+  doc.font("Roboto").fontSize(10).fillColor(COLORS.text).text("We support: ", PAGE.margin, softwareY, { continued: true });
+  doc.font("Roboto-Bold").fillColor(COLORS.primary).text("Revit, AutoCAD, Sketchup, Rhino, Vectorworks, Solidworks, Chief Architect, ArchiCAD, Civil 3D", { continued: true });
+  doc.font("Roboto").fillColor(COLORS.text).text(", and others....", { continued: false });
 
   renderFooter(doc);
 }
@@ -1082,7 +1082,7 @@ function renderDifferencePage(doc: PDFKit.PDFDocument): void {
 
   // Title - matches WYSIWYG text-3xl
   doc
-    .font("Inter-Bold")
+    .font("Roboto-Bold")
     .fontSize(TYPOGRAPHY.pageTitle)
     .fillColor(COLORS.primary)
     .text("The Scan2Plan Difference", PAGE.margin, y);
@@ -1090,7 +1090,7 @@ function renderDifferencePage(doc: PDFKit.PDFDocument): void {
 
   // Subtitle - matches WYSIWYG text-xl
   doc
-    .font("Inter-Bold")
+    .font("Roboto-Bold")
     .fontSize(TYPOGRAPHY.sectionHeading)
     .fillColor(COLORS.primary)
     .text("What to look for in a Scan-to-BIM partner.", PAGE.margin, y);
@@ -1098,7 +1098,7 @@ function renderDifferencePage(doc: PDFKit.PDFDocument): void {
 
   // Intro paragraph - matches WYSIWYG text-sm
   const intro = "In the evolving landscape of scanning and modeling, it's important to consider your options to find a service that aligns with your specific needs. Scan2Plan is committed to delivering quality and precision in this field. Here's a closer look at what sets us apart:";
-  doc.font("Inter").fontSize(TYPOGRAPHY.bodyText).fillColor(COLORS.text).text(intro, PAGE.margin, y, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap });
+  doc.font("Roboto").fontSize(TYPOGRAPHY.bodyText).fillColor(COLORS.text).text(intro, PAGE.margin, y, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap });
   y += doc.heightOfString(intro, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap }) + TYPOGRAPHY.betweenParagraphs;
 
   // Full descriptions matching WYSIWYG exactly
@@ -1152,13 +1152,13 @@ function renderDifferencePage(doc: PDFKit.PDFDocument): void {
   // Render function for a single point - matches WYSIWYG styling
   const renderPoint = (point: { title: string; description: string }, x: number, currentY: number): number => {
     // Title with bullet - matches WYSIWYG text-sm font-semibold text-gray-900
-    doc.font("Inter-Bold").fontSize(9).fillColor(COLORS.text);
+    doc.font("Roboto-Bold").fontSize(9).fillColor(COLORS.text);
     const titleText = `• ${point.title}`;
     doc.text(titleText, x, currentY, { width: colWidth });
     const titleHeight = doc.heightOfString(titleText, { width: colWidth }) + 2;
 
     // Description - matches WYSIWYG text-xs text-gray-600 pl-3
-    doc.font("Inter").fontSize(8).fillColor(COLORS.textLight);
+    doc.font("Roboto").fontSize(8).fillColor(COLORS.textLight);
     doc.text(point.description, x + 8, currentY + titleHeight, { width: colWidth - 8, lineGap: 1 });
     const descHeight = doc.heightOfString(point.description, { width: colWidth - 8, lineGap: 1 });
 
@@ -1207,7 +1207,7 @@ function renderBIMStandardsPages(doc: PDFKit.PDFDocument): void {
       });
     } else {
       doc
-        .font("Inter")
+        .font("Roboto")
         .fontSize(12)
         .fillColor(COLORS.textMuted)
         .text(`BIM Standards Page ${index + 1}`, PAGE.margin, PAGE.height / 2, {
@@ -1243,27 +1243,27 @@ function renderCertificateOfSignature(
 
   // Title: "CERTIFICATE of SIGNATURE"
   doc
-    .font("Inter-Bold")
+    .font("Roboto-Bold")
     .fontSize(28)
     .fillColor(CERT_COLORS.title)
     .text("CERTIFICATE ", PAGE.margin + 20, y, { continued: true, align: "center", width: PAGE.contentWidth - 40 });
   doc
-    .font("Inter")
+    .font("Roboto")
     .fontSize(28)
     .text("of ", { continued: true });
   doc
-    .font("Inter-Bold")
+    .font("Roboto-Bold")
     .text("SIGNATURE", { continued: false });
 
   y += 50;
 
   // Reference number and completion date
-  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
   doc.text("REF. NUMBER", PAGE.margin + 20, y);
   doc.text("DOCUMENT COMPLETED BY ALL PARTIES ON", PAGE.width - PAGE.margin - 180, y, { width: 160, align: "right" });
   y += 12;
 
-  doc.font("Inter-Bold").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.font("Roboto-Bold").fontSize(9).fillColor(CERT_COLORS.value);
   doc.text(auditTrail.certificateRefNumber || "N/A", PAGE.margin + 20, y);
 
   if (auditTrail.documentCompletedAt) {
@@ -1272,7 +1272,7 @@ function renderCertificateOfSignature(
     const timeStr = completedDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
     doc.text(`${dateStr} ${timeStr}`, PAGE.width - PAGE.margin - 180, y, { width: 160, align: "right" });
     y += 12;
-    doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label).text("UTC", PAGE.width - PAGE.margin - 180, y, { width: 160, align: "right" });
+    doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label).text("UTC", PAGE.width - PAGE.margin - 180, y, { width: 160, align: "right" });
   }
 
   y += 30;
@@ -1282,7 +1282,7 @@ function renderCertificateOfSignature(
   const col2X = PAGE.margin + 180; // TIMESTAMP column
   const col3X = PAGE.margin + 330; // SIGNATURE column
 
-  doc.font("Inter-Bold").fontSize(9).fillColor(CERT_COLORS.label);
+  doc.font("Roboto-Bold").fontSize(9).fillColor(CERT_COLORS.label);
   doc.text("SIGNER", col1X, y);
   doc.text("TIMESTAMP", col2X, y);
   doc.text("SIGNATURE", col3X, y);
@@ -1301,24 +1301,24 @@ function renderCertificateOfSignature(
   };
 
   // ===== SENDER (Scan2Plan) SECTION =====
-  doc.font("Inter-Bold").fontSize(11).fillColor(CERT_COLORS.value);
+  doc.font("Roboto-Bold").fontSize(11).fillColor(CERT_COLORS.value);
   doc.text(auditTrail.senderName?.toUpperCase() || "SCAN2PLAN REPRESENTATIVE", col1X, y);
 
   // Timestamps column for sender
   const senderTimestampsY = y;
-  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
   doc.text("SENT", col2X, senderTimestampsY);
-  doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
   doc.text(formatTimestamp(auditTrail.senderSentAt), col2X, senderTimestampsY + 10);
 
-  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
   doc.text("VIEWED", col2X, senderTimestampsY + 28);
-  doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
   doc.text(formatTimestamp(auditTrail.senderViewedAt), col2X, senderTimestampsY + 38);
 
-  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
   doc.text("SIGNED", col2X, senderTimestampsY + 56);
-  doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
   doc.text(formatTimestamp(auditTrail.senderSignedAt), col2X, senderTimestampsY + 66);
 
   // Sender signature image
@@ -1336,17 +1336,17 @@ function renderCertificateOfSignature(
 
   // IP Address for sender
   y += 16;
-  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
   doc.text("EMAIL", col1X, y);
   y += 10;
-  doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
   doc.text(auditTrail.senderEmail || "", col1X, y);
 
   y += 30;
   if (auditTrail.senderIpAddress) {
-    doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+    doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
     doc.text("IP ADDRESS", col3X, y);
-    doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+    doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
     doc.text(auditTrail.senderIpAddress, col3X, y + 10);
   }
 
@@ -1357,14 +1357,14 @@ function renderCertificateOfSignature(
   y += 10;
 
   // Recipient Verification header
-  doc.font("Inter-Bold").fontSize(10).fillColor(CERT_COLORS.label);
+  doc.font("Roboto-Bold").fontSize(10).fillColor(CERT_COLORS.label);
   doc.text("RECIPIENT VERIFICATION", col1X, y);
   y += 20;
 
   // Email verified timestamp (same as viewed)
-  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
   doc.text("EMAIL VERIFIED", col2X, y);
-  doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
   doc.text(formatTimestamp(auditTrail.clientViewedAt), col2X, y + 10);
 
   y += 40;
@@ -1372,24 +1372,24 @@ function renderCertificateOfSignature(
   y += 20;
 
   // ===== CLIENT SECTION =====
-  doc.font("Inter-Bold").fontSize(11).fillColor(CERT_COLORS.value);
+  doc.font("Roboto-Bold").fontSize(11).fillColor(CERT_COLORS.value);
   doc.text(auditTrail.clientName?.toUpperCase() || "CLIENT", col1X, y);
 
   // Timestamps column for client
   const clientTimestampsY = y;
-  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
   doc.text("SENT", col2X, clientTimestampsY);
-  doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
   doc.text(formatTimestamp(auditTrail.clientSentAt), col2X, clientTimestampsY + 10);
 
-  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
   doc.text("VIEWED", col2X, clientTimestampsY + 28);
-  doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
   doc.text(formatTimestamp(auditTrail.clientViewedAt), col2X, clientTimestampsY + 38);
 
-  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
   doc.text("SIGNED", col2X, clientTimestampsY + 56);
-  doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
   doc.text(formatTimestamp(auditTrail.clientSignedAt), col2X, clientTimestampsY + 66);
 
   // Client signature image
@@ -1406,39 +1406,39 @@ function renderCertificateOfSignature(
 
   // Client info
   y += 16;
-  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
   doc.text("EMAIL", col1X, y);
   y += 10;
-  doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
   doc.text(auditTrail.clientEmail || "", col1X, y);
 
   y += 16;
-  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
   doc.text("SHARED VIA", col1X, y);
   y += 10;
-  doc.font("Inter").fontSize(9).fillColor(COLORS.primary);
+  doc.font("Roboto").fontSize(9).fillColor(COLORS.primary);
   doc.text("LINK", col1X, y, { underline: true });
 
   // Client IP and location
   y = clientTimestampsY + 80;
   if (auditTrail.clientIpAddress) {
-    doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+    doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
     doc.text("IP ADDRESS", col3X, y);
-    doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+    doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
     doc.text(auditTrail.clientIpAddress, col3X, y + 10);
     y += 28;
   }
 
   if (auditTrail.clientLocation) {
-    doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+    doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
     doc.text("LOCATION", col3X, y);
-    doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+    doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
     doc.text(auditTrail.clientLocation.toUpperCase(), col3X, y + 10);
   }
 
   // Footer with branding
   const footerY = PAGE.height - 60;
-  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
   doc.text("Signed with Scan2Plan", PAGE.margin + 20, footerY);
   doc.text("PAGE 1 OF 1", PAGE.width / 2 - 30, footerY);
 }
@@ -1466,13 +1466,13 @@ export async function generateWYSIWYGPdf(
     bufferPages: true,
   });
 
-  // Register Inter fonts (with fallback to Inter if not found)
+  // Register Roboto fonts (matching Google Docs style)
   try {
     if (fs.existsSync(FONTS.regular) && fs.existsSync(FONTS.bold)) {
-      doc.registerFont("Inter", FONTS.regular);
-      doc.registerFont("Inter-Bold", FONTS.bold);
+      doc.registerFont("Roboto", FONTS.regular);
+      doc.registerFont("Roboto-Bold", FONTS.bold);
     } else {
-      console.warn("[WYSIWYG PDF] Inter fonts not found, using Inter fallback");
+      console.warn("[WYSIWYG PDF] Roboto fonts not found, using system fallback");
     }
   } catch (error) {
     console.warn("[WYSIWYG PDF] Failed to register fonts:", error);
