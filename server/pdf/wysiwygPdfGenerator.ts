@@ -41,6 +41,29 @@ const PAGE = {
   contentWidth: 484, // 612 - 64*2
 };
 
+// Typography settings matching example proposals
+const TYPOGRAPHY = {
+  // Font sizes
+  pageTitle: 28,        // "About Scan2Plan", "The Project", etc.
+  sectionHeading: 18,   // "Overview", "Scope of Work", etc.
+  subtitle: 20,         // "Laser Scanning & Building Documentation"
+  bodyText: 11,         // Regular paragraph text
+  bulletText: 11,       // Bullet list items
+  smallText: 10,        // Contact info, footer
+  tableHeader: 9,       // Table column headers
+
+  // Line spacing
+  bodyLineGap: 5,       // Space between lines in paragraphs
+  bulletLineGap: 4,     // Space between lines within a bullet item
+
+  // Vertical spacing
+  afterPageTitle: 40,   // Space after main page title
+  afterSectionHeading: 24, // Space after section headings
+  betweenParagraphs: 18,   // Space between paragraphs
+  betweenBullets: 10,      // Space between bullet items
+  beforeSection: 24,       // Space before new section
+};
+
 // Client signature data for signed PDFs
 export interface SignatureData {
   signatureImage: string;
@@ -185,22 +208,22 @@ function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalCoverData): void
   doc.text("www.scan2plan.io", PAGE.margin, y, { width: PAGE.contentWidth, align: "center" });
 
   // Middle section: "- PROPOSAL -" title
-  y = PAGE.height / 2 - 60;
+  y = PAGE.height / 2 - 80;
   doc
     .font("Inter-Bold")
-    .fontSize(40)
+    .fontSize(36)
     .fillColor(COLORS.text)
     .text("- PROPOSAL -", PAGE.margin, y, {
       width: PAGE.contentWidth,
       align: "center",
-      characterSpacing: 3,
+      characterSpacing: 2,
     });
 
   // Subtitle: "Laser Scanning & Building Documentation"
   y += 55;
   doc
     .font("Inter")
-    .fontSize(16)
+    .fontSize(TYPOGRAPHY.subtitle)
     .fillColor(COLORS.text)
     .text("Laser Scanning & Building Documentation", PAGE.margin, y, {
       width: PAGE.contentWidth,
@@ -208,34 +231,35 @@ function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalCoverData): void
     });
 
   // Project Address (combines projectTitle and projectAddress)
-  y += 40;
+  y += 35;
   const fullAddress = data.projectAddress
     ? `${data.projectTitle}, ${data.projectAddress}`
     : data.projectTitle;
   doc
-    .font("Inter-Bold")
-    .fontSize(16)
+    .font("Inter")
+    .fontSize(20)
     .fillColor(COLORS.text)
     .text(fullAddress || "", PAGE.margin, y, {
       width: PAGE.contentWidth,
       align: "center",
+      lineGap: 4,
     });
 
   // Services Line or Area Scope Lines (if multiple areas)
-  y += 30;
+  y += 35;
   const areaScopeLines = (data as any).areaScopeLines as string[] | undefined;
   if (areaScopeLines && areaScopeLines.length > 1) {
     // Multiple areas - show each on its own line
-    doc.font("Inter-Bold").fontSize(13).fillColor(COLORS.text);
+    doc.font("Inter").fontSize(18).fillColor(COLORS.text);
     areaScopeLines.forEach((line) => {
       doc.text(line, PAGE.margin, y, { width: PAGE.contentWidth, align: "center" });
-      y += 18;
+      y += 24;
     });
   } else {
     // Single service line
     doc
-      .font("Inter-Bold")
-      .fontSize(14)
+      .font("Inter")
+      .fontSize(18)
       .fillColor(COLORS.text)
       .text(data.servicesLine || "", PAGE.margin, y, {
         width: PAGE.contentWidth,
@@ -285,18 +309,18 @@ function renderAboutPage(doc: PDFKit.PDFDocument): void {
   // Title with trademark symbol
   doc
     .font("Inter-Bold")
-    .fontSize(28)
+    .fontSize(TYPOGRAPHY.pageTitle)
     .fillColor(COLORS.primary)
     .text("About Scan2Plan", PAGE.margin, y, { continued: true });
   doc.font("Inter").fontSize(14).text("\u00AE", { continued: false });
-  y += 45;
+  y += TYPOGRAPHY.afterPageTitle;
 
-  // About paragraphs matching WYSIWYG exactly
-  doc.font("Inter").fontSize(11).fillColor(COLORS.text);
+  // About paragraphs matching example proposals
+  doc.font("Inter").fontSize(TYPOGRAPHY.bodyText).fillColor(COLORS.text);
 
   doc.text("We began in 2018 with a simple goal of helping firms ", PAGE.margin, y, {
     width: PAGE.contentWidth,
-    lineGap: 4,
+    lineGap: TYPOGRAPHY.bodyLineGap,
     continued: true
   });
   doc.font("Inter-Bold").text("focus on design", {
@@ -304,15 +328,15 @@ function renderAboutPage(doc: PDFKit.PDFDocument): void {
     underline: true
   });
   doc.font("Inter").text(".", { continued: false, underline: false });
-  y += 30;
+  y += 32;
 
   const para2 = "We're an on-demand LiDAR to BIM/CAD team that can model any building in weeks. This can be done within any scope, budget or schedule. We've scanned over 1,000 buildings (~10M sqft).";
-  doc.font("Inter").text(para2, PAGE.margin, y, { width: PAGE.contentWidth, lineGap: 4 });
-  y += doc.heightOfString(para2, { width: PAGE.contentWidth, lineGap: 4 }) + 16;
+  doc.font("Inter").text(para2, PAGE.margin, y, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap });
+  y += doc.heightOfString(para2, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap }) + TYPOGRAPHY.betweenParagraphs;
 
   const para3 = "We use LiDAR scanners for 3D mapping with extreme accuracy. We deliver professionally drafted 3D BIM and 2D CAD for comprehensive existing conditions documentation. Our Point Cloud datasets serve as a verifiable single-source-of-truth for coordination and risk-mitigation across projects.";
-  doc.text(para3, PAGE.margin, y, { width: PAGE.contentWidth, lineGap: 4 });
-  y += doc.heightOfString(para3, { width: PAGE.contentWidth, lineGap: 4 }) + 24;
+  doc.text(para3, PAGE.margin, y, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap });
+  y += doc.heightOfString(para3, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap }) + 24;
 
   // Point Cloud Image
   const imagePath = path.join(process.cwd(), "client", "public", "point-cloud-building.jpg");
@@ -328,12 +352,12 @@ function renderAboutPage(doc: PDFKit.PDFDocument): void {
   // Why Scan2Plan section
   doc
     .font("Inter-Bold")
-    .fontSize(28)
+    .fontSize(TYPOGRAPHY.pageTitle)
     .fillColor(COLORS.primary)
     .text("Why Scan2Plan?", PAGE.margin, y);
-  y += 40;
+  y += TYPOGRAPHY.afterPageTitle;
 
-  // Two column bullet list matching WYSIWYG
+  // Two column bullet list matching example proposals
   const leftItems = [
     "Experienced, dedicated team of field techs, drafters (AutoCAD and Revit) and licensed engineers.",
     "We take the time to scope each project to suit your priorities.",
@@ -352,20 +376,20 @@ function renderAboutPage(doc: PDFKit.PDFDocument): void {
   const leftX = PAGE.margin;
   const rightX = PAGE.margin + colWidth + 30;
 
-  doc.font("Inter").fontSize(10).fillColor(COLORS.text);
+  doc.font("Inter").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
 
-  // Render both columns
+  // Render both columns with proper spacing
   let leftY = y;
   let rightY = y;
 
   leftItems.forEach((item) => {
-    doc.text(`\u2022  ${item}`, leftX, leftY, { width: colWidth });
-    leftY += doc.heightOfString(`\u2022  ${item}`, { width: colWidth }) + 10;
+    doc.text(`\u2022  ${item}`, leftX, leftY, { width: colWidth, lineGap: TYPOGRAPHY.bulletLineGap });
+    leftY += doc.heightOfString(`\u2022  ${item}`, { width: colWidth, lineGap: TYPOGRAPHY.bulletLineGap }) + TYPOGRAPHY.betweenBullets;
   });
 
   rightItems.forEach((item) => {
-    doc.text(`\u2022  ${item}`, rightX, rightY, { width: colWidth });
-    rightY += doc.heightOfString(`\u2022  ${item}`, { width: colWidth }) + 10;
+    doc.text(`\u2022  ${item}`, rightX, rightY, { width: colWidth, lineGap: TYPOGRAPHY.bulletLineGap });
+    rightY += doc.heightOfString(`\u2022  ${item}`, { width: colWidth, lineGap: TYPOGRAPHY.bulletLineGap }) + TYPOGRAPHY.betweenBullets;
   });
 
   renderFooter(doc);
@@ -381,85 +405,85 @@ function renderProjectPage(doc: PDFKit.PDFDocument, data: ProposalProjectData): 
   // Title
   doc
     .font("Inter-Bold")
-    .fontSize(24)
+    .fontSize(TYPOGRAPHY.pageTitle)
     .fillColor(COLORS.primary)
     .text("The Project", PAGE.margin, y);
-  y += 40;
+  y += TYPOGRAPHY.afterPageTitle;
 
   // Overview
   doc
     .font("Inter-Bold")
-    .fontSize(16)
+    .fontSize(TYPOGRAPHY.sectionHeading)
     .fillColor(COLORS.primary)
     .text("Overview", PAGE.margin, y);
-  y += 24;
+  y += TYPOGRAPHY.afterSectionHeading;
 
   // Use overviewLine if set, otherwise fall back to legacy format
   const overviewText = data.overviewLine || `Service for ${data.overview || ""}`;
   doc
     .font("Inter")
-    .fontSize(11)
+    .fontSize(TYPOGRAPHY.bodyText)
     .fillColor(COLORS.text)
-    .text(overviewText, PAGE.margin, y, { width: PAGE.contentWidth });
-  y += 24;
+    .text(overviewText, PAGE.margin, y, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap });
+  y += doc.heightOfString(overviewText, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap }) + TYPOGRAPHY.beforeSection;
 
   // Scope of Work
   if (data.scopeItems && data.scopeItems.length > 0) {
     doc
       .font("Inter-Bold")
-      .fontSize(16)
+      .fontSize(TYPOGRAPHY.sectionHeading)
       .fillColor(COLORS.primary)
       .text("Scope of Work", PAGE.margin, y);
-    y += 24;
+    y += TYPOGRAPHY.afterSectionHeading;
 
-    doc.font("Inter").fontSize(11).fillColor(COLORS.text);
+    doc.font("Inter").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
     data.scopeItems.forEach((item) => {
-      doc.text(`\u2022  ${item}`, PAGE.margin + 10, y, { width: PAGE.contentWidth - 20 });
-      y += doc.heightOfString(`\u2022  ${item}`, { width: PAGE.contentWidth - 20 }) + 6;
+      doc.text(`\u2022  ${item}`, PAGE.margin + 10, y, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap });
+      y += doc.heightOfString(`\u2022  ${item}`, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap }) + TYPOGRAPHY.betweenBullets;
     });
-    y += 10;
+    y += TYPOGRAPHY.beforeSection - TYPOGRAPHY.betweenBullets;
   }
 
   // Deliverables
   if (data.deliverables && data.deliverables.length > 0) {
     doc
       .font("Inter-Bold")
-      .fontSize(16)
+      .fontSize(TYPOGRAPHY.sectionHeading)
       .fillColor(COLORS.primary)
       .text("Deliverables", PAGE.margin, y);
-    y += 24;
+    y += TYPOGRAPHY.afterSectionHeading;
 
-    doc.font("Inter").fontSize(11).fillColor(COLORS.text);
+    doc.font("Inter").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
     data.deliverables.forEach((item) => {
-      doc.text(`\u2022  ${item}`, PAGE.margin + 10, y, { width: PAGE.contentWidth - 20 });
-      y += doc.heightOfString(`\u2022  ${item}`, { width: PAGE.contentWidth - 20 }) + 6;
+      doc.text(`\u2022  ${item}`, PAGE.margin + 10, y, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap });
+      y += doc.heightOfString(`\u2022  ${item}`, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap }) + TYPOGRAPHY.betweenBullets;
     });
-    y += 10;
+    y += TYPOGRAPHY.beforeSection - TYPOGRAPHY.betweenBullets;
   }
 
   // Timeline
   if (data.timelineIntro || (data.milestones && data.milestones.length > 0)) {
     doc
       .font("Inter-Bold")
-      .fontSize(16)
+      .fontSize(TYPOGRAPHY.sectionHeading)
       .fillColor(COLORS.primary)
       .text("Timeline", PAGE.margin, y);
-    y += 24;
+    y += TYPOGRAPHY.afterSectionHeading;
 
     if (data.timelineIntro) {
       doc
         .font("Inter")
-        .fontSize(11)
+        .fontSize(TYPOGRAPHY.bodyText)
         .fillColor(COLORS.text)
-        .text(data.timelineIntro, PAGE.margin, y, { width: PAGE.contentWidth });
-      y += doc.heightOfString(data.timelineIntro, { width: PAGE.contentWidth }) + 12;
+        .text(data.timelineIntro, PAGE.margin, y, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap });
+      y += doc.heightOfString(data.timelineIntro, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap }) + TYPOGRAPHY.betweenParagraphs;
     }
 
     if (data.milestones && data.milestones.length > 0) {
-      doc.font("Inter").fontSize(11).fillColor(COLORS.text);
+      doc.font("Inter").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
       data.milestones.forEach((item) => {
-        doc.text(`\u2022  ${item}`, PAGE.margin + 10, y, { width: PAGE.contentWidth - 20 });
-        y += 18;
+        doc.text(`\u2022  ${item}`, PAGE.margin + 10, y, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap });
+        y += doc.heightOfString(`\u2022  ${item}`, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap }) + TYPOGRAPHY.betweenBullets;
       });
     }
   }
@@ -757,47 +781,47 @@ function renderPaymentPage(
   // Title - "Payment Terms" instead of just "Payment"
   doc
     .font("Inter-Bold")
-    .fontSize(24)
+    .fontSize(TYPOGRAPHY.pageTitle)
     .fillColor(COLORS.primary)
     .text("Payment Terms", PAGE.margin, y);
-  y += 40;
+  y += TYPOGRAPHY.afterPageTitle;
 
   // Payment Terms bullets
   if (data.terms && data.terms.length > 0) {
-    doc.font("Inter").fontSize(11).fillColor(COLORS.text);
+    doc.font("Inter").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
     data.terms.forEach((term) => {
       const bulletText = `\u2022  ${term}`;
-      doc.text(bulletText, PAGE.margin + 10, y, { width: PAGE.contentWidth - 20 });
-      y += doc.heightOfString(bulletText, { width: PAGE.contentWidth - 20 }) + 8;
+      doc.text(bulletText, PAGE.margin + 10, y, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap });
+      y += doc.heightOfString(bulletText, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap }) + TYPOGRAPHY.betweenBullets;
     });
   }
-  y += 16;
+  y += TYPOGRAPHY.beforeSection - TYPOGRAPHY.betweenBullets;
 
   // Accepted Forms of Payment
   doc
     .font("Inter-Bold")
-    .fontSize(16)
+    .fontSize(TYPOGRAPHY.sectionHeading)
     .fillColor(COLORS.primary)
     .text("Accepted Forms of Payment:", PAGE.margin, y);
-  y += 24;
+  y += TYPOGRAPHY.afterSectionHeading;
 
   if (data.paymentMethods && data.paymentMethods.length > 0) {
-    doc.font("Inter").fontSize(11).fillColor(COLORS.text);
+    doc.font("Inter").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
     data.paymentMethods.forEach((method, index) => {
       const numberedText = `${index + 1}. ${method}`;
-      doc.text(numberedText, PAGE.margin + 10, y, { width: PAGE.contentWidth - 20 });
-      y += doc.heightOfString(numberedText, { width: PAGE.contentWidth - 20 }) + 6;
+      doc.text(numberedText, PAGE.margin + 10, y, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap });
+      y += doc.heightOfString(numberedText, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap }) + TYPOGRAPHY.betweenBullets;
     });
   }
-  y += 20;
+  y += TYPOGRAPHY.beforeSection;
 
   // Acknowledgement section
   doc
     .font("Inter-Bold")
-    .fontSize(16)
+    .fontSize(TYPOGRAPHY.sectionHeading)
     .fillColor(COLORS.primary)
     .text("Acknowledgement:", PAGE.margin, y);
-  y += 24;
+  y += TYPOGRAPHY.afterSectionHeading;
 
   // Acknowledgement text with T&C link reference
   const ackDate = signatureData?.signedAt
@@ -806,11 +830,12 @@ function renderPaymentPage(
 
   doc
     .font("Inter")
-    .fontSize(11)
+    .fontSize(TYPOGRAPHY.bodyText)
     .fillColor(COLORS.text)
     .text("Client acknowledges receipt of and agrees to be bound by S2P's ", PAGE.margin, y, {
       width: PAGE.contentWidth,
       continued: true,
+      lineGap: TYPOGRAPHY.bodyLineGap,
     });
   doc
     .fillColor(COLORS.primary)
@@ -826,29 +851,29 @@ function renderPaymentPage(
     .font("Inter-Bold")
     .text(ackDate, { continued: false });
 
-  y += 30;
+  y += 32;
 
   doc
     .font("Inter")
-    .fontSize(11)
+    .fontSize(TYPOGRAPHY.bodyText)
     .fillColor(COLORS.text)
     .text(
       "which are incorporated herein by reference.",
       PAGE.margin,
       y,
-      { width: PAGE.contentWidth }
+      { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap }
     );
-  y += 24;
+  y += TYPOGRAPHY.betweenParagraphs;
 
   doc
     .font("Inter")
-    .fontSize(11)
+    .fontSize(TYPOGRAPHY.bodyText)
     .fillColor(COLORS.text)
     .text(
       "In witness whereof the parties hereto have caused this agreement to be executed as of the date(s) written below.",
       PAGE.margin,
       y,
-      { width: PAGE.contentWidth, lineGap: 4 }
+      { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap }
     );
   y += 50;
 
@@ -938,15 +963,15 @@ function renderCapabilitiesPage(doc: PDFKit.PDFDocument): void {
   // Title
   doc
     .font("Inter-Bold")
-    .fontSize(24)
+    .fontSize(TYPOGRAPHY.pageTitle)
     .fillColor(COLORS.primary)
     .text("Scan2Plan Capabilities", PAGE.margin, y);
-  y += 40;
+  y += TYPOGRAPHY.afterPageTitle;
 
   // Target Audience - "Scan2Plan is for:" in regular, professions in blue/bold
   doc
     .font("Inter")
-    .fontSize(10)
+    .fontSize(TYPOGRAPHY.bodyText)
     .fillColor(COLORS.text)
     .text("Scan2Plan is for: ", PAGE.margin, y, { continued: true });
   doc
@@ -1058,23 +1083,23 @@ function renderDifferencePage(doc: PDFKit.PDFDocument): void {
   // Title - matches WYSIWYG text-3xl
   doc
     .font("Inter-Bold")
-    .fontSize(24)
+    .fontSize(TYPOGRAPHY.pageTitle)
     .fillColor(COLORS.primary)
     .text("The Scan2Plan Difference", PAGE.margin, y);
-  y += 30;
+  y += 34;
 
   // Subtitle - matches WYSIWYG text-xl
   doc
     .font("Inter-Bold")
-    .fontSize(16)
+    .fontSize(TYPOGRAPHY.sectionHeading)
     .fillColor(COLORS.primary)
     .text("What to look for in a Scan-to-BIM partner.", PAGE.margin, y);
-  y += 24;
+  y += TYPOGRAPHY.afterSectionHeading;
 
   // Intro paragraph - matches WYSIWYG text-sm
   const intro = "In the evolving landscape of scanning and modeling, it's important to consider your options to find a service that aligns with your specific needs. Scan2Plan is committed to delivering quality and precision in this field. Here's a closer look at what sets us apart:";
-  doc.font("Inter").fontSize(10).fillColor(COLORS.text).text(intro, PAGE.margin, y, { width: PAGE.contentWidth, lineGap: 2 });
-  y += doc.heightOfString(intro, { width: PAGE.contentWidth, lineGap: 2 }) + 16;
+  doc.font("Inter").fontSize(TYPOGRAPHY.bodyText).fillColor(COLORS.text).text(intro, PAGE.margin, y, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap });
+  y += doc.heightOfString(intro, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap }) + TYPOGRAPHY.betweenParagraphs;
 
   // Full descriptions matching WYSIWYG exactly
   const differencePoints = [
