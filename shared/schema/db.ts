@@ -2052,6 +2052,10 @@ export const generatedProposals = pgTable("generated_proposals", {
     paymentMethods: string[];
     acknowledgementDate: string;
   }>(),
+  // Display settings (rollup preferences, etc.)
+  displaySettings: jsonb("display_settings").$type<{
+    rollupByDiscipline: boolean;
+  }>(),
   // Calculated totals
   subtotal: decimal("subtotal", { precision: 12, scale: 2 }),
   total: decimal("total", { precision: 12, scale: 2 }),

@@ -3,7 +3,6 @@ import { asyncHandler } from "../middleware/errorHandler";
 import { log } from "../lib/logger";
 import { storage } from "../storage";
 import { generateEstimatePDF } from "../pdf-generator";
-import { generateProposalPDF } from "../pdf/proposalGenerator";
 import { generateWYSIWYGPdf, type WYSIWYGProposalData } from "../pdf/wysiwygPdfGenerator";
 import { mapProposalData } from "../lib/proposalDataMapper";
 import { substituteVariables } from "../lib/variableSubstitution";
@@ -606,6 +605,7 @@ export function registerProposalRoutes(app: Express): void {
               paymentMethods: [],
               acknowledgementDate: "",
             },
+            displaySettings: savedProposal.displaySettings || undefined,
             subtotal: Number(savedProposal.subtotal) || 0,
             total: Number(savedProposal.total) || 0,
           };
@@ -628,33 +628,24 @@ export function registerProposalRoutes(app: Express): void {
           return;
         }
       }
+
+      // No saved WYSIWYG proposal exists
+      log(`ERROR: No WYSIWYG proposal found for lead ${leadId} - proposal must be created first`);
+      return res.status(404).json({
+        error: "Proposal not found",
+        message: "Please create a proposal using the Proposal Editor first."
+      });
     } catch (error: any) {
-      log(`WARN: WYSIWYG PDF generation failed, falling back to legacy generator: ${error?.message}`);
-      log(`WARN: Error stack: ${error?.stack}`);
+      log(`ERROR: WYSIWYG PDF generation failed: ${error?.message}`);
+      log(`ERROR: Error stack: ${error?.stack}`);
+      return res.status(500).json({ error: "Failed to generate proposal PDF" });
     }
-
-    // 4. Fall back to legacy generator if no WYSIWYG proposal found
-    log(`INFO: Using legacy PDF generator for lead ${leadId}`);
-    const proposalData = mapProposalData(lead, quote);
-    const pdfDoc = await generateProposalPDF(proposalData);
-
-    const legacyFilename = generateProposalFilename(
-      lead.projectName,
-      lead.projectAddress,
-      new Date().toLocaleDateString('en-US')
-    );
-
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${legacyFilename}"`);
-
-    pdfDoc.pipe(res);
-    pdfDoc.end();
   }));
 
   /**
    * POST /api/proposals/:leadId/send
-   * 
-   * Generate proposal PDF, update lead status to "Proposal", 
+   *
+   * Generate proposal PDF, update lead status to "Proposal",
    * create a proposal email tracking event, and return success.
    */
   app.post("/api/proposals/:leadId/send", isAuthenticated, asyncHandler(async (req: Request, res: Response) => {
@@ -673,13 +664,50 @@ export function registerProposalRoutes(app: Express): void {
     const quotes = await cpqStorage.getQuotesByLeadId(leadId);
     const quote: any = quotes.find((q: any) => q.isLatest) || quotes[0] || null;
 
-    // 3. Map data to proposal structure
-    const proposalData = mapProposalData(lead, quote);
-
     log(`INFO: Generating and sending proposal for lead ${leadId} (${lead.clientName})`);
 
-    // 4. Generate PDF to buffer to get size
-    const pdfDoc = await generateProposalPDF(proposalData);
+    // 3. Try to use WYSIWYG PDF generator
+    const savedProposals = await db
+      .select()
+      .from(generatedProposals)
+      .where(eq(generatedProposals.leadId, leadId))
+      .orderBy(desc(generatedProposals.createdAt))
+      .limit(1);
+    const savedProposal = savedProposals[0] as any;
+
+    if (!savedProposal || !savedProposal.coverData || !savedProposal.lineItems) {
+      return res.status(400).json({
+        error: "Proposal not found",
+        message: "Please create a proposal using the Proposal Editor before sending."
+      });
+    }
+
+    // 4. Build WYSIWYG data and generate PDF
+    const wysiwygData: WYSIWYGProposalData = {
+      id: savedProposal.id,
+      leadId: leadId,
+      coverData: savedProposal.coverData,
+      projectData: savedProposal.projectData || {
+        serviceType: "Commercial",
+        hasMatterport: false,
+        overview: "",
+        scopeItems: [],
+        deliverables: [],
+        timelineIntro: "",
+        milestones: [],
+      },
+      lineItems: savedProposal.lineItems,
+      paymentData: savedProposal.paymentData || {
+        terms: [],
+        paymentMethods: [],
+        acknowledgementDate: "",
+      },
+      displaySettings: savedProposal.displaySettings || undefined,
+      subtotal: Number(savedProposal.subtotal) || 0,
+      total: Number(savedProposal.total) || 0,
+    };
+
+    const pdfDoc = await generateWYSIWYGPdf(wysiwygData);
     const chunks: Buffer[] = [];
 
     await new Promise<void>((resolve, reject) => {

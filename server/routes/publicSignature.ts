@@ -15,10 +15,7 @@ import { storage } from "../storage";
 import { asyncHandler } from "../middleware/errorHandler";
 import { log } from "../lib/logger";
 import crypto from "crypto";
-import { generateProposalPDF } from "../pdf/proposalGenerator";
 import { generateWYSIWYGPdf, type WYSIWYGProposalData } from "../pdf/wysiwygPdfGenerator";
-import { mapProposalData } from "../lib/proposalDataMapper";
-import { cpqStorage } from "../storage/cpq";
 import { db } from "../db";
 import { generatedProposals } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
@@ -152,6 +149,7 @@ publicSignatureRouter.get(
                             paymentMethods: [],
                             acknowledgementDate: "",
                         },
+                        displaySettings: sp.displaySettings || undefined,
                         subtotal: Number(sp.subtotal) || 0,
                         total: Number(sp.total) || 0,
                     };
@@ -168,21 +166,17 @@ publicSignatureRouter.get(
                     return;
                 }
             }
+
+            // No saved WYSIWYG proposal exists
+            log(`ERROR: No WYSIWYG proposal found for lead ${lead.id} - proposal must be created first`);
+            return res.status(404).json({
+                error: "Proposal not found",
+                message: "Please generate a proposal from the deal page first."
+            });
         } catch (error: any) {
-            log(`WARN: Could not fetch saved proposal for public PDF: ${error?.message}`);
+            log(`ERROR: Failed to generate public PDF: ${error?.message}`);
+            return res.status(500).json({ error: "Failed to generate proposal PDF" });
         }
-
-        // Fall back to legacy generator if no WYSIWYG proposal found
-        log(`INFO: Generating public proposal PDF using legacy generator for lead ${lead.id}`);
-        const proposalData = mapProposalData(lead, quote);
-        const pdfDoc = await generateProposalPDF(proposalData);
-
-        // Stream to response
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `inline; filename="Scan2Plan_Proposal.pdf"`);
-
-        pdfDoc.pipe(res);
-        pdfDoc.end();
     })
 );
 
@@ -372,6 +366,7 @@ publicSignatureRouter.get(
                             paymentMethods: [],
                             acknowledgementDate: "",
                         },
+                        displaySettings: sp.displaySettings || undefined,
                         subtotal: Number(sp.subtotal) || 0,
                         total: Number(sp.total) || 0,
                         // Include client signature data
@@ -423,25 +418,17 @@ publicSignatureRouter.get(
                     return;
                 }
             }
+
+            // No saved WYSIWYG proposal exists
+            log(`ERROR: No WYSIWYG proposal found for lead ${lead.id} - proposal must be created first`);
+            return res.status(404).json({
+                error: "Proposal not found",
+                message: "Please generate a proposal from the deal page first."
+            });
         } catch (error: any) {
-            log(`WARN: Could not generate signed WYSIWYG PDF: ${error?.message}`);
+            log(`ERROR: Failed to generate signed PDF: ${error?.message}`);
+            return res.status(500).json({ error: "Failed to generate signed proposal PDF" });
         }
-
-        // Fallback to legacy generator if no WYSIWYG proposal found
-        const quotes = await cpqStorage.getQuotesByLeadId(lead.id);
-        const quote: any = quotes.find((q: any) => q.isLatest) || quotes[0] || null;
-        const proposalData = mapProposalData(lead, quote);
-
-        log(`INFO: Generating signed PDF using legacy generator for lead ${lead.id}`);
-
-        const pdfDoc = await generateProposalPDF(proposalData);
-
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition',
-            `attachment; filename="Scan2Plan_Signed_Proposal_${lead.clientName?.replace(/[^a-zA-Z0-9]/g, '_') || 'Client'}.pdf"`);
-
-        pdfDoc.pipe(res);
-        pdfDoc.end();
     })
 );
 
@@ -612,6 +599,7 @@ publicSignatureRouter.get(
                             paymentMethods: [],
                             acknowledgementDate: "",
                         },
+                        displaySettings: sp.displaySettings || undefined,
                         subtotal: Number(sp.subtotal) || 0,
                         total: Number(sp.total) || 0,
                     };
@@ -626,21 +614,17 @@ publicSignatureRouter.get(
                     return;
                 }
             }
+
+            // No saved WYSIWYG proposal exists
+            log(`ERROR: No WYSIWYG proposal found for lead ${lead.id} - proposal must be created first`);
+            return res.status(404).json({
+                error: "Proposal not found",
+                message: "Please generate a proposal from the deal page first."
+            });
         } catch (error: any) {
-            log(`WARN: Could not fetch saved proposal for sender PDF: ${error?.message}`);
+            log(`ERROR: Failed to generate sender PDF: ${error?.message}`);
+            return res.status(500).json({ error: "Failed to generate proposal PDF" });
         }
-
-        // Fall back to legacy generator
-        const quotes = await cpqStorage.getQuotesByLeadId(lead.id);
-        const quote: any = quotes.find((q: any) => q.isLatest) || quotes[0] || null;
-        const proposalData = mapProposalData(lead, quote);
-        const pdfDoc = await generateProposalPDF(proposalData);
-
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `inline; filename="Scan2Plan_Proposal.pdf"`);
-
-        pdfDoc.pipe(res);
-        pdfDoc.end();
     })
 );
 

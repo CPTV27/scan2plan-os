@@ -5,10 +5,12 @@
  * Supports inline editing, auto-save, and PDF export.
  */
 
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Download, Save, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
 import { ProposalCoverPage } from "./ProposalCoverPage";
@@ -25,6 +27,7 @@ import type {
   ProposalProjectData,
   ProposalPaymentData,
   ProposalLineItem,
+  ProposalDisplaySettings,
 } from "@shared/schema/types";
 
 // Full proposal data structure
@@ -35,8 +38,92 @@ export interface ProposalData {
   projectData: ProposalProjectData;
   lineItems: ProposalLineItem[];
   paymentData: ProposalPaymentData;
+  displaySettings?: ProposalDisplaySettings;
   subtotal: number;
   total: number;
+}
+
+/**
+ * Roll up line items by discipline, calculating average rate per sqft
+ * Groups items by discipline (Architecture, MEP/F, Structure, Site, etc.)
+ */
+function rollupLineItemsByDiscipline(lineItems: ProposalLineItem[]): ProposalLineItem[] {
+  // Map of discipline keywords to normalized names
+  const disciplineKeywords: Record<string, string> = {
+    architecture: "Architecture",
+    arch: "Architecture",
+    mep: "MEP/F",
+    mepf: "MEP/F",
+    "mep/f": "MEP/F",
+    mechanical: "MEP/F",
+    electrical: "MEP/F",
+    plumbing: "MEP/F",
+    structure: "Structure",
+    structural: "Structure",
+    site: "Site/Grade",
+    grade: "Site/Grade",
+    landscape: "Landscape",
+    cad: "CAD Deliverable",
+    matterport: "Matterport",
+    travel: "Travel",
+    risk: "Risk Premium",
+  };
+
+  // Detect discipline from item name
+  const detectDiscipline = (itemName: string): string => {
+    const nameLower = itemName.toLowerCase();
+    for (const [keyword, discipline] of Object.entries(disciplineKeywords)) {
+      if (nameLower.includes(keyword)) {
+        return discipline;
+      }
+    }
+    return "Other Services";
+  };
+
+  // Group items by discipline
+  const groups: Record<string, { totalQty: number; totalAmount: number; items: ProposalLineItem[] }> = {};
+
+  lineItems.forEach((item) => {
+    const discipline = detectDiscipline(item.itemName);
+    if (!groups[discipline]) {
+      groups[discipline] = { totalQty: 0, totalAmount: 0, items: [] };
+    }
+    groups[discipline].totalQty += item.qty || 0;
+    groups[discipline].totalAmount += item.amount || 0;
+    groups[discipline].items.push(item);
+  });
+
+  // Create consolidated line items
+  const consolidated: ProposalLineItem[] = [];
+
+  // Define preferred order
+  const disciplineOrder = ["Architecture", "MEP/F", "Structure", "Site/Grade", "Landscape", "CAD Deliverable", "Matterport", "Travel", "Risk Premium", "Other Services"];
+
+  disciplineOrder.forEach((discipline) => {
+    const group = groups[discipline];
+    if (group && group.items.length > 0) {
+      const avgRate = group.totalQty > 0 ? group.totalAmount / group.totalQty : 0;
+
+      // Build description from area names
+      const areaNames = group.items.map((item) => {
+        // Extract area name from item name (e.g., "Area 1 - Architecture" -> "Area 1")
+        const match = item.itemName.match(/^(.+?)\s*-\s*/);
+        return match ? match[1] : item.itemName;
+      });
+      const uniqueAreas = [...new Set(areaNames)];
+
+      consolidated.push({
+        id: `rollup-${discipline.toLowerCase().replace(/[^a-z]/g, "-")}`,
+        itemName: `Scan2Plan ${discipline}`,
+        description: `${discipline} modeling services for ${uniqueAreas.length > 1 ? `${uniqueAreas.length} areas` : uniqueAreas[0] || "project"}. Total ${group.totalQty.toLocaleString()} sqft at avg $${avgRate.toFixed(2)}/sqft.`,
+        qty: group.totalQty,
+        rate: Math.round(avgRate * 100) / 100,
+        amount: Math.round(group.totalAmount * 100) / 100,
+      });
+    }
+  });
+
+  return consolidated;
 }
 
 interface ProposalWYSIWYGProps {
@@ -164,6 +251,25 @@ export function ProposalWYSIWYG({
     [proposal.paymentData, onUpdate]
   );
 
+  const handleRollupToggle = useCallback(
+    (checked: boolean) => {
+      const newSettings: ProposalDisplaySettings = {
+        ...proposal.displaySettings,
+        rollupByDiscipline: checked,
+      };
+      onUpdate({ displaySettings: newSettings });
+    },
+    [proposal.displaySettings, onUpdate]
+  );
+
+  // Get display line items (rolled up or original based on setting)
+  const displayLineItems = useMemo(() => {
+    if (proposal.displaySettings?.rollupByDiscipline) {
+      return rollupLineItemsByDiscipline(proposal.lineItems);
+    }
+    return proposal.lineItems;
+  }, [proposal.lineItems, proposal.displaySettings?.rollupByDiscipline]);
+
   // Trigger save on blur
   const handleBlur = useCallback(() => {
     debouncedSave({
@@ -171,6 +277,7 @@ export function ProposalWYSIWYG({
       projectData: proposal.projectData,
       lineItems: proposal.lineItems,
       paymentData: proposal.paymentData,
+      displaySettings: proposal.displaySettings,
       subtotal: proposal.subtotal,
       total: proposal.total,
     });
@@ -186,6 +293,7 @@ export function ProposalWYSIWYG({
       projectData: proposal.projectData,
       lineItems: proposal.lineItems,
       paymentData: proposal.paymentData,
+      displaySettings: proposal.displaySettings,
       subtotal: proposal.subtotal,
       total: proposal.total,
     });
@@ -204,7 +312,19 @@ export function ProposalWYSIWYG({
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
+          {/* Rollup Toggle */}
+          <div className="flex items-center gap-2 pr-4 border-r border-gray-200">
+            <Switch
+              id="rollup-toggle"
+              checked={proposal.displaySettings?.rollupByDiscipline ?? false}
+              onCheckedChange={handleRollupToggle}
+              disabled={disabled}
+            />
+            <Label htmlFor="rollup-toggle" className="text-sm text-gray-600 cursor-pointer">
+              Rollup by Discipline
+            </Label>
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -261,15 +381,20 @@ export function ProposalWYSIWYG({
           {/* Pages 4-5: Estimate Table */}
           <div className="shadow-lg">
             <ProposalEstimateTable
-              lineItems={proposal.lineItems}
+              lineItems={displayLineItems}
               onChange={handleLineItemsChange}
               onBlur={handleBlur}
               clientName={proposal.coverData.clientName}
               projectAddress={proposal.coverData.projectTitle}
               estimateNumber={`EST-${proposal.leadId}`}
               estimateDate={proposal.coverData.date}
-              disabled={disabled}
+              disabled={disabled || proposal.displaySettings?.rollupByDiscipline}
             />
+            {proposal.displaySettings?.rollupByDiscipline && (
+              <div className="bg-blue-50 border-t border-blue-200 p-3 text-sm text-blue-700">
+                <strong>Rollup Mode:</strong> Line items are consolidated by discipline. Disable rollup to edit individual items.
+              </div>
+            )}
           </div>
 
           {/* Page 7: Payment Terms */}

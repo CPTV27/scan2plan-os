@@ -119,6 +119,11 @@ export interface SignatureAuditTrail {
 }
 
 // Full proposal data structure (matches WYSIWYG ProposalData)
+// Display settings for proposal rendering
+export interface ProposalDisplaySettings {
+  rollupByDiscipline?: boolean;  // When true, consolidate line items by discipline with avg rate
+}
+
 export interface WYSIWYGProposalData {
   id: number;
   leadId: number;
@@ -126,6 +131,7 @@ export interface WYSIWYGProposalData {
   projectData: ProposalProjectData;
   lineItems: ProposalLineItem[];
   paymentData: ProposalPaymentData;
+  displaySettings?: ProposalDisplaySettings;
   subtotal: number;
   total: number;
   signatureData?: SignatureData; // Optional: client signature for signed PDFs
@@ -153,6 +159,79 @@ function formatNumber(value: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 3,
   }).format(value);
+}
+
+/**
+ * Roll up line items by discipline, calculating average rate per sqft
+ */
+function rollupLineItemsByDiscipline(lineItems: ProposalLineItem[]): ProposalLineItem[] {
+  const disciplineKeywords: Record<string, string> = {
+    architecture: "Architecture",
+    arch: "Architecture",
+    mep: "MEP/F",
+    mepf: "MEP/F",
+    "mep/f": "MEP/F",
+    mechanical: "MEP/F",
+    electrical: "MEP/F",
+    plumbing: "MEP/F",
+    structure: "Structure",
+    structural: "Structure",
+    site: "Site/Grade",
+    grade: "Site/Grade",
+    landscape: "Landscape",
+    cad: "CAD Deliverable",
+    matterport: "Matterport",
+    travel: "Travel",
+    risk: "Risk Premium",
+  };
+
+  const detectDiscipline = (itemName: string): string => {
+    const nameLower = itemName.toLowerCase();
+    for (const [keyword, discipline] of Object.entries(disciplineKeywords)) {
+      if (nameLower.includes(keyword)) {
+        return discipline;
+      }
+    }
+    return "Other Services";
+  };
+
+  const groups: Record<string, { totalQty: number; totalAmount: number; items: ProposalLineItem[] }> = {};
+
+  lineItems.forEach((item) => {
+    const discipline = detectDiscipline(item.itemName);
+    if (!groups[discipline]) {
+      groups[discipline] = { totalQty: 0, totalAmount: 0, items: [] };
+    }
+    groups[discipline].totalQty += item.qty || 0;
+    groups[discipline].totalAmount += item.amount || 0;
+    groups[discipline].items.push(item);
+  });
+
+  const consolidated: ProposalLineItem[] = [];
+  const disciplineOrder = ["Architecture", "MEP/F", "Structure", "Site/Grade", "Landscape", "CAD Deliverable", "Matterport", "Travel", "Risk Premium", "Other Services"];
+
+  disciplineOrder.forEach((discipline) => {
+    const group = groups[discipline];
+    if (group && group.items.length > 0) {
+      const avgRate = group.totalQty > 0 ? group.totalAmount / group.totalQty : 0;
+      const areaNames = group.items.map((item) => {
+        const match = item.itemName.match(/^(.+?)\s*-\s*/);
+        return match ? match[1] : item.itemName;
+      });
+      const uniqueAreas = [...new Set(areaNames)];
+
+      consolidated.push({
+        id: `rollup-${discipline.toLowerCase().replace(/[^a-z]/g, "-")}`,
+        itemName: `Scan2Plan ${discipline}`,
+        description: `${discipline} modeling services for ${uniqueAreas.length > 1 ? `${uniqueAreas.length} areas` : uniqueAreas[0] || "project"}. Total ${group.totalQty.toLocaleString()} sqft at avg $${avgRate.toFixed(2)}/sqft.`,
+        qty: group.totalQty,
+        rate: Math.round(avgRate * 100) / 100,
+        amount: Math.round(group.totalAmount * 100) / 100,
+      });
+    }
+  });
+
+  return consolidated;
 }
 
 /**
@@ -1493,8 +1572,12 @@ export async function generateWYSIWYGPdf(
   renderProjectPage(doc, data.projectData);
 
   // Page 4: Estimate
+  // Use rolled-up line items if displaySettings.rollupByDiscipline is enabled
+  const estimateLineItems = data.displaySettings?.rollupByDiscipline
+    ? rollupLineItemsByDiscipline(data.lineItems)
+    : data.lineItems;
   doc.addPage();
-  renderEstimatePage(doc, data.lineItems, data.coverData, data.leadId, data.total);
+  renderEstimatePage(doc, estimateLineItems, data.coverData, data.leadId, data.total);
 
   // Page 5: Payment (with dual signatures if provided)
   doc.addPage();

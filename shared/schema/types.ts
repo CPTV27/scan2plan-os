@@ -118,3 +118,8 @@ export interface ProposalPaymentData {
   paymentMethods: string[];   // Accepted payment methods
   acknowledgementDate: string; // Date for acknowledgement section
 }
+
+// === PROPOSAL DISPLAY SETTINGS ===
+export interface ProposalDisplaySettings {
+  rollupByDiscipline: boolean;  // When true, consolidate line items by discipline with avg rate
+}
