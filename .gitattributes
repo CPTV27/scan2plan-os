@@ -1,0 +1,17 @@
+# Ensure font files are treated as binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.eot binary
+
+# Ensure images are treated as binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+
+# Ensure PDFs are treated as binary
+*.pdf binary
