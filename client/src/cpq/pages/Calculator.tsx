@@ -1781,6 +1781,7 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
         let lineTotal = 0;
         let areaLabel = "";
         let upteamLineCost = 0;
+        let effectiveRate = 0;
 
         if (isLandscape) {
           const acres = inputValue;
@@ -1789,16 +1790,19 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
           lineTotal = acres * perAcreRate * scopePortion;
           areaLabel = `${acres} acres (${sqft.toLocaleString()} sqft)`;
           upteamLineCost = lineTotal * UPTEAM_MULTIPLIER_FALLBACK;
+          effectiveRate = perAcreRate; // per acre rate for landscape
         } else if (discipline === "matterport") {
           const sqft = Math.max(inputValue, 3000);
-          lineTotal = sqft * 0.10;
-          areaLabel = `${sqft.toLocaleString()} sqft`;
+          effectiveRate = 0.10;
+          lineTotal = sqft * effectiveRate;
+          areaLabel = `${sqft.toLocaleString()} sqft @ $${effectiveRate.toFixed(3)}/sqft`;
           upteamLineCost = lineTotal * UPTEAM_MULTIPLIER_FALLBACK;
         } else {
           const sqft = Math.max(inputValue, 3000);
           const ratePerSqft = getPricingRate(area.buildingType, sqft, discipline, lod);
 
           if (ratePerSqft > 0) {
+            effectiveRate = ratePerSqft;
             lineTotal = sqft * ratePerSqft * scopePortion;
           } else {
             let baseRatePerSqft = 2.50;
@@ -1808,7 +1812,8 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
 
             const lodMultiplier: Record<string, number> = { "200": 1.0, "300": 1.3, "350": 1.5 };
             const multiplier = lodMultiplier[lod] || 1.0;
-            lineTotal = sqft * baseRatePerSqft * multiplier * scopePortion;
+            effectiveRate = baseRatePerSqft * multiplier;
+            lineTotal = sqft * effectiveRate * scopePortion;
           }
 
           const upteamRatePerSqft = getUpteamPricingRate(area.buildingType, sqft, discipline, lod);
@@ -1818,10 +1823,10 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
             upteamLineCost = lineTotal * UPTEAM_MULTIPLIER_FALLBACK;
           }
 
-          areaLabel = `${sqft.toLocaleString()} sqft`;
+          areaLabel = `${sqft.toLocaleString()} sqft @ $${effectiveRate.toFixed(3)}/sqft`;
         }
 
-        return { lineTotal, areaLabel, upteamLineCost };
+        return { lineTotal, areaLabel, upteamLineCost, effectiveRate };
       };
 
       disciplines.forEach((discipline) => {
@@ -1964,7 +1969,7 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
           if (itemTotal > 0) {
             const areaPrefix = hasMultipleAreas && area.name ? `${area.name} - ` : '';
             items.push({
-              label: `${areaPrefix}${customItem.name || 'Custom Item'} (${itemSqft.toLocaleString()} sqft @ $${itemPricePerSqft.toFixed(2)}/sqft)`,
+              label: `${areaPrefix}${customItem.name || 'Custom Item'} (${itemSqft.toLocaleString()} sqft @ $${itemPricePerSqft.toFixed(3)}/sqft)`,
               value: itemTotal,
               editable: true,
               upteamCost: itemTotal * UPTEAM_MULTIPLIER_FALLBACK,
