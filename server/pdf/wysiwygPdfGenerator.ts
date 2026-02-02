@@ -282,7 +282,6 @@ function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalCoverData): void
       width: PAGE.contentWidth,
       align: "left",
       lineGap: 4,
-      lineBreak: false,
     });
 
   // Footer - well within page bounds
