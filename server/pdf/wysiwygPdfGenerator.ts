@@ -10,9 +10,22 @@ import path from "path";
 import fs from "fs";
 
 // Font paths - Using Roboto to match Google Docs style proposals
+// Font paths - try multiple locations for deployment compatibility
+const getFontPath = (filename: string): string => {
+  const possiblePaths = [
+    path.join(process.cwd(), "server", "fonts", filename),
+    path.join(__dirname, "fonts", filename),
+    path.join(__dirname, "..", "fonts", filename),
+  ];
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) return p;
+  }
+  return possiblePaths[0]; // Return first path even if not found (will fail gracefully)
+};
+
 const FONTS = {
-  regular: path.join(process.cwd(), "server", "fonts", "Roboto-Regular.ttf"),
-  bold: path.join(process.cwd(), "server", "fonts", "Roboto-Bold.ttf"),
+  regular: getFontPath("Roboto-Regular.ttf"),
+  bold: getFontPath("Roboto-Bold.ttf"),
 };
 import type {
   ProposalCoverData,
