@@ -629,7 +629,8 @@ export function registerProposalRoutes(app: Express): void {
         }
       }
     } catch (error: any) {
-      log(`WARN: Could not fetch saved proposal, falling back to legacy generator: ${error?.message}`);
+      log(`WARN: WYSIWYG PDF generation failed, falling back to legacy generator: ${error?.message}`);
+      log(`WARN: Error stack: ${error?.stack}`);
     }
 
     // 4. Fall back to legacy generator if no WYSIWYG proposal found
