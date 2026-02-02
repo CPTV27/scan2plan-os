@@ -187,115 +187,97 @@ function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalCoverData): void
   const centerX = PAGE.width / 2;
   let y = PAGE.margin;
 
-  // Logo (includes Scan2Plan text and tagline)
+  // Logo (w-48 = 192px in WYSIWYG, mb-6 = 24px margin)
   const logoPath = path.join(process.cwd(), "client", "public", "logo-cover.png");
   if (fs.existsSync(logoPath)) {
     doc.image(logoPath, centerX - 96, y, { width: 192 });
-    y += 160; // Logo is tall - includes text and tagline
+    y += 140; // Logo height plus margin-bottom
   } else {
     y += 60;
   }
 
-  // Company contact info (below the logo)
-  doc
-    .font("Roboto")
-    .fontSize(10)
-    .fillColor(COLORS.textLight)
-    .text("188 1st St, Troy, NY 12180", PAGE.margin, y, { width: PAGE.contentWidth, align: "center" });
+  // Company contact info (text-sm = 14px in WYSIWYG, space-y-0.5 = 2px)
+  doc.font("Roboto").fontSize(10).fillColor(COLORS.textLight);
+  doc.text("188 1st St, Troy, NY 12180", PAGE.margin, y, { width: PAGE.contentWidth, align: "center" });
   y += 14;
   doc.text("(518) 362-2403 / admin@scan2plan.io", PAGE.margin, y, { width: PAGE.contentWidth, align: "center" });
   y += 14;
   doc.text("www.scan2plan.io", PAGE.margin, y, { width: PAGE.contentWidth, align: "center" });
 
-  // Middle section: "- PROPOSAL -" title
-  y = PAGE.height / 2 - 80;
-  doc
-    .font("Roboto-Bold")
-    .fontSize(36)
-    .fillColor(COLORS.text)
-    .text("- PROPOSAL -", PAGE.margin, y, {
-      width: PAGE.contentWidth,
-      align: "center",
-      characterSpacing: 2,
-    });
+  // Middle section: "- PROPOSAL -" title (text-5xl = 48px, tracking-wider)
+  // Position in center of page - space-y-8 = 32px between elements
+  y = PAGE.height / 2 - 100;
+  doc.font("Roboto-Bold").fontSize(40).fillColor(COLORS.text);
+  doc.text("- PROPOSAL -", PAGE.margin, y, {
+    width: PAGE.contentWidth,
+    align: "center",
+    characterSpacing: 3,
+  });
 
-  // Subtitle: "Laser Scanning & Building Documentation"
-  y += 55;
-  doc
-    .font("Roboto")
-    .fontSize(TYPOGRAPHY.subtitle)
-    .fillColor(COLORS.text)
-    .text("Laser Scanning & Building Documentation", PAGE.margin, y, {
-      width: PAGE.contentWidth,
-      align: "center",
-    });
+  // Subtitle: "Laser Scanning & Building Documentation" (text-2xl = 24px)
+  y += 60;
+  doc.font("Roboto").fontSize(20).fillColor(COLORS.text);
+  doc.text(data.serviceTitle || "Laser Scanning & Building Documentation", PAGE.margin, y, {
+    width: PAGE.contentWidth,
+    align: "center",
+  });
 
-  // Project Address (combines projectTitle and projectAddress)
-  y += 35;
+  // Project Address (text-xl = 20px, font-bold)
+  y += 40;
   const fullAddress = data.projectAddress
     ? `${data.projectTitle}, ${data.projectAddress}`
     : data.projectTitle;
-  doc
-    .font("Roboto")
-    .fontSize(20)
-    .fillColor(COLORS.text)
-    .text(fullAddress || "", PAGE.margin, y, {
-      width: PAGE.contentWidth,
-      align: "center",
-      lineGap: 4,
-    });
+  doc.font("Roboto-Bold").fontSize(18).fillColor(COLORS.text);
+  doc.text(fullAddress || "", PAGE.margin, y, {
+    width: PAGE.contentWidth,
+    align: "center",
+    lineGap: 4,
+  });
 
-  // Services Line or Area Scope Lines (if multiple areas)
-  y += 35;
+  // Calculate height of address text
+  const addressHeight = doc.heightOfString(fullAddress || "", { width: PAGE.contentWidth, lineGap: 4 });
+
+  // Services Line or Area Scope Lines (text-lg = 18px, font-semibold)
+  y += addressHeight + 24;
   const areaScopeLines = (data as any).areaScopeLines as string[] | undefined;
   if (areaScopeLines && areaScopeLines.length > 1) {
     // Multiple areas - show each on its own line
-    doc.font("Roboto").fontSize(18).fillColor(COLORS.text);
+    doc.font("Roboto-Bold").fontSize(16).fillColor(COLORS.text);
     areaScopeLines.forEach((line) => {
       doc.text(line, PAGE.margin, y, { width: PAGE.contentWidth, align: "center" });
-      y += 24;
+      y += 22;
     });
   } else {
     // Single service line
-    doc
-      .font("Roboto")
-      .fontSize(18)
-      .fillColor(COLORS.text)
-      .text(data.servicesLine || "", PAGE.margin, y, {
-        width: PAGE.contentWidth,
-        align: "center",
-      });
+    doc.font("Roboto-Bold").fontSize(16).fillColor(COLORS.text);
+    doc.text(data.servicesLine || "", PAGE.margin, y, {
+      width: PAGE.contentWidth,
+      align: "center",
+    });
   }
 
-  // Bottom section: Legal paragraph and footer
-  // Footer at Y=700, legal text above it
-  const footerY = 700;
-  const legalY = footerY - 70; // 630
+  // Bottom section: Legal paragraph (text-sm = 14px in WYSIWYG, but 10 for PDF)
+  const footerY = 710;
+  const legalY = footerY - 80;
 
-  const legalText = `Scan2Plan, Inc., a Delaware corporation ("S2P") hereby proposes to provide the services set forth below to ${data.clientName || "[Client Name]"}. Use of the services or the project deliverables described herein constitutes acceptance by the client. This Proposal is dated ${data.date || new Date().toLocaleDateString()}.`;
+  const legalText = `Scan2Plan, Inc. hereby proposes the following engagement to ${data.clientName || "[Client Name]"}. Use of the services offered by Scan2Plan constitutes acceptance of this proposal dated ${data.date || new Date().toLocaleDateString()}.`;
 
-  doc
-    .font("Roboto")
-    .fontSize(10)
-    .fillColor(COLORS.text)
-    .text(legalText, PAGE.margin, legalY, {
-      width: PAGE.contentWidth,
-      align: "left",
-      lineGap: 4,
-    });
+  doc.font("Roboto").fontSize(10).fillColor(COLORS.text);
+  doc.text(legalText, PAGE.margin, legalY, {
+    width: PAGE.contentWidth,
+    align: "center",
+    lineGap: 3,
+  });
 
-  // Footer - well within page bounds
-  drawLine(doc, PAGE.margin, footerY - 12, PAGE.width - PAGE.margin, footerY - 12, COLORS.borderLight);
-  doc
-    .font("Roboto")
-    .fontSize(8)
-    .fillColor(COLORS.textMuted)
-    .text(
-      "Scan2Plan, Inc • 188 1st St, Troy NY, 12180 • (518) 362-2403 • admin@scan2plan.io • scan2plan.io",
-      PAGE.margin,
-      footerY,
-      { width: PAGE.contentWidth, align: "center", lineBreak: false }
-    );
+  // Footer
+  drawLine(doc, PAGE.margin, footerY - 8, PAGE.width - PAGE.margin, footerY - 8, COLORS.borderLight);
+  doc.font("Roboto").fontSize(8).fillColor(COLORS.textMuted);
+  doc.text(
+    "Scan2Plan, Inc • 188 1st St, Troy NY, 12180 • (518) 362-2403 • admin@scan2plan.io • scan2plan.io",
+    PAGE.margin,
+    footerY,
+    { width: PAGE.contentWidth, align: "center" }
+  );
 }
 
 /**
@@ -566,71 +548,32 @@ function renderEstimatePage(
   doc.text(coverData.date || "", metaX + 90, y);
   y += 32;
 
-  // Table - improved layout with combined description column
+  // Table layout matching WYSIWYG ProposalEstimateTable.tsx
+  // WYSIWYG uses: ITEM (55%), QTY (w-16/64px), RATE (w-20/80px), AMOUNT (w-24/96px)
   const tableX = PAGE.margin;
   const colWidths = {
-    description: 290,  // Combined item name and description
-    qty: 50,
-    rate: 60,
-    amount: 84,  // Wider to prevent wrapping of large amounts
+    item: 260,   // ~55% of contentWidth for ITEM column (name + description)
+    qty: 60,     // QTY column
+    rate: 72,    // RATE column
+    amount: 92,  // AMOUNT column
   };
-  const tableWidth = colWidths.description + colWidths.qty + colWidths.rate + colWidths.amount;
+  const tableWidth = colWidths.item + colWidths.qty + colWidths.rate + colWidths.amount;
   const headerHeight = 28;
+  const cellPadding = 12;
 
   // Table header (solid blue background)
   doc.rect(tableX, y, tableWidth, headerHeight).fill(COLORS.primary);
 
-  doc
-    .font("Roboto-Bold")
-    .fontSize(10)
-    .fillColor(COLORS.white);
-
-  let colX = tableX + 10;
-  doc.text("ITEM", colX, y + 9);
-  colX = tableX + colWidths.description;
-  doc.text("QTY", colX, y + 9, { width: colWidths.qty - 8, align: "right" });
-  colX += colWidths.qty;
-  doc.text("RATE", colX, y + 9, { width: colWidths.rate - 8, align: "right" });
-  colX += colWidths.rate;
-  doc.text("AMOUNT", colX, y + 9, { width: colWidths.amount - 8, align: "right" });
+  doc.font("Roboto-Bold").fontSize(10).fillColor(COLORS.white);
+  doc.text("ITEM", tableX + cellPadding, y + 9);
+  doc.text("QTY", tableX + colWidths.item, y + 9, { width: colWidths.qty - 8, align: "right" });
+  doc.text("RATE", tableX + colWidths.item + colWidths.qty, y + 9, { width: colWidths.rate - 8, align: "right" });
+  doc.text("AMOUNT", tableX + colWidths.item + colWidths.qty + colWidths.rate, y + 9, { width: colWidths.amount - 8, align: "right" });
 
   y += headerHeight;
 
-  // Helper to render description with proper formatting (preserves line breaks and bullets)
-  const renderFormattedDescription = (text: string, x: number, startY: number, width: number): number => {
-    if (!text) return startY;
-
-    const lines = text.split('\n');
-    let currentY = startY;
-
-    lines.forEach((line) => {
-      const trimmedLine = line.trim();
-      if (!trimmedLine) {
-        currentY += 6; // Empty line spacing
-        return;
-      }
-
-      // Check if it's a bullet point
-      if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-') || trimmedLine.startsWith('*')) {
-        doc.font("Roboto").fontSize(8).fillColor(COLORS.textLight);
-        const bulletText = trimmedLine.replace(/^[•\-\*]\s*/, '• ');
-        doc.text(bulletText, x + 8, currentY, { width: width - 8, lineGap: 1 });
-        currentY += doc.heightOfString(bulletText, { width: width - 8, lineGap: 1 }) + 2;
-      } else if (trimmedLine.includes(':') && trimmedLine.length < 40) {
-        // Section headers (like "Deliverables include:")
-        doc.font("Roboto-Bold").fontSize(8).fillColor(COLORS.text);
-        doc.text(trimmedLine, x, currentY, { width });
-        currentY += doc.heightOfString(trimmedLine, { width }) + 3;
-      } else {
-        // Regular paragraph text
-        doc.font("Roboto").fontSize(8).fillColor(COLORS.textLight);
-        doc.text(trimmedLine, x, currentY, { width, lineGap: 1 });
-        currentY += doc.heightOfString(trimmedLine, { width, lineGap: 1 }) + 2;
-      }
-    });
-
-    return currentY;
-  };
+  // Text width for item column content (with padding)
+  const itemTextWidth = colWidths.item - cellPadding * 2;
 
   // Table rows
   lineItems.forEach((item, index) => {
@@ -639,128 +582,104 @@ function renderEstimatePage(
 
     // Calculate row height based on content
     doc.font("Roboto-Bold").fontSize(10);
-    const nameHeight = doc.heightOfString(itemName, { width: colWidths.description - 24 });
+    const nameHeight = doc.heightOfString(itemName, { width: itemTextWidth });
 
-    // Estimate description height
+    // Calculate description height
     let descHeight = 0;
     if (description) {
-      const lines = description.split('\n');
-      lines.forEach(line => {
-        const trimmed = line.trim();
-        if (!trimmed) {
-          descHeight += 6;
-        } else {
-          doc.font("Roboto").fontSize(8);
-          descHeight += doc.heightOfString(trimmed, { width: colWidths.description - 32, lineGap: 1 }) + 2;
-        }
-      });
+      doc.font("Roboto").fontSize(9);
+      descHeight = doc.heightOfString(description, { width: itemTextWidth, lineGap: 2 }) + 8;
     }
 
-    const actualRowHeight = Math.max(32, nameHeight + descHeight + 16);
+    const rowHeight = Math.max(40, nameHeight + descHeight + 20);
 
     // Check if we need a new page
-    if (y + actualRowHeight > PAGE.height - 150) {
+    if (y + rowHeight > PAGE.height - 140) {
       doc.addPage();
       y = PAGE.margin;
     }
 
     // Row background (alternate light gray)
     if (index % 2 === 1) {
-      doc.rect(tableX, y, tableWidth, actualRowHeight).fill("#f9fafb");
+      doc.rect(tableX, y, tableWidth, rowHeight).fill("#f9fafb");
     }
 
     // Row border
-    drawLine(doc, tableX, y + actualRowHeight, tableX + tableWidth, y + actualRowHeight, COLORS.borderLight);
+    drawLine(doc, tableX, y + rowHeight, tableX + tableWidth, y + rowHeight, COLORS.borderLight);
 
-    // Description column (combined item name and description)
-    const textX = tableX + 10;
-    let textY = y + 8;
-
-    // Item name (bold)
+    // ITEM column: name (bold) + description (smaller, gray)
+    let textY = y + 10;
     doc.font("Roboto-Bold").fontSize(10).fillColor(COLORS.text);
-    doc.text(itemName, textX, textY, { width: colWidths.description - 24 });
+    doc.text(itemName, tableX + cellPadding, textY, { width: itemTextWidth });
     textY += nameHeight + 4;
 
-    // Description with proper formatting
     if (description) {
-      renderFormattedDescription(description, textX, textY, colWidths.description - 24);
+      doc.font("Roboto").fontSize(9).fillColor(COLORS.textLight);
+      doc.text(description, tableX + cellPadding, textY, { width: itemTextWidth, lineGap: 2 });
     }
 
-    // Qty column
+    // QTY column (aligned to top of row)
     doc.font("Roboto").fontSize(10).fillColor(COLORS.text);
-    doc.text(formatNumber(item.qty || 0), tableX + colWidths.description, y + 8, {
+    doc.text(formatNumber(item.qty || 0), tableX + colWidths.item, y + 10, {
       width: colWidths.qty - 8,
       align: "right",
     });
 
-    // Rate column
-    doc.text(formatCurrency(item.rate || 0), tableX + colWidths.description + colWidths.qty, y + 8, {
+    // RATE column
+    doc.text(formatCurrency(item.rate || 0), tableX + colWidths.item + colWidths.qty, y + 10, {
       width: colWidths.rate - 8,
       align: "right",
     });
 
-    // Amount column
-    doc.font("Roboto-Bold").fontSize(10).fillColor(COLORS.text);
-    doc.text(formatCurrency(item.amount || 0), tableX + colWidths.description + colWidths.qty + colWidths.rate, y + 8, {
+    // AMOUNT column
+    doc.font("Roboto-Bold").fontSize(10);
+    doc.text(formatCurrency(item.amount || 0), tableX + colWidths.item + colWidths.qty + colWidths.rate, y + 10, {
       width: colWidths.amount - 8,
       align: "right",
     });
 
-    y += actualRowHeight;
+    y += rowHeight;
   });
 
   y += 8;
 
   // Total row with background
-  const totalRowHeight = 32;
+  const totalRowHeight = 36;
   doc.rect(tableX, y, tableWidth, totalRowHeight).fill("#f3f4f6");
 
-  doc
-    .font("Roboto-Bold")
-    .fontSize(11)
-    .fillColor(COLORS.textLight)
-    .text("TOTAL", tableX + colWidths.description + colWidths.qty, y + 9, {
-      width: colWidths.rate - 8,
-      align: "right",
-    });
+  doc.font("Roboto-Bold").fontSize(11).fillColor(COLORS.textLight);
+  doc.text("TOTAL", tableX + colWidths.item + colWidths.qty, y + 11, {
+    width: colWidths.rate - 8,
+    align: "right",
+  });
 
-  doc
-    .font("Roboto-Bold")
-    .fontSize(14)
-    .fillColor(COLORS.primary)
-    .text(formatCurrency(total), tableX + colWidths.description + colWidths.qty + colWidths.rate, y + 8, {
-      width: colWidths.amount,
-      align: "right",
-      lineBreak: false, // Prevent wrapping of total amount
-    });
+  doc.font("Roboto-Bold").fontSize(14).fillColor(COLORS.primary);
+  doc.text(formatCurrency(total), tableX + colWidths.item + colWidths.qty + colWidths.rate, y + 10, {
+    width: colWidths.amount - 8,
+    align: "right",
+  });
 
-  y += totalRowHeight + 24;
+  y += totalRowHeight + 20;
 
   // Signature section
-  doc
-    .font("Roboto")
-    .fontSize(9)
-    .fillColor(COLORS.textMuted)
-    .text("Accepted By", PAGE.margin, y);
-  drawLine(doc, PAGE.margin, y + 24, PAGE.margin + 200, y + 24, COLORS.border);
+  doc.font("Roboto").fontSize(9).fillColor(COLORS.textMuted);
+  doc.text("Accepted By", PAGE.margin, y);
+  drawLine(doc, PAGE.margin, y + 20, PAGE.margin + 200, y + 20, COLORS.border);
+
+  y += 36;
+  doc.text("Accepted Date", PAGE.margin, y);
+  drawLine(doc, PAGE.margin, y + 20, PAGE.margin + 200, y + 20, COLORS.border);
 
   y += 40;
-  doc.text("Accepted Date", PAGE.margin, y);
-  drawLine(doc, PAGE.margin, y + 24, PAGE.margin + 200, y + 24, COLORS.border);
-
-  y += 50;
 
   // Notes
-  doc
-    .font("Roboto")
-    .fontSize(8)
-    .fillColor(COLORS.textMuted)
-    .text(
-      "All pricing is valid for 30 days from the date of this proposal. Final square footage will be verified during scanning and pricing may be adjusted if actual conditions differ significantly from estimates.",
-      PAGE.margin,
-      y,
-      { width: PAGE.contentWidth }
-    );
+  doc.font("Roboto").fontSize(8).fillColor(COLORS.textMuted);
+  doc.text(
+    "All pricing is valid for 30 days from the date of this proposal. Final square footage will be verified during scanning and pricing may be adjusted if actual conditions differ significantly from estimates.",
+    PAGE.margin,
+    y,
+    { width: PAGE.contentWidth }
+  );
 
   renderFooter(doc);
 }
@@ -959,112 +878,124 @@ function renderPaymentPage(
 function renderCapabilitiesPage(doc: PDFKit.PDFDocument): void {
   let y = PAGE.margin;
 
-  // Title
+  // Spacing constants matching WYSIWYG Tailwind classes
+  const SPACING = {
+    sectionGap: 20,      // space-y-6 = 24px, but tighter for PDF
+    bulletGap: 6,        // space-y-1.5 = 6px
+    nestedBulletGap: 4,  // space-y-1 = 4px
+    afterHeader: 8,      // mb-2 = 8px
+    bulletIndent: 16,    // ml-4 = 16px
+    nestedIndent: 24,    // ml-6 = 24px
+  };
+
+  // Title - text-3xl (30px) font-bold
   doc
     .font("Roboto-Bold")
-    .fontSize(TYPOGRAPHY.pageTitle)
+    .fontSize(24)
     .fillColor(COLORS.primary)
     .text("Scan2Plan Capabilities", PAGE.margin, y);
-  y += TYPOGRAPHY.afterPageTitle;
+  y += 32;
 
-  // Target Audience - "Scan2Plan is for:" in regular, professions in blue/bold
+  // Target Audience paragraph - matching WYSIWYG exactly
   doc
     .font("Roboto")
-    .fontSize(TYPOGRAPHY.bodyText)
-    .fillColor(COLORS.text)
+    .fontSize(10)
+    .fillColor(COLORS.primary)
     .text("Scan2Plan is for: ", PAGE.margin, y, { continued: true });
   doc
     .font("Roboto-Bold")
-    .fillColor(COLORS.primary)
     .text("Architects, Structural Engineers, MEP Engineers, Interior Designers, Property Managers, Owner/Operators, Landscape Architects, Civil Engineers.", { continued: false });
-  y += 50;
+  y += 40;
 
-  // Two column layout
-  const colWidth = (PAGE.contentWidth - 30) / 2;
+  // Two column layout - matching grid grid-cols-2 gap-x-12
+  const colGap = 48;  // gap-x-12 = 48px
+  const colWidth = (PAGE.contentWidth - colGap) / 2;
   const leftX = PAGE.margin;
-  const rightX = PAGE.margin + colWidth + 30;
+  const rightX = PAGE.margin + colWidth + colGap;
   let leftY = y;
   let rightY = y;
 
-  // Helper to render nested bullet lists
-  const renderBullet = (text: string, x: number, yPos: number, indent: number = 0, fontSize: number = 9) => {
-    doc.font("Roboto").fontSize(fontSize).fillColor(COLORS.text);
+  // Helper to render bullet - text-sm (14px) but smaller for PDF density
+  const renderBullet = (text: string, x: number, yPos: number, isNested: boolean = false): number => {
+    const indent = isNested ? SPACING.nestedIndent : SPACING.bulletIndent;
+    const fontSize = isNested ? 9 : 10;
+    const gap = isNested ? SPACING.nestedBulletGap : SPACING.bulletGap;
+
+    doc.font("Roboto").fontSize(fontSize).fillColor(COLORS.textLight);
     const bulletX = x + indent;
-    doc.text(`\u2022   ${text}`, bulletX, yPos, { width: colWidth - indent });
-    return yPos + doc.heightOfString(`\u2022   ${text}`, { width: colWidth - indent }) + 3;
+    const bulletText = `•  ${text}`;
+    doc.text(bulletText, bulletX, yPos, { width: colWidth - indent, lineGap: 1 });
+    return yPos + doc.heightOfString(bulletText, { width: colWidth - indent, lineGap: 1 }) + gap;
   };
 
-  // Helper to render linked bullet items
-  const renderLinkedBullet = (text: string, url: string, x: number, yPos: number, indent: number = 0, fontSize: number = 9) => {
-    doc.font("Roboto").fontSize(fontSize).fillColor(COLORS.primary);
+  // Helper to render linked bullet
+  const renderLinkedBullet = (text: string, url: string, x: number, yPos: number): number => {
+    const indent = SPACING.nestedIndent;
+    doc.font("Roboto").fontSize(9).fillColor(COLORS.primary);
     const bulletX = x + indent;
-    const bulletText = `\u2022   ${text}`;
-    doc.text(bulletText, bulletX, yPos, {
-      width: colWidth - indent,
-      link: url,
-      underline: true
-    });
-    return yPos + doc.heightOfString(bulletText, { width: colWidth - indent }) + 3;
+    const bulletText = `•  ${text}`;
+    doc.text(bulletText, bulletX, yPos, { width: colWidth - indent, link: url, underline: true, lineGap: 1 });
+    return yPos + doc.heightOfString(bulletText, { width: colWidth - indent, lineGap: 1 }) + SPACING.nestedBulletGap;
   };
 
-  // Helper to render section header
-  const renderSectionHeader = (text: string, x: number, yPos: number) => {
-    doc.font("Roboto-Bold").fontSize(13).fillColor(COLORS.text).text(text, x, yPos);
-    return yPos + 16;
+  // Helper to render section header - text-lg (18px) font-semibold
+  const renderSectionHeader = (text: string, x: number, yPos: number): number => {
+    doc.font("Roboto-Bold").fontSize(14).fillColor(COLORS.text).text(text, x, yPos, { width: colWidth });
+    return yPos + doc.heightOfString(text, { width: colWidth }) + SPACING.afterHeader;
   };
 
   // LEFT COLUMN - Scan-to-BIM
   leftY = renderSectionHeader("Scan-to-BIM", leftX, leftY);
   leftY = renderBullet("Architectural & Structural Existing Conditions Documentation.", leftX, leftY);
   leftY = renderBullet("Deliverables:", leftX, leftY);
-  leftY = renderBullet("Revit Model", leftX, leftY, 20, 8);
-  leftY = renderBullet("Colorized Point Cloud", leftX, leftY, 20, 8);
-  leftY = renderBullet("360 Photo documentation", leftX, leftY, 20, 8);
+  leftY = renderBullet("Revit Model", leftX, leftY, true);
+  leftY = renderBullet("Colorized Point Cloud", leftX, leftY, true);
+  leftY = renderBullet("360 Photo documentation", leftX, leftY, true);
   leftY = renderBullet("Standard Options:", leftX, leftY);
-  leftY = renderLinkedBullet("LoD 200 (Approximate Geometry)", "https://www.scan2plan.io/lod-200", leftX, leftY, 20, 8);
-  leftY = renderLinkedBullet("LoD 300 (Accurate Geometry)", "https://www.scan2plan.io/lod-300", leftX, leftY, 20, 8);
-  leftY = renderLinkedBullet("LoD 350 (Precise Geometry)", "https://www.scan2plan.io/lod-350", leftX, leftY, 20, 8);
+  leftY = renderLinkedBullet("LoD 200 (Approximate Geometry)", "https://www.scan2plan.io/lod-200", leftX, leftY);
+  leftY = renderLinkedBullet("LoD 300 (Accurate Geometry)", "https://www.scan2plan.io/lod-300", leftX, leftY);
+  leftY = renderLinkedBullet("LoD 350 (Precise Geometry)", "https://www.scan2plan.io/lod-350", leftX, leftY);
   leftY = renderBullet("Level of Accuracy:", leftX, leftY);
-  leftY = renderBullet('Point Cloud - 0" to 1/8"', leftX, leftY, 20, 8);
-  leftY = renderBullet('Model - 0" to 1/2"', leftX, leftY, 20, 8);
+  leftY = renderBullet('Point Cloud - 0" to 1/8"', leftX, leftY, true);
+  leftY = renderBullet('Model - 0" to 1/2"', leftX, leftY, true);
   leftY = renderBullet("Turnaround: 2-5 weeks (depending on scope)", leftX, leftY);
   leftY = renderBullet("Pricing: is based on", leftX, leftY);
-  leftY = renderBullet("A) Type of Building/Structure", leftX, leftY, 20, 8);
-  leftY = renderBullet("B) LoD Standard", leftX, leftY, 20, 8);
-  leftY = renderBullet("C) Square Footage", leftX, leftY, 20, 8);
-  leftY += 12;
+  leftY = renderBullet("A) Type of Building/Structure", leftX, leftY, true);
+  leftY = renderBullet("B) LoD Standard", leftX, leftY, true);
+  leftY = renderBullet("C) Square Footage", leftX, leftY, true);
+  leftY += SPACING.sectionGap;
 
-  // BIM to CAD
+  // BIM to CAD Conversion
   leftY = renderSectionHeader("BIM to CAD Conversion", leftX, leftY);
   leftY = renderBullet("Pristine CAD drawings converted from Revit Model.", leftX, leftY);
 
   // RIGHT COLUMN - MEPF Modeling
   rightY = renderSectionHeader("MEPF Modeling", rightX, rightY);
   rightY = renderBullet("Any exposed Mechanical, Electrical, Plumbing and Fire Safety elements documented in BIM or CAD.", rightX, rightY);
-  rightY += 12;
+  rightY += SPACING.sectionGap;
 
   // Landscape
   rightY = renderSectionHeader("Landscape", rightX, rightY);
   rightY = renderBullet("Landscape, grounds, and urban spaces documented in BIM or CAD.", rightX, rightY);
   rightY = renderBullet("Georeferencing and forestry optional.", rightX, rightY);
-  rightY += 12;
+  rightY += SPACING.sectionGap;
 
-  // Matterport
+  // Matterport 3D Tour
   rightY = renderSectionHeader("Matterport 3D Tour", rightX, rightY);
   rightY = renderBullet("High resolution 360 photo documentation and virtual tour walkthrough. An excellent remote collaboration tool, easily shared and viewed on any mobile or desktop device.", rightX, rightY);
-  rightY += 12;
+  rightY += SPACING.sectionGap;
 
-  // Paper to BIM
+  // Paper to BIM or CAD
   rightY = renderSectionHeader("Paper to BIM or CAD", rightX, rightY);
   rightY = renderBullet("Legacy 2D paper drawings converted to functional BIM or CAD documentation.", rightX, rightY);
-  rightY += 12;
+  rightY += SPACING.sectionGap;
 
-  // Model Only
+  // Model Only / Point Cloud Only
   rightY = renderSectionHeader("Model Only / Point Cloud Only", rightX, rightY);
   rightY = renderBullet("You work with our point cloud or we'll model from yours.", rightX, rightY);
 
   // Software Support at bottom
-  const softwareY = Math.max(leftY, rightY) + 30;
+  const softwareY = Math.max(leftY, rightY) + 24;
   doc.font("Roboto").fontSize(10).fillColor(COLORS.text).text("We support: ", PAGE.margin, softwareY, { continued: true });
   doc.font("Roboto-Bold").fillColor(COLORS.primary).text("Revit, AutoCAD, Sketchup, Rhino, Vectorworks, Solidworks, Chief Architect, ArchiCAD, Civil 3D", { continued: true });
   doc.font("Roboto").fillColor(COLORS.text).text(", and others....", { continued: false });

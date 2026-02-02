@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -8,6 +8,7 @@
   --font-display: 'Outfit', sans-serif;
   --font-body: 'Plus Jakarta Sans', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+  --font-proposal: 'Roboto', sans-serif;
 
   /* CPQ Elevate Variables */
   --button-outline: rgba(0,0,0, .10);
@@ -148,6 +149,19 @@
                 linear-gradient(to right, hsl(var(--primary)), hsl(var(--accent))) border-box;
     border: 1px solid transparent;
   }
+}
+
+/* Proposal Pages - Roboto font for PDF matching */
+.proposal-page {
+  font-family: var(--font-proposal);
+}
+.proposal-page h1,
+.proposal-page h2,
+.proposal-page h3,
+.proposal-page h4,
+.proposal-page h5,
+.proposal-page h6 {
+  font-family: var(--font-proposal);
 }
 
 /* Scrollbar Styling */
