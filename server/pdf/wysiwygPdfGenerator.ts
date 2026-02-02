@@ -1447,22 +1447,38 @@ export async function generateWYSIWYGPdf(
   let useRoboto = false;
   try {
     if (fs.existsSync(FONTS.regular) && fs.existsSync(FONTS.bold)) {
+      console.log("[WYSIWYG PDF] Font paths found:", FONTS.regular, FONTS.bold);
       doc.registerFont("Roboto", FONTS.regular);
       doc.registerFont("Roboto-Bold", FONTS.bold);
+      // Test that fonts actually work by using them
+      doc.font("Roboto").fontSize(10);
+      doc.font("Roboto-Bold").fontSize(10);
       useRoboto = true;
-      console.log("[WYSIWYG PDF] Roboto fonts registered successfully");
+      console.log("[WYSIWYG PDF] Roboto fonts registered and validated successfully");
     } else {
       console.warn("[WYSIWYG PDF] Roboto font files not found at:", FONTS.regular, FONTS.bold);
     }
   } catch (error) {
-    console.warn("[WYSIWYG PDF] Failed to register Roboto fonts, using Helvetica fallback:", error);
+    console.warn("[WYSIWYG PDF] Failed to use Roboto fonts, switching to Helvetica:", error);
+    useRoboto = false;
   }
 
-  // If Roboto failed, register Helvetica aliases so the same font names work
+  // If Roboto failed, use built-in Helvetica by registering aliases
   if (!useRoboto) {
     console.log("[WYSIWYG PDF] Using Helvetica fallback fonts");
-    doc.registerFont("Roboto", "Helvetica");
-    doc.registerFont("Roboto-Bold", "Helvetica-Bold");
+    try {
+      // Create font aliases pointing to built-in Helvetica
+      doc.registerFont("Roboto", "Helvetica");
+      doc.registerFont("Roboto-Bold", "Helvetica-Bold");
+      // Test the aliases work
+      doc.font("Roboto").fontSize(10);
+      doc.font("Roboto-Bold").fontSize(10);
+      console.log("[WYSIWYG PDF] Helvetica aliases registered successfully");
+    } catch (aliasError) {
+      console.error("[WYSIWYG PDF] Failed to register Helvetica aliases:", aliasError);
+      // Last resort - just use Helvetica directly (will cause errors if Roboto is referenced)
+      doc.font("Helvetica");
+    }
   }
 
   // Page 1: Cover
