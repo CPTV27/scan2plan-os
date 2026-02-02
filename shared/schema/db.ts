@@ -194,6 +194,21 @@ export const leads = pgTable("leads", {
   signerIpAddress: text("signer_ip_address"),
   signerUserAgent: text("signer_user_agent"),
   documentHash: text("document_hash"),
+  // Sender/Proposal-Maker Signature (Scan2Plan representative)
+  senderSignatureImage: text("sender_signature_image"), // Base64 PNG of sender signature
+  senderSignerName: text("sender_signer_name"), // Full name of Scan2Plan rep
+  senderSignerEmail: text("sender_signer_email"), // Email of Scan2Plan rep
+  senderSignerTitle: text("sender_signer_title"), // Title (e.g., "Account Manager")
+  senderSignedAt: timestamp("sender_signed_at"), // When sender signed
+  senderIpAddress: text("sender_ip_address"), // IP address for audit trail
+  senderUserAgent: text("sender_user_agent"), // Browser UA for audit trail
+  senderToken: text("sender_token"), // Magic link token for sender signing
+  senderTokenExpiresAt: timestamp("sender_token_expires_at"), // Token expiration
+  // Proposal Tracking Timestamps
+  proposalSentAt: timestamp("proposal_sent_at"), // When signature link was sent to client
+  proposalViewedAt: timestamp("proposal_viewed_at"), // When client first viewed the proposal
+  // Certificate of Signature Reference
+  certificateRefNumber: text("certificate_ref_number"), // Unique reference for certificate (e.g., "LNXDW-8Q8WR-C7TW6-89K4S")
   // Mautic Marketing Automation
   mauticContactId: text("mautic_contact_id"), // Mautic Contact ID for marketing sync
 

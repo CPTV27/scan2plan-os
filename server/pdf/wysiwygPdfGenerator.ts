@@ -41,13 +41,45 @@ const PAGE = {
   contentWidth: 484, // 612 - 64*2
 };
 
-// Signature data for signed PDFs
+// Client signature data for signed PDFs
 export interface SignatureData {
   signatureImage: string;
   signerName: string;
   signerEmail: string;
   signerTitle: string;
   signedAt: Date | string;
+}
+
+// Sender (Scan2Plan rep) signature data
+export interface SenderSignatureData {
+  signatureImage: string;
+  signerName: string;
+  signerEmail: string;
+  signerTitle: string;
+  signedAt: Date | string;
+}
+
+// Full audit trail for Certificate of Signature
+export interface SignatureAuditTrail {
+  certificateRefNumber: string;
+  documentCompletedAt?: Date | string;
+  // Sender audit trail
+  senderName: string;
+  senderEmail: string;
+  senderSignatureImage?: string;
+  senderSentAt?: Date | string;
+  senderViewedAt?: Date | string;
+  senderSignedAt?: Date | string;
+  senderIpAddress?: string;
+  // Client audit trail
+  clientName: string;
+  clientEmail: string;
+  clientSignatureImage?: string;
+  clientSentAt?: Date | string;
+  clientViewedAt?: Date | string;
+  clientSignedAt?: Date | string;
+  clientIpAddress?: string;
+  clientLocation?: string;
 }
 
 // Full proposal data structure (matches WYSIWYG ProposalData)
@@ -60,7 +92,9 @@ export interface WYSIWYGProposalData {
   paymentData: ProposalPaymentData;
   subtotal: number;
   total: number;
-  signatureData?: SignatureData; // Optional: filled in for signed PDFs
+  signatureData?: SignatureData; // Optional: client signature for signed PDFs
+  senderSignatureData?: SenderSignatureData; // Optional: sender signature for signed PDFs
+  auditTrail?: SignatureAuditTrail; // Optional: full audit trail for Certificate page
 }
 
 /**
@@ -710,27 +744,25 @@ function renderEstimatePage(
 
 /**
  * Page 5: Payment Page
- * Matches ProposalPaymentPage.tsx
+ * Matches ProposalPaymentPage.tsx - Now with dual signature layout
  */
-function renderPaymentPage(doc: PDFKit.PDFDocument, data: ProposalPaymentData, signatureData?: SignatureData): void {
+function renderPaymentPage(
+  doc: PDFKit.PDFDocument,
+  data: ProposalPaymentData,
+  signatureData?: SignatureData,
+  senderSignatureData?: SenderSignatureData
+): void {
   let y = PAGE.margin;
 
-  // Title
+  // Title - "Payment Terms" instead of just "Payment"
   doc
     .font("Inter-Bold")
     .fontSize(24)
     .fillColor(COLORS.primary)
-    .text("Payment", PAGE.margin, y);
+    .text("Payment Terms", PAGE.margin, y);
   y += 40;
 
-  // Payment Terms
-  doc
-    .font("Inter-Bold")
-    .fontSize(16)
-    .fillColor(COLORS.primary)
-    .text("Payment Terms", PAGE.margin, y);
-  y += 28;
-
+  // Payment Terms bullets
   if (data.terms && data.terms.length > 0) {
     doc.font("Inter").fontSize(11).fillColor(COLORS.text);
     data.terms.forEach((term) => {
@@ -741,33 +773,71 @@ function renderPaymentPage(doc: PDFKit.PDFDocument, data: ProposalPaymentData, s
   }
   y += 16;
 
-  // Payment Methods
+  // Accepted Forms of Payment
   doc
     .font("Inter-Bold")
     .fontSize(16)
     .fillColor(COLORS.primary)
-    .text("Accepted Payment Methods", PAGE.margin, y);
-  y += 28;
+    .text("Accepted Forms of Payment:", PAGE.margin, y);
+  y += 24;
 
   if (data.paymentMethods && data.paymentMethods.length > 0) {
     doc.font("Inter").fontSize(11).fillColor(COLORS.text);
-    data.paymentMethods.forEach((method) => {
-      const bulletText = `\u2022  ${method}`;
-      doc.text(bulletText, PAGE.margin + 10, y, { width: PAGE.contentWidth - 20 });
-      y += doc.heightOfString(bulletText, { width: PAGE.contentWidth - 20 }) + 8;
+    data.paymentMethods.forEach((method, index) => {
+      const numberedText = `${index + 1}. ${method}`;
+      doc.text(numberedText, PAGE.margin + 10, y, { width: PAGE.contentWidth - 20 });
+      y += doc.heightOfString(numberedText, { width: PAGE.contentWidth - 20 }) + 6;
     });
   }
   y += 20;
 
   // Acknowledgement section
-  drawLine(doc, PAGE.margin, y, PAGE.width - PAGE.margin, y, COLORS.borderLight);
-  y += 24;
-
   doc
     .font("Inter-Bold")
     .fontSize(16)
     .fillColor(COLORS.primary)
-    .text("Acknowledgement", PAGE.margin, y);
+    .text("Acknowledgement:", PAGE.margin, y);
+  y += 24;
+
+  // Acknowledgement text with T&C link reference
+  const ackDate = signatureData?.signedAt
+    ? new Date(signatureData.signedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+    : data.acknowledgementDate || new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+
+  doc
+    .font("Inter")
+    .fontSize(11)
+    .fillColor(COLORS.text)
+    .text("Client acknowledges receipt of and agrees to be bound by S2P's ", PAGE.margin, y, {
+      width: PAGE.contentWidth,
+      continued: true,
+    });
+  doc
+    .fillColor(COLORS.primary)
+    .text("General Terms and Conditions", {
+      continued: true,
+      underline: true,
+      link: "https://www.scan2plan.io/scan2plan-terms-conditions",
+    });
+  doc
+    .fillColor(COLORS.text)
+    .text(` dated `, { continued: true, underline: false });
+  doc
+    .font("Inter-Bold")
+    .text(ackDate, { continued: false });
+
+  y += 30;
+
+  doc
+    .font("Inter")
+    .fontSize(11)
+    .fillColor(COLORS.text)
+    .text(
+      "which are incorporated herein by reference.",
+      PAGE.margin,
+      y,
+      { width: PAGE.contentWidth }
+    );
   y += 24;
 
   doc
@@ -775,58 +845,85 @@ function renderPaymentPage(doc: PDFKit.PDFDocument, data: ProposalPaymentData, s
     .fontSize(11)
     .fillColor(COLORS.text)
     .text(
-      "By signing below, the client acknowledges receipt of this proposal and agrees to the terms and conditions set forth herein, including the payment schedule and scope of work. This proposal is valid for 30 days from the date issued.",
+      "In witness whereof the parties hereto have caused this agreement to be executed as of the date(s) written below.",
       PAGE.margin,
       y,
       { width: PAGE.contentWidth, lineGap: 4 }
     );
-  y += 60;
+  y += 50;
 
-  // Signature lines - 2x2 grid
-  const sigWidth = 200;
-  const col2X = PAGE.margin + sigWidth + 40;
+  // ===== DUAL SIGNATURE SECTION =====
+  // Two columns: Client on LEFT, Scan2Plan on RIGHT
+  const colWidth = 200;
+  const colGap = 84;
+  const leftX = PAGE.margin;
+  const rightX = PAGE.margin + colWidth + colGap;
 
-  // Row 1: Signature and Date
+  // ----- CLIENT SIGNATURE (Left Column) -----
+  // Signature image
   if (signatureData?.signatureImage) {
-    // Draw actual signature image with transparent background, positioned above the line
     try {
       const base64Data = signatureData.signatureImage.replace(/^data:image\/\w+;base64,/, "");
       const signatureBuffer = Buffer.from(base64Data, "base64");
-      // Position signature so it sits just above the signature line (line is at y + 24)
-      doc.image(signatureBuffer, PAGE.margin, y - 5, { width: 150, height: 30 });
+      doc.image(signatureBuffer, leftX, y, { width: 180, height: 45 });
     } catch (error) {
-      console.warn("[WYSIWYG PDF] Could not embed signature image:", error);
+      console.warn("[WYSIWYG PDF] Could not embed client signature image:", error);
     }
   }
-  drawLine(doc, PAGE.margin, y + 24, PAGE.margin + sigWidth, y + 24, COLORS.border);
-  doc.font("Inter").fontSize(9).fillColor(COLORS.textLight).text("Client Signature", PAGE.margin, y + 28);
 
-  // Date field
-  if (signatureData?.signedAt) {
-    const signedDate = new Date(signatureData.signedAt).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-    doc.font("Inter").fontSize(11).fillColor(COLORS.text).text(signedDate, col2X, y + 5);
+  // ----- SENDER SIGNATURE (Right Column) -----
+  // Signature image
+  if (senderSignatureData?.signatureImage) {
+    try {
+      const base64Data = senderSignatureData.signatureImage.replace(/^data:image\/\w+;base64,/, "");
+      const signatureBuffer = Buffer.from(base64Data, "base64");
+      doc.image(signatureBuffer, rightX, y, { width: 180, height: 45 });
+    } catch (error) {
+      console.warn("[WYSIWYG PDF] Could not embed sender signature image:", error);
+    }
   }
-  drawLine(doc, col2X, y + 24, col2X + sigWidth, y + 24, COLORS.border);
-  doc.font("Inter").fontSize(9).fillColor(COLORS.textLight).text("Date", col2X, y + 28);
 
-  y += 50;
+  y += 55;
 
-  // Row 2: Print Name and Title
+  // Name row
   if (signatureData?.signerName) {
-    doc.font("Inter").fontSize(11).fillColor(COLORS.text).text(signatureData.signerName, PAGE.margin, y + 5);
+    doc.font("Inter").fontSize(11).fillColor(COLORS.text).text(signatureData.signerName, leftX, y);
   }
-  drawLine(doc, PAGE.margin, y + 24, PAGE.margin + sigWidth, y + 24, COLORS.border);
-  doc.font("Inter").fontSize(9).fillColor(COLORS.textLight).text("Print Name", PAGE.margin, y + 28);
+  if (senderSignatureData?.signerName) {
+    doc.font("Inter").fontSize(11).fillColor(COLORS.text).text(senderSignatureData.signerName, rightX, y);
+  }
+  y += 16;
 
+  // Label "Name"
+  doc.font("Inter").fontSize(9).fillColor(COLORS.textMuted).text("Name", leftX, y);
+  doc.font("Inter").fontSize(9).fillColor(COLORS.textMuted).text("", rightX, y); // No label on right for name
+  y += 20;
+
+  // Company row
   if (signatureData?.signerTitle) {
-    doc.font("Inter").fontSize(11).fillColor(COLORS.text).text(signatureData.signerTitle, col2X, y + 5);
+    // Use signerTitle as company for client
+    doc.font("Inter").fontSize(11).fillColor(COLORS.text).text(signatureData.signerTitle, leftX, y);
   }
-  drawLine(doc, col2X, y + 24, col2X + sigWidth, y + 24, COLORS.border);
-  doc.font("Inter").fontSize(9).fillColor(COLORS.textLight).text("Title", col2X, y + 28);
+  if (senderSignatureData?.signerTitle) {
+    // Show "Scan2Plan, Inc." for sender
+    doc.font("Inter").fontSize(11).fillColor(COLORS.text).text("Scan2Plan, Inc.", rightX, y);
+  }
+  y += 16;
+
+  // Label "Company"
+  doc.font("Inter").fontSize(9).fillColor(COLORS.textMuted).text("Company", leftX, y);
+  doc.font("Inter").fontSize(9).fillColor(COLORS.textMuted).text("Company", rightX, y);
+  y += 20;
+
+  // Date row
+  if (signatureData?.signedAt) {
+    const clientDate = new Date(signatureData.signedAt).toLocaleDateString("en-CA"); // YYYY-MM-DD format
+    doc.font("Inter").fontSize(11).fillColor(COLORS.text).text(clientDate, leftX, y);
+  }
+  if (senderSignatureData?.signedAt) {
+    const senderDate = new Date(senderSignatureData.signedAt).toLocaleDateString("en-CA"); // YYYY-MM-DD format
+    doc.font("Inter").fontSize(11).fillColor(COLORS.text).text(senderDate, rightX, y);
+  }
 
   renderFooter(doc);
 }
@@ -1097,6 +1194,231 @@ function renderBIMStandardsPages(doc: PDFKit.PDFDocument): void {
 }
 
 /**
+ * Certificate of Signature Page
+ * PandaDoc-style audit trail page showing both signatures with timestamps
+ */
+function renderCertificateOfSignature(
+  doc: PDFKit.PDFDocument,
+  auditTrail: SignatureAuditTrail
+): void {
+  // Teal border/background color matching PandaDoc style
+  const CERT_COLORS = {
+    border: "#7dd3c0", // Teal/mint border
+    background: "#f0fdf9", // Very light teal background
+    title: "#1f2937", // Dark gray
+    label: "#6b7280", // Gray for labels
+    value: "#111827", // Near black for values
+  };
+
+  // Draw decorative border pattern (simplified version of PandaDoc's guilloché pattern)
+  doc.rect(20, 20, PAGE.width - 40, PAGE.height - 40).lineWidth(3).stroke(CERT_COLORS.border);
+  doc.rect(30, 30, PAGE.width - 60, PAGE.height - 60).lineWidth(1).stroke(CERT_COLORS.border);
+
+  let y = 70;
+
+  // Title: "CERTIFICATE of SIGNATURE"
+  doc
+    .font("Inter-Bold")
+    .fontSize(28)
+    .fillColor(CERT_COLORS.title)
+    .text("CERTIFICATE ", PAGE.margin + 20, y, { continued: true, align: "center", width: PAGE.contentWidth - 40 });
+  doc
+    .font("Inter")
+    .fontSize(28)
+    .text("of ", { continued: true });
+  doc
+    .font("Inter-Bold")
+    .text("SIGNATURE", { continued: false });
+
+  y += 50;
+
+  // Reference number and completion date
+  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.text("REF. NUMBER", PAGE.margin + 20, y);
+  doc.text("DOCUMENT COMPLETED BY ALL PARTIES ON", PAGE.width - PAGE.margin - 180, y, { width: 160, align: "right" });
+  y += 12;
+
+  doc.font("Inter-Bold").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.text(auditTrail.certificateRefNumber || "N/A", PAGE.margin + 20, y);
+
+  if (auditTrail.documentCompletedAt) {
+    const completedDate = new Date(auditTrail.documentCompletedAt);
+    const dateStr = completedDate.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
+    const timeStr = completedDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+    doc.text(`${dateStr} ${timeStr}`, PAGE.width - PAGE.margin - 180, y, { width: 160, align: "right" });
+    y += 12;
+    doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label).text("UTC", PAGE.width - PAGE.margin - 180, y, { width: 160, align: "right" });
+  }
+
+  y += 30;
+
+  // Column headers
+  const col1X = PAGE.margin + 20; // SIGNER column
+  const col2X = PAGE.margin + 180; // TIMESTAMP column
+  const col3X = PAGE.margin + 330; // SIGNATURE column
+
+  doc.font("Inter-Bold").fontSize(9).fillColor(CERT_COLORS.label);
+  doc.text("SIGNER", col1X, y);
+  doc.text("TIMESTAMP", col2X, y);
+  doc.text("SIGNATURE", col3X, y);
+
+  y += 20;
+  drawLine(doc, PAGE.margin + 20, y, PAGE.width - PAGE.margin - 20, y, CERT_COLORS.border);
+  y += 20;
+
+  // Helper function to format timestamp
+  const formatTimestamp = (date?: Date | string): string => {
+    if (!date) return "";
+    const d = new Date(date);
+    const dateStr = d.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
+    const timeStr = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+    return `${dateStr} ${timeStr}`;
+  };
+
+  // ===== SENDER (Scan2Plan) SECTION =====
+  doc.font("Inter-Bold").fontSize(11).fillColor(CERT_COLORS.value);
+  doc.text(auditTrail.senderName?.toUpperCase() || "SCAN2PLAN REPRESENTATIVE", col1X, y);
+
+  // Timestamps column for sender
+  const senderTimestampsY = y;
+  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.text("SENT", col2X, senderTimestampsY);
+  doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.text(formatTimestamp(auditTrail.senderSentAt), col2X, senderTimestampsY + 10);
+
+  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.text("VIEWED", col2X, senderTimestampsY + 28);
+  doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.text(formatTimestamp(auditTrail.senderViewedAt), col2X, senderTimestampsY + 38);
+
+  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.text("SIGNED", col2X, senderTimestampsY + 56);
+  doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.text(formatTimestamp(auditTrail.senderSignedAt), col2X, senderTimestampsY + 66);
+
+  // Sender signature image
+  if (auditTrail.senderSignatureImage) {
+    try {
+      const base64Data = auditTrail.senderSignatureImage.replace(/^data:image\/\w+;base64,/, "");
+      const signatureBuffer = Buffer.from(base64Data, "base64");
+      // Draw border around signature
+      doc.rect(col3X, y - 5, 140, 50).lineWidth(0.5).stroke(CERT_COLORS.border);
+      doc.image(signatureBuffer, col3X + 5, y, { width: 130, height: 40 });
+    } catch (error) {
+      console.warn("[Certificate PDF] Could not embed sender signature:", error);
+    }
+  }
+
+  // IP Address for sender
+  y += 16;
+  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.text("EMAIL", col1X, y);
+  y += 10;
+  doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.text(auditTrail.senderEmail || "", col1X, y);
+
+  y += 30;
+  if (auditTrail.senderIpAddress) {
+    doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+    doc.text("IP ADDRESS", col3X, y);
+    doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+    doc.text(auditTrail.senderIpAddress, col3X, y + 10);
+  }
+
+  y += 40;
+
+  // Divider line
+  drawLine(doc, PAGE.margin + 20, y, PAGE.width - PAGE.margin - 20, y, CERT_COLORS.border);
+  y += 10;
+
+  // Recipient Verification header
+  doc.font("Inter-Bold").fontSize(10).fillColor(CERT_COLORS.label);
+  doc.text("RECIPIENT VERIFICATION", col1X, y);
+  y += 20;
+
+  // Email verified timestamp (same as viewed)
+  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.text("EMAIL VERIFIED", col2X, y);
+  doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.text(formatTimestamp(auditTrail.clientViewedAt), col2X, y + 10);
+
+  y += 40;
+  drawLine(doc, PAGE.margin + 20, y, PAGE.width - PAGE.margin - 20, y, CERT_COLORS.border);
+  y += 20;
+
+  // ===== CLIENT SECTION =====
+  doc.font("Inter-Bold").fontSize(11).fillColor(CERT_COLORS.value);
+  doc.text(auditTrail.clientName?.toUpperCase() || "CLIENT", col1X, y);
+
+  // Timestamps column for client
+  const clientTimestampsY = y;
+  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.text("SENT", col2X, clientTimestampsY);
+  doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.text(formatTimestamp(auditTrail.clientSentAt), col2X, clientTimestampsY + 10);
+
+  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.text("VIEWED", col2X, clientTimestampsY + 28);
+  doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.text(formatTimestamp(auditTrail.clientViewedAt), col2X, clientTimestampsY + 38);
+
+  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.text("SIGNED", col2X, clientTimestampsY + 56);
+  doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.text(formatTimestamp(auditTrail.clientSignedAt), col2X, clientTimestampsY + 66);
+
+  // Client signature image
+  if (auditTrail.clientSignatureImage) {
+    try {
+      const base64Data = auditTrail.clientSignatureImage.replace(/^data:image\/\w+;base64,/, "");
+      const signatureBuffer = Buffer.from(base64Data, "base64");
+      doc.rect(col3X, y - 5, 140, 50).lineWidth(0.5).stroke(CERT_COLORS.border);
+      doc.image(signatureBuffer, col3X + 5, y, { width: 130, height: 40 });
+    } catch (error) {
+      console.warn("[Certificate PDF] Could not embed client signature:", error);
+    }
+  }
+
+  // Client info
+  y += 16;
+  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.text("EMAIL", col1X, y);
+  y += 10;
+  doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.text(auditTrail.clientEmail || "", col1X, y);
+
+  y += 16;
+  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.text("SHARED VIA", col1X, y);
+  y += 10;
+  doc.font("Inter").fontSize(9).fillColor(COLORS.primary);
+  doc.text("LINK", col1X, y, { underline: true });
+
+  // Client IP and location
+  y = clientTimestampsY + 80;
+  if (auditTrail.clientIpAddress) {
+    doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+    doc.text("IP ADDRESS", col3X, y);
+    doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+    doc.text(auditTrail.clientIpAddress, col3X, y + 10);
+    y += 28;
+  }
+
+  if (auditTrail.clientLocation) {
+    doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+    doc.text("LOCATION", col3X, y);
+    doc.font("Inter").fontSize(9).fillColor(CERT_COLORS.value);
+    doc.text(auditTrail.clientLocation.toUpperCase(), col3X, y + 10);
+  }
+
+  // Footer with branding
+  const footerY = PAGE.height - 60;
+  doc.font("Inter").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.text("Signed with Scan2Plan", PAGE.margin + 20, footerY);
+  doc.text("PAGE 1 OF 1", PAGE.width / 2 - 30, footerY);
+}
+
+/**
  * Main PDF generation function
  * Takes WYSIWYG proposal data and generates matching PDF
  */
@@ -1146,9 +1468,9 @@ export async function generateWYSIWYGPdf(
   doc.addPage();
   renderEstimatePage(doc, data.lineItems, data.coverData, data.leadId, data.total);
 
-  // Page 5: Payment (with signature if provided)
+  // Page 5: Payment (with dual signatures if provided)
   doc.addPage();
-  renderPaymentPage(doc, data.paymentData, data.signatureData);
+  renderPaymentPage(doc, data.paymentData, data.signatureData, data.senderSignatureData);
 
   // Page 6: Capabilities
   doc.addPage();
@@ -1160,6 +1482,12 @@ export async function generateWYSIWYGPdf(
 
   // Pages 8-10: BIM Standards (function adds its own pages)
   renderBIMStandardsPages(doc);
+
+  // Certificate of Signature page (only if both parties have signed and audit trail is provided)
+  if (data.auditTrail && data.signatureData?.signedAt && data.senderSignatureData?.signedAt) {
+    doc.addPage();
+    renderCertificateOfSignature(doc, data.auditTrail);
+  }
 
   return doc;
 }

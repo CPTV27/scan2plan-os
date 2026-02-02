@@ -24,6 +24,7 @@ import Trash from "@/pages/Trash";
 import SiteReadinessForm from "@/pages/SiteReadinessForm";
 import ProposalViewer from "@/pages/ProposalViewer";
 import { ClientSignaturePage } from "@/pages/ClientSignaturePage";
+import { SenderSignaturePage } from "@/pages/SenderSignaturePage";
 import AuthGate from "@/pages/AuthGate";
 import MissionBriefPage from "@/pages/MissionBriefPage";
 import { NetworkStatusIndicator } from "@/components/NetworkStatusIndicator";
@@ -178,6 +179,9 @@ function Router() {
   }
   if (path.startsWith("/sign/")) {
     return <ClientSignaturePage />;
+  }
+  if (path.startsWith("/sender-sign/")) {
+    return <SenderSignaturePage />;
   }
 
   return (
