@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileEdit, PenTool, Check, Clock, Send, Copy, Plus, Trash2, History, Loader2, Download, FileCheck } from "lucide-react";
+import { FileEdit, PenTool, Check, Clock, Send, Copy, Plus, Trash2, History, Loader2, Download, FileCheck, UserCheck, ExternalLink } from "lucide-react";
 import { useLocation } from "wouter";
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
@@ -35,6 +35,8 @@ export function ProposalTab({ lead }: ProposalTabProps) {
   const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
   const [sendingLink, setSendingLink] = useState(false);
   const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
+  const [senderSigningUrl, setSenderSigningUrl] = useState<string | null>(null);
+  const [generatingSenderLink, setGeneratingSenderLink] = useState(false);
 
   // Inline rename state
   const [editingProposalId, setEditingProposalId] = useState<number | null>(null);
@@ -221,6 +223,36 @@ export function ProposalTab({ lead }: ProposalTabProps) {
   };
 
   const isSigned = !!(lead as any).signedAt;
+  const isSenderSigned = !!(lead as any).senderSignedAt;
+
+  // Handler to generate sender signing link and open it
+  const handleSenderSign = async (proposalId?: number) => {
+    setGeneratingSenderLink(true);
+    try {
+      const response = await apiRequest("POST", `/api/leads/${lead.id}/generate-sender-signing-link`, {
+        proposalId: proposalId || sortedProposals[0]?.id,
+      });
+      const data = await response.json();
+
+      setSenderSigningUrl(data.senderSigningUrl);
+
+      // Open the signing page in a new tab
+      window.open(data.senderSigningUrl, '_blank');
+
+      toast({
+        title: "Signing page opened",
+        description: "Complete your signature in the new tab. The page will refresh when done.",
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to generate signing link",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setGeneratingSenderLink(false);
+    }
+  };
 
   return (
     <ScrollArea className="h-full flex-1">
@@ -508,6 +540,127 @@ export function ProposalTab({ lead }: ProposalTabProps) {
               )}
             </CardContent>
           </Card>
+
+        {/* Scan2Plan Signature Section */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <UserCheck className="w-5 h-5" />
+                  Scan2Plan Signature
+                </CardTitle>
+                <CardDescription>
+                  Sign the proposal as Scan2Plan representative
+                </CardDescription>
+              </div>
+              {isSenderSigned && (
+                <Badge variant="default" className="bg-blue-500 gap-1">
+                  <Check className="w-3 h-3" />
+                  Signed
+                </Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {isSenderSigned ? (
+              <div className="space-y-3">
+                <div className="p-4 border rounded-lg bg-muted/50">
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Signed by:</span>
+                      <p className="font-medium">{(lead as any).senderSignerName}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Email:</span>
+                      <p className="font-medium">{(lead as any).senderSignerEmail}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Title:</span>
+                      <p className="font-medium">{(lead as any).senderSignerTitle}</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Date:</span>
+                      <p className="font-medium">
+                        {new Date((lead as any).senderSignedAt).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                {(lead as any).senderSignatureImage && (
+                  <div className="border rounded-lg p-2 bg-white">
+                    <img
+                      src={(lead as any).senderSignatureImage}
+                      alt="Scan2Plan signature"
+                      className="max-h-32 mx-auto"
+                    />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className="gap-1 border-blue-300 text-blue-700">
+                    <Clock className="w-3 h-3" />
+                    Not Signed
+                  </Badge>
+                  <p className="text-sm text-muted-foreground">
+                    Sign the proposal before sending to client for dual-signature workflow
+                  </p>
+                </div>
+
+                <Button
+                  onClick={() => handleSenderSign(sortedProposals[0]?.id)}
+                  disabled={generatingSenderLink || sortedProposals.length === 0}
+                  className="w-full sm:w-auto"
+                >
+                  {generatingSenderLink ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <PenTool className="w-4 h-4 mr-2" />
+                  )}
+                  Sign as Scan2Plan Rep
+                  <ExternalLink className="w-3 h-3 ml-2" />
+                </Button>
+
+                {senderSigningUrl && (
+                  <div className="p-3 bg-muted rounded-lg space-y-2">
+                    <p className="text-sm font-medium">Signing Link:</p>
+                    <div className="flex gap-2">
+                      <Input
+                        value={senderSigningUrl}
+                        readOnly
+                        className="font-mono text-xs"
+                      />
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(senderSigningUrl);
+                          toast({
+                            title: "Link copied!",
+                            description: "Sender signing link copied to clipboard",
+                          });
+                        }}
+                      >
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copy
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      This link opens your signing page. Link expires in 7 days.
+                    </p>
+                  </div>
+                )}
+
+                {sortedProposals.length === 0 && (
+                  <p className="text-sm text-amber-600">
+                    Create a proposal version first before signing.
+                  </p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
     </ScrollArea>

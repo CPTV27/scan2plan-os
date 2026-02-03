@@ -922,8 +922,9 @@ function renderPaymentPage(
 
   // ===== DUAL SIGNATURE SECTION =====
   // Two columns: Client on LEFT, Scan2Plan on RIGHT
-  const colWidth = 200;
-  const colGap = 84;
+  // Layout matches the reference image exactly
+  const colWidth = 220;
+  const colGap = 60;
   const leftX = PAGE.margin;
   const rightX = PAGE.margin + colWidth + colGap;
 
@@ -933,7 +934,7 @@ function renderPaymentPage(
     try {
       const base64Data = signatureData.signatureImage.replace(/^data:image\/\w+;base64,/, "");
       const signatureBuffer = Buffer.from(base64Data, "base64");
-      doc.image(signatureBuffer, leftX, y, { width: 180, height: 45 });
+      doc.image(signatureBuffer, leftX, y, { width: 180, height: 50 });
     } catch (error) {
       console.warn("[WYSIWYG PDF] Could not embed client signature image:", error);
     }
@@ -945,45 +946,47 @@ function renderPaymentPage(
     try {
       const base64Data = senderSignatureData.signatureImage.replace(/^data:image\/\w+;base64,/, "");
       const signatureBuffer = Buffer.from(base64Data, "base64");
-      doc.image(signatureBuffer, rightX, y, { width: 180, height: 45 });
+      doc.image(signatureBuffer, rightX, y, { width: 180, height: 50 });
     } catch (error) {
       console.warn("[WYSIWYG PDF] Could not embed sender signature image:", error);
     }
   }
 
-  y += 55;
+  y += 60;
 
-  // Name row
+  // ----- NAME ROW -----
+  // Left: Client name value OR "Name" label if not signed
   if (signatureData?.signerName) {
     doc.font("Roboto").fontSize(11).fillColor(COLORS.text).text(signatureData.signerName, leftX, y);
   }
+  // Right: Sender name value OR "Name" label if not signed
   if (senderSignatureData?.signerName) {
     doc.font("Roboto").fontSize(11).fillColor(COLORS.text).text(senderSignatureData.signerName, rightX, y);
   }
-  y += 16;
+  y += 18;
 
-  // Label "Name"
+  // "Name" label row (gray, smaller) - shown below the name values
   doc.font("Roboto").fontSize(9).fillColor(COLORS.textMuted).text("Name", leftX, y);
-  doc.font("Roboto").fontSize(9).fillColor(COLORS.textMuted).text("", rightX, y); // No label on right for name
-  y += 20;
+  // No label on right to match image style
+  y += 18;
 
-  // Company row
+  // ----- COMPANY ROW -----
+  // Left: Client company/title
   if (signatureData?.signerTitle) {
-    // Use signerTitle as company for client
     doc.font("Roboto").fontSize(11).fillColor(COLORS.text).text(signatureData.signerTitle, leftX, y);
   }
-  if (senderSignatureData?.signerTitle) {
-    // Show "Scan2Plan, Inc." for sender
+  // Right: Always "Scan2Plan, Inc." for sender
+  if (senderSignatureData?.signerName) {
     doc.font("Roboto").fontSize(11).fillColor(COLORS.text).text("Scan2Plan, Inc.", rightX, y);
   }
-  y += 16;
+  y += 18;
 
-  // Label "Company"
+  // "Company" label row (gray, smaller)
   doc.font("Roboto").fontSize(9).fillColor(COLORS.textMuted).text("Company", leftX, y);
-  doc.font("Roboto").fontSize(9).fillColor(COLORS.textMuted).text("Company", rightX, y);
-  y += 20;
+  // No label on right to match image style
+  y += 18;
 
-  // Date row
+  // ----- DATE ROW -----
   if (signatureData?.signedAt) {
     const clientDate = new Date(signatureData.signedAt).toLocaleDateString("en-CA"); // YYYY-MM-DD format
     doc.font("Roboto").fontSize(11).fillColor(COLORS.text).text(clientDate, leftX, y);
