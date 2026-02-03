@@ -16,6 +16,7 @@ import { asyncHandler } from "../middleware/errorHandler";
 import { log } from "../lib/logger";
 import crypto from "crypto";
 import { generateWYSIWYGPdf, type WYSIWYGProposalData } from "../pdf/wysiwygPdfGenerator";
+import { cpqStorage } from "../storage/cpq";
 import { db } from "../db";
 import { generatedProposals } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
