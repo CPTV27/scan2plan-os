@@ -144,6 +144,7 @@ const mockLead: Lead = {
   senderSignerEmail: null,
   senderSignerTitle: null,
   senderSignedAt: null,
+  senderViewedAt: null,
   senderIpAddress: null,
   senderUserAgent: null,
   senderToken: null,

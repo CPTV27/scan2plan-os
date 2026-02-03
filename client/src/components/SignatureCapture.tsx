@@ -137,8 +137,8 @@ export function SignatureCapture({
 
         if (!signerTitle.trim()) {
             toast({
-                title: "Title required",
-                description: "Please enter your title or role.",
+                title: "Company required",
+                description: "Please enter your company name.",
                 variant: "destructive",
             });
             return;
@@ -216,10 +216,10 @@ export function SignatureCapture({
                         />
                     </div>
                     <div className="space-y-2 col-span-2 sm:col-span-1">
-                        <Label htmlFor="signerTitle">Title / Role *</Label>
+                        <Label htmlFor="signerTitle">Company *</Label>
                         <Input
                             id="signerTitle"
-                            placeholder="Project Manager, Owner, etc."
+                            placeholder="Your company name"
                             value={signerTitle}
                             onChange={(e) => setSignerTitle(e.target.value)}
                         />

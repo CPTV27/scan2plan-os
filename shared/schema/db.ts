@@ -200,6 +200,7 @@ export const leads = pgTable("leads", {
   senderSignerEmail: text("sender_signer_email"), // Email of Scan2Plan rep
   senderSignerTitle: text("sender_signer_title"), // Title (e.g., "Account Manager")
   senderSignedAt: timestamp("sender_signed_at"), // When sender signed
+  senderViewedAt: timestamp("sender_viewed_at"), // When sender first viewed the signing page
   senderIpAddress: text("sender_ip_address"), // IP address for audit trail
   senderUserAgent: text("sender_user_agent"), // Browser UA for audit trail
   senderToken: text("sender_token"), // Magic link token for sender signing

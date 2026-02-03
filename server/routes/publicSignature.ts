@@ -313,6 +313,7 @@ publicSignatureRouter.get(
         const senderSignerTitle = (lead as any).senderSignerTitle;
         const senderSignedAt = (lead as any).senderSignedAt;
         const senderIpAddress = (lead as any).senderIpAddress;
+        const senderViewedAt = (lead as any).senderViewedAt;
 
         // Extract audit trail timestamps
         const proposalSentAt = (lead as any).proposalSentAt;
@@ -394,6 +395,7 @@ publicSignatureRouter.get(
                             senderEmail: senderSignerEmail || '',
                             senderSignatureImage: senderSignatureImage,
                             senderSentAt: proposalSentAt,
+                            senderViewedAt: senderViewedAt,
                             senderSignedAt: senderSignedAt,
                             senderIpAddress: senderIpAddress,
                             clientName: signerName,
@@ -513,6 +515,13 @@ publicSignatureRouter.get(
         const tokenExpiresAt = (lead as any).senderTokenExpiresAt;
         if (tokenExpiresAt && new Date(tokenExpiresAt) < new Date()) {
             return res.status(410).json({ message: "This signing link has expired" });
+        }
+
+        // Track when sender first views the signing page (for audit trail)
+        if (!(lead as any).senderViewedAt) {
+            await storage.updateLead(lead.id, {
+                senderViewedAt: new Date(),
+            } as any);
         }
 
         // Build PDF URL for this token

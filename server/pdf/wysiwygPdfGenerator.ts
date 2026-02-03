@@ -953,26 +953,19 @@ function renderPaymentPage(
     }
   }
 
-  y += 60;
+  y += 55;
 
   // ----- NAME ROW -----
-  // Left: Client name value OR "Name" label if not signed
   if (signatureData?.signerName) {
     doc.font("Roboto").fontSize(11).fillColor(COLORS.text).text(signatureData.signerName, leftX, y);
   }
-  // Right: Sender name value OR "Name" label if not signed
   if (senderSignatureData?.signerName) {
     doc.font("Roboto").fontSize(11).fillColor(COLORS.text).text(senderSignatureData.signerName, rightX, y);
   }
-  y += 18;
-
-  // "Name" label row (gray, smaller) - shown below the name values
-  doc.font("Roboto").fontSize(9).fillColor(COLORS.textMuted).text("Name", leftX, y);
-  // No label on right to match image style
-  y += 18;
+  y += 20;
 
   // ----- COMPANY ROW -----
-  // Left: Client company/title
+  // Left: Client company (from signerTitle field)
   if (signatureData?.signerTitle) {
     doc.font("Roboto").fontSize(11).fillColor(COLORS.text).text(signatureData.signerTitle, leftX, y);
   }
@@ -980,12 +973,7 @@ function renderPaymentPage(
   if (senderSignatureData?.signerName) {
     doc.font("Roboto").fontSize(11).fillColor(COLORS.text).text("Scan2Plan, Inc.", rightX, y);
   }
-  y += 18;
-
-  // "Company" label row (gray, smaller)
-  doc.font("Roboto").fontSize(9).fillColor(COLORS.textMuted).text("Company", leftX, y);
-  // No label on right to match image style
-  y += 18;
+  y += 20;
 
   // ----- DATE ROW -----
   if (signatureData?.signedAt) {
@@ -1279,227 +1267,243 @@ function renderBIMStandardsPages(doc: PDFKit.PDFDocument): void {
 
 /**
  * Certificate of Signature Page
- * PandaDoc-style audit trail page showing both signatures with timestamps
+ * Professional audit trail page showing both signatures with timestamps
+ * DocuSeal-inspired design with improved formatting
  */
 function renderCertificateOfSignature(
   doc: PDFKit.PDFDocument,
   auditTrail: SignatureAuditTrail
 ): void {
-  // Teal border/background color matching PandaDoc style
+  // Professional color scheme
   const CERT_COLORS = {
-    border: "#7dd3c0", // Teal/mint border
-    background: "#f0fdf9", // Very light teal background
-    title: "#1f2937", // Dark gray
+    border: "#10b981", // Emerald green (DocuSeal brand color)
+    borderLight: "#d1fae5", // Light emerald
+    title: "#064e3b", // Dark emerald for title
+    sectionHeader: "#059669", // Medium emerald for headers
     label: "#6b7280", // Gray for labels
     value: "#111827", // Near black for values
+    background: "#f0fdf4", // Very light green background
   };
 
-  // Draw decorative border pattern (simplified version of PandaDoc's guilloché pattern)
-  doc.rect(20, 20, PAGE.width - 40, PAGE.height - 40).lineWidth(3).stroke(CERT_COLORS.border);
-  doc.rect(30, 30, PAGE.width - 60, PAGE.height - 60).lineWidth(1).stroke(CERT_COLORS.border);
+  // Draw professional border with double line effect
+  doc.rect(15, 15, PAGE.width - 30, PAGE.height - 30).lineWidth(2).stroke(CERT_COLORS.border);
+  doc.rect(25, 25, PAGE.width - 50, PAGE.height - 50).lineWidth(0.5).stroke(CERT_COLORS.borderLight);
 
-  let y = 70;
+  let y = 55;
 
-  // Title: "CERTIFICATE of SIGNATURE"
-  doc
-    .font("Roboto-Bold")
-    .fontSize(28)
-    .fillColor(CERT_COLORS.title)
-    .text("CERTIFICATE ", PAGE.margin + 20, y, { continued: true, align: "center", width: PAGE.contentWidth - 40 });
-  doc
-    .font("Roboto")
-    .fontSize(28)
-    .text("of ", { continued: true });
-  doc
-    .font("Roboto-Bold")
-    .text("SIGNATURE", { continued: false });
+  // Title - rendered as single centered text to avoid formatting issues
+  doc.font("Roboto-Bold").fontSize(24).fillColor(CERT_COLORS.title);
+  doc.text("CERTIFICATE OF SIGNATURE", PAGE.margin, y, { align: "center", width: PAGE.contentWidth });
 
-  y += 50;
+  y += 35;
 
-  // Reference number and completion date
-  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
-  doc.text("REF. NUMBER", PAGE.margin + 20, y);
-  doc.text("DOCUMENT COMPLETED BY ALL PARTIES ON", PAGE.width - PAGE.margin - 180, y, { width: 160, align: "right" });
-  y += 12;
-
-  doc.font("Roboto-Bold").fontSize(9).fillColor(CERT_COLORS.value);
-  doc.text(auditTrail.certificateRefNumber || "N/A", PAGE.margin + 20, y);
-
-  if (auditTrail.documentCompletedAt) {
-    const completedDate = new Date(auditTrail.documentCompletedAt);
-    const dateStr = completedDate.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
-    const timeStr = completedDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
-    doc.text(`${dateStr} ${timeStr}`, PAGE.width - PAGE.margin - 180, y, { width: 160, align: "right" });
-    y += 12;
-    doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label).text("UTC", PAGE.width - PAGE.margin - 180, y, { width: 160, align: "right" });
-  }
+  // Subtitle/branding line
+  doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.sectionHeader);
+  doc.text("Electronic Signature Verification Document", PAGE.margin, y, { align: "center", width: PAGE.contentWidth });
 
   y += 30;
 
-  // Column headers
-  const col1X = PAGE.margin + 20; // SIGNER column
-  const col2X = PAGE.margin + 180; // TIMESTAMP column
-  const col3X = PAGE.margin + 330; // SIGNATURE column
+  // Reference info bar
+  const col1X = PAGE.margin + 15;
+  const col2X = PAGE.margin + 170;
+  const col3X = PAGE.margin + 340;
 
-  doc.font("Roboto-Bold").fontSize(9).fillColor(CERT_COLORS.label);
+  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.text("REFERENCE NUMBER", col1X, y);
+  doc.text("DOCUMENT COMPLETED", PAGE.width - PAGE.margin - 140, y, { width: 130, align: "right" });
+  y += 12;
+
+  doc.font("Roboto-Bold").fontSize(10).fillColor(CERT_COLORS.value);
+  doc.text(auditTrail.certificateRefNumber || "N/A", col1X, y);
+
+  if (auditTrail.documentCompletedAt) {
+    const completedDate = new Date(auditTrail.documentCompletedAt);
+    const dateStr = completedDate.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }).toUpperCase();
+    const timeStr = completedDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+    doc.text(`${dateStr} ${timeStr} UTC`, PAGE.width - PAGE.margin - 140, y, { width: 130, align: "right" });
+  }
+
+  y += 25;
+
+  // Column headers with section divider
+  drawLine(doc, col1X, y, PAGE.width - PAGE.margin - 15, y, CERT_COLORS.border);
+  y += 15;
+
+  doc.font("Roboto-Bold").fontSize(9).fillColor(CERT_COLORS.sectionHeader);
   doc.text("SIGNER", col1X, y);
-  doc.text("TIMESTAMP", col2X, y);
+  doc.text("ACTIVITY", col2X, y);
   doc.text("SIGNATURE", col3X, y);
 
-  y += 20;
-  drawLine(doc, PAGE.margin + 20, y, PAGE.width - PAGE.margin - 20, y, CERT_COLORS.border);
-  y += 20;
+  y += 18;
+  drawLine(doc, col1X, y, PAGE.width - PAGE.margin - 15, y, CERT_COLORS.borderLight);
+  y += 15;
 
   // Helper function to format timestamp
   const formatTimestamp = (date?: Date | string): string => {
-    if (!date) return "";
+    if (!date) return "—";
     const d = new Date(date);
-    const dateStr = d.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase();
+    const dateStr = d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }).toUpperCase();
     const timeStr = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
     return `${dateStr} ${timeStr}`;
   };
 
   // ===== SENDER (Scan2Plan) SECTION =====
-  doc.font("Roboto-Bold").fontSize(11).fillColor(CERT_COLORS.value);
+  const senderStartY = y;
+
+  doc.font("Roboto-Bold").fontSize(10).fillColor(CERT_COLORS.value);
   doc.text(auditTrail.senderName?.toUpperCase() || "SCAN2PLAN REPRESENTATIVE", col1X, y);
-
-  // Timestamps column for sender
-  const senderTimestampsY = y;
-  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
-  doc.text("SENT", col2X, senderTimestampsY);
-  doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
-  doc.text(formatTimestamp(auditTrail.senderSentAt), col2X, senderTimestampsY + 10);
+  y += 14;
 
   doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
-  doc.text("VIEWED", col2X, senderTimestampsY + 28);
+  doc.text("EMAIL", col1X, y);
+  y += 10;
   doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
-  doc.text(formatTimestamp(auditTrail.senderViewedAt), col2X, senderTimestampsY + 38);
+  doc.text(auditTrail.senderEmail || "—", col1X, y);
 
+  // Activity column for sender (timestamps)
+  let activityY = senderStartY;
   doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
-  doc.text("SIGNED", col2X, senderTimestampsY + 56);
+  doc.text("SENT", col2X, activityY);
   doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
-  doc.text(formatTimestamp(auditTrail.senderSignedAt), col2X, senderTimestampsY + 66);
+  doc.text(formatTimestamp(auditTrail.senderSentAt), col2X, activityY + 10);
+
+  activityY += 26;
+  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.text("VIEWED", col2X, activityY);
+  doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.text(formatTimestamp(auditTrail.senderViewedAt), col2X, activityY + 10);
+
+  activityY += 26;
+  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.text("SIGNED", col2X, activityY);
+  doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.text(formatTimestamp(auditTrail.senderSignedAt), col2X, activityY + 10);
 
   // Sender signature image
   if (auditTrail.senderSignatureImage) {
     try {
       const base64Data = auditTrail.senderSignatureImage.replace(/^data:image\/\w+;base64,/, "");
       const signatureBuffer = Buffer.from(base64Data, "base64");
-      // Draw border around signature
-      doc.rect(col3X, y - 5, 140, 50).lineWidth(0.5).stroke(CERT_COLORS.border);
-      doc.image(signatureBuffer, col3X + 5, y, { width: 130, height: 40 });
+      // Draw clean border around signature
+      doc.rect(col3X, senderStartY, 130, 45).lineWidth(0.5).stroke(CERT_COLORS.borderLight);
+      doc.image(signatureBuffer, col3X + 5, senderStartY + 3, { width: 120, height: 39 });
     } catch (error) {
       console.warn("[Certificate PDF] Could not embed sender signature:", error);
     }
   }
 
   // IP Address for sender
-  y += 16;
-  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
-  doc.text("EMAIL", col1X, y);
-  y += 10;
-  doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
-  doc.text(auditTrail.senderEmail || "", col1X, y);
-
-  y += 30;
   if (auditTrail.senderIpAddress) {
-    doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
-    doc.text("IP ADDRESS", col3X, y);
-    doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
-    doc.text(auditTrail.senderIpAddress, col3X, y + 10);
+    doc.font("Roboto").fontSize(7).fillColor(CERT_COLORS.label);
+    doc.text(`IP: ${auditTrail.senderIpAddress}`, col3X, senderStartY + 52);
   }
 
-  y += 40;
+  y = senderStartY + 85;
 
-  // Divider line
-  drawLine(doc, PAGE.margin + 20, y, PAGE.width - PAGE.margin - 20, y, CERT_COLORS.border);
-  y += 10;
+  // Section divider
+  drawLine(doc, col1X, y, PAGE.width - PAGE.margin - 15, y, CERT_COLORS.border);
+  y += 15;
 
-  // Recipient Verification header
-  doc.font("Roboto-Bold").fontSize(10).fillColor(CERT_COLORS.label);
+  // ===== RECIPIENT VERIFICATION SECTION =====
+  doc.font("Roboto-Bold").fontSize(9).fillColor(CERT_COLORS.sectionHeader);
   doc.text("RECIPIENT VERIFICATION", col1X, y);
+  y += 18;
+
+  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.text("The recipient accessed this document via a unique secure link sent to their email,", col1X, y);
+  y += 12;
+  doc.text("providing verification of their identity.", col1X, y);
   y += 20;
 
-  // Email verified timestamp (same as viewed)
   doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
   doc.text("EMAIL VERIFIED", col2X, y);
   doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
   doc.text(formatTimestamp(auditTrail.clientViewedAt), col2X, y + 10);
 
-  y += 40;
-  drawLine(doc, PAGE.margin + 20, y, PAGE.width - PAGE.margin - 20, y, CERT_COLORS.border);
-  y += 20;
+  y += 35;
+  drawLine(doc, col1X, y, PAGE.width - PAGE.margin - 15, y, CERT_COLORS.border);
+  y += 15;
 
   // ===== CLIENT SECTION =====
-  doc.font("Roboto-Bold").fontSize(11).fillColor(CERT_COLORS.value);
+  const clientStartY = y;
+
+  doc.font("Roboto-Bold").fontSize(10).fillColor(CERT_COLORS.value);
   doc.text(auditTrail.clientName?.toUpperCase() || "CLIENT", col1X, y);
-
-  // Timestamps column for client
-  const clientTimestampsY = y;
-  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
-  doc.text("SENT", col2X, clientTimestampsY);
-  doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
-  doc.text(formatTimestamp(auditTrail.clientSentAt), col2X, clientTimestampsY + 10);
+  y += 14;
 
   doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
-  doc.text("VIEWED", col2X, clientTimestampsY + 28);
+  doc.text("EMAIL", col1X, y);
+  y += 10;
   doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
-  doc.text(formatTimestamp(auditTrail.clientViewedAt), col2X, clientTimestampsY + 38);
+  doc.text(auditTrail.clientEmail || "—", col1X, y);
+  y += 14;
 
   doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
-  doc.text("SIGNED", col2X, clientTimestampsY + 56);
+  doc.text("SHARED VIA", col1X, y);
+  y += 10;
+  doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.sectionHeader);
+  doc.text("SECURE LINK", col1X, y);
+
+  // Activity column for client (timestamps)
+  activityY = clientStartY;
+  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.text("SENT", col2X, activityY);
   doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
-  doc.text(formatTimestamp(auditTrail.clientSignedAt), col2X, clientTimestampsY + 66);
+  doc.text(formatTimestamp(auditTrail.clientSentAt), col2X, activityY + 10);
+
+  activityY += 26;
+  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.text("VIEWED", col2X, activityY);
+  doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.text(formatTimestamp(auditTrail.clientViewedAt), col2X, activityY + 10);
+
+  activityY += 26;
+  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
+  doc.text("SIGNED", col2X, activityY);
+  doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
+  doc.text(formatTimestamp(auditTrail.clientSignedAt), col2X, activityY + 10);
 
   // Client signature image
   if (auditTrail.clientSignatureImage) {
     try {
       const base64Data = auditTrail.clientSignatureImage.replace(/^data:image\/\w+;base64,/, "");
       const signatureBuffer = Buffer.from(base64Data, "base64");
-      doc.rect(col3X, y - 5, 140, 50).lineWidth(0.5).stroke(CERT_COLORS.border);
-      doc.image(signatureBuffer, col3X + 5, y, { width: 130, height: 40 });
+      doc.rect(col3X, clientStartY, 130, 45).lineWidth(0.5).stroke(CERT_COLORS.borderLight);
+      doc.image(signatureBuffer, col3X + 5, clientStartY + 3, { width: 120, height: 39 });
     } catch (error) {
       console.warn("[Certificate PDF] Could not embed client signature:", error);
     }
   }
 
-  // Client info
-  y += 16;
-  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
-  doc.text("EMAIL", col1X, y);
-  y += 10;
-  doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
-  doc.text(auditTrail.clientEmail || "", col1X, y);
-
-  y += 16;
-  doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
-  doc.text("SHARED VIA", col1X, y);
-  y += 10;
-  doc.font("Roboto").fontSize(9).fillColor(COLORS.primary);
-  doc.text("LINK", col1X, y, { underline: true });
-
-  // Client IP and location
-  y = clientTimestampsY + 80;
+  // Client IP Address
   if (auditTrail.clientIpAddress) {
-    doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
-    doc.text("IP ADDRESS", col3X, y);
-    doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
-    doc.text(auditTrail.clientIpAddress, col3X, y + 10);
-    y += 28;
+    doc.font("Roboto").fontSize(7).fillColor(CERT_COLORS.label);
+    doc.text(`IP: ${auditTrail.clientIpAddress}`, col3X, clientStartY + 52);
   }
 
+  // Client location
   if (auditTrail.clientLocation) {
-    doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
-    doc.text("LOCATION", col3X, y);
-    doc.font("Roboto").fontSize(9).fillColor(CERT_COLORS.value);
-    doc.text(auditTrail.clientLocation.toUpperCase(), col3X, y + 10);
+    doc.font("Roboto").fontSize(7).fillColor(CERT_COLORS.label);
+    doc.text(`Location: ${auditTrail.clientLocation}`, col3X, clientStartY + 62);
   }
 
   // Footer with branding
-  const footerY = PAGE.height - 60;
+  const footerY = PAGE.height - 55;
+
+  // Branding line
+  drawLine(doc, col1X, footerY - 10, PAGE.width - PAGE.margin - 15, footerY - 10, CERT_COLORS.borderLight);
+
+  // DocuSeal-style footer branding
+  doc.font("Roboto-Bold").fontSize(8).fillColor(CERT_COLORS.sectionHeader);
+  doc.text("Powered by Scan2Plan eSignature", col1X, footerY);
+
+  doc.font("Roboto").fontSize(7).fillColor(CERT_COLORS.label);
+  doc.text("This document was electronically signed using a secure digital signature process.", col1X, footerY + 12);
+  doc.text("The signature is legally binding under the ESIGN Act and UETA.", col1X, footerY + 22);
+
+  // Page indicator
   doc.font("Roboto").fontSize(8).fillColor(CERT_COLORS.label);
-  doc.text("Signed with Scan2Plan", PAGE.margin + 20, footerY);
-  doc.text("PAGE 1 OF 1", PAGE.width / 2 - 30, footerY);
+  doc.text("CERTIFICATE PAGE", PAGE.width - PAGE.margin - 100, footerY, { width: 90, align: "right" });
 }
 
 /**
