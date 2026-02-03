@@ -291,11 +291,12 @@ function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalCoverData): void
 
   // Logo (w-48 = 192px, centered, mb-6 = 24px margin-bottom)
   const logoPath = path.join(process.cwd(), "client", "public", "logo-cover.png");
-  const logoWidth = 192;
-  const logoHeight = 100; // Approximate logo height
+  const logoWidth = 120; // Smaller logo to fit better
   if (fs.existsSync(logoPath)) {
+    // Logo is square (1050x1050), so height = width when rendered
+    const logoHeight = logoWidth;
     doc.image(logoPath, (PAGE.width - logoWidth) / 2, y, { width: logoWidth });
-    y += logoHeight + 24; // mb-6 = 24px
+    y += logoHeight + 16; // margin below logo
   } else {
     y += 40;
   }
