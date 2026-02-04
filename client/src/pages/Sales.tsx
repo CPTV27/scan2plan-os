@@ -5,7 +5,7 @@ import { Sidebar, MobileHeader } from "@/components/Sidebar";
 // import { NotificationBell } from "@/components/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Search, AlertCircle, Loader2, RefreshCw, ChevronLeft, ChevronRight, DollarSign, Building2, Ruler, FileText, Trash2, Target, Phone, FileCheck, Handshake, Trophy, XCircle, ExternalLink, Link2, Brain, Star, Upload, FileSpreadsheet, Calculator, Briefcase, ShieldCheck, ShieldAlert, ShieldX, ShieldOff, Send, Users, FileDown } from "lucide-react";
+import { Plus, Search, AlertCircle, Loader2, RefreshCw, ChevronLeft, ChevronRight, DollarSign, Building2, Ruler, FileText, Trash2, Target, Phone, FileCheck, Handshake, Trophy, XCircle, ExternalLink, Link2, Brain, Star, Upload, FileSpreadsheet, Calculator, Briefcase, ShieldCheck, ShieldAlert, ShieldX, ShieldOff, Send, Users, FileDown, Moon, Sun } from "lucide-react";
 // AIAssistant hidden for now
 // import { AIAssistant } from "@/components/AIAssistant";
 import { AIActions } from "@/components/AIActions";
@@ -229,7 +229,7 @@ function DealCard({
   return (
     <Card
       className={clsx(
-        "mb-3 border-l-4 transition-all overflow-hidden cursor-pointer hover:bg-accent/50",
+        "border-l-4 transition-all overflow-hidden cursor-pointer hover:bg-accent/50",
         STAGE_COLORS[lead.dealStage as Stage] || "border-l-muted",
         isHighValue && "ring-1 ring-yellow-500/50"
       )}
@@ -548,7 +548,7 @@ function StageColumn({
             </div>
           </div>
         ) : (
-          <div className="space-y-0">
+          <div className="space-y-3">
             {leads.map((lead) => (
               <DealCard
                 key={lead.id}
@@ -590,6 +590,23 @@ export default function Sales() {
   const [filterHasInvoice, setFilterHasInvoice] = useState<string>("all");
   // Hot leads filter removed - keeping state for potential future use
   // const [filterHotLeads, setFilterHotLeads] = useState(false);
+
+  // Theme state
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof document !== 'undefined' && document.documentElement.classList.contains('dark')) {
+      return 'dark';
+    }
+    const stored = localStorage.getItem("theme") as "light" | "dark" | null;
+    return stored || 'dark';
+  });
+
+  const toggleTheme = () => {
+    const newTheme = theme === "dark" ? "light" : "dark";
+    setTheme(newTheme);
+    localStorage.setItem("theme", newTheme);
+    document.documentElement.classList.toggle("dark", newTheme === "dark");
+  };
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -926,6 +943,16 @@ export default function Sales() {
                 </div>
 
                 <div className="flex items-center gap-2 ml-auto">
+                  {/* Theme Toggle */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleTheme}
+                    data-testid="button-theme-toggle"
+                    title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                  >
+                    {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  </Button>
                   <Button
                     variant="ghost"
                     onClick={() => navigate("/sales/trash")}
