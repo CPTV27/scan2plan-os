@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
@@ -214,6 +215,23 @@ const PAYMENT_PREMIUMS: Record<string, number> = {
 const ACT_RATE_PER_SQFT = 2.00;
 const MATTERPORT_RATE_PER_SQFT = 0.10;
 const TIER_A_THRESHOLD = 50000;
+
+// Tier A pricing configuration
+const TIER_A_SCANNING_COSTS = {
+    "3500": 3500,
+    "7000": 7000,
+    "10500": 10500,
+    "15000": 15000,
+    "18500": 18500,
+};
+
+const TIER_A_MARGINS: Record<string, { label: string; value: number }> = {
+    "2.352": { label: "2.352X (Standard)", value: 2.352 },
+    "2.5": { label: "2.5X", value: 2.5 },
+    "3.0": { label: "3.0X", value: 3.0 },
+    "3.5": { label: "3.5X", value: 3.5 },
+    "4.0": { label: "4.0X (Premium)", value: 4.0 },
+};
 const SQFT_PER_ACRE = 43560;
 
 // Landscape per-acre rates (from CPQ spec)
@@ -325,6 +343,13 @@ export default function SimpleQuoteBuilder({
     });
     const [paymentTerms, setPaymentTerms] = useState<string>("standard");
     const [manualTotalOverride, setManualTotalOverride] = useState<number | null>(null);
+
+    // Tier A pricing override state
+    const [tierAEnabled, setTierAEnabled] = useState(false);
+    const [tierAScanningCost, setTierAScanningCost] = useState<string>("");
+    const [tierAScanningCostOther, setTierAScanningCostOther] = useState<string>("");
+    const [tierAModelingCost, setTierAModelingCost] = useState<string>("");
+    const [tierAMargin, setTierAMargin] = useState<string>("2.352");
     const [isSaving, setIsSaving] = useState(false);
     const [importDialogOpen, setImportDialogOpen] = useState(false);
     const [importJson, setImportJson] = useState("");
@@ -518,9 +543,50 @@ export default function SimpleQuoteBuilder({
         const areasUpteam = updatedAreas.reduce((sum, a) => sum + a.upteamCost, 0);
         const totalSqft = areas.reduce((sum, a) => sum + a.squareFeet, 0);
 
-        // Calculate travel
+        // Calculate travel (use Tier A rates when enabled)
         const travelResult = calculateTravelCost(travel, totalSqft);
-        const travelTotal = travelResult.travelCost + travelResult.scanDayFee;
+        let travelTotal = travelResult.travelCost + travelResult.scanDayFee;
+
+        // Tier A pricing override
+        if (tierAEnabled) {
+            const scanningCost = tierAScanningCost === "other"
+                ? parseFloat(tierAScanningCostOther) || 0
+                : parseFloat(tierAScanningCost) || 0;
+            const modelingCost = parseFloat(tierAModelingCost) || 0;
+            const marginMultiplier = TIER_A_MARGINS[tierAMargin]?.value || 2.352;
+
+            const tierASubtotal = scanningCost + modelingCost;
+            const tierAClientPrice = tierASubtotal * marginMultiplier;
+
+            // Tier A travel: $0 base + $4/mile over 20 miles (from Brooklyn)
+            if (travel.dispatchLocation === "brooklyn" && travel.distance > 20) {
+                travelTotal = (travel.distance - 20) * 4;
+            }
+
+            const tierATotal = tierAClientPrice + travelTotal;
+
+            return {
+                areas: updatedAreas,
+                areasTotal: tierAClientPrice,
+                areasUpteam: tierASubtotal,
+                totalSqft,
+                travelTotal,
+                servicesTotal: 0,
+                riskPercent: 0,
+                subtotal: tierATotal,
+                paymentPremium: 0,
+                paymentPremiumRate: 0,
+                calculatedTotal: tierATotal,
+                finalTotal: manualTotalOverride !== null ? manualTotalOverride : tierATotal,
+                hasOverride: manualTotalOverride !== null,
+                // Tier A specific fields
+                tierAEnabled: true,
+                tierAScanningCost: scanningCost,
+                tierAModelingCost: modelingCost,
+                tierAMarginMultiplier: marginMultiplier,
+                tierAClientPrice,
+            };
+        }
 
         // Calculate services
         const servicesTotal = calculateServicesCost(services, totalSqft);
@@ -554,8 +620,9 @@ export default function SimpleQuoteBuilder({
             calculatedTotal,
             finalTotal,
             hasOverride: manualTotalOverride !== null,
+            tierAEnabled: false,
         };
-    }, [areas, travel, risks, services, paymentTerms, manualTotalOverride, calculateAreaPricing, calculateTravelCost, calculateServicesCost]);
+    }, [areas, travel, risks, services, paymentTerms, manualTotalOverride, tierAEnabled, tierAScanningCost, tierAScanningCostOther, tierAModelingCost, tierAMargin, calculateAreaPricing, calculateTravelCost, calculateServicesCost]);
 
     // Create a new area with defaults
     const createArea = (id: string, name: string, buildingType: string, sqft: number): CPQArea => ({
@@ -997,11 +1064,25 @@ export default function SimpleQuoteBuilder({
                             <Badge variant="outline" className="text-xs">
                                 {totals.totalSqft.toLocaleString()} sqft
                             </Badge>
-                            {totals.totalSqft >= TIER_A_THRESHOLD && (
+                            {(totals.totalSqft >= TIER_A_THRESHOLD || tierAEnabled) && (
                                 <Badge className="bg-amber-500 text-white text-xs">
-                                    Tier A
+                                    Tier A{tierAEnabled ? " (Override)" : ""}
                                 </Badge>
                             )}
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            {/* Tier A Toggle */}
+                            <div className="flex items-center gap-2">
+                                <Switch
+                                    id="tier-a-toggle"
+                                    checked={tierAEnabled}
+                                    onCheckedChange={setTierAEnabled}
+                                />
+                                <Label htmlFor="tier-a-toggle" className="text-xs cursor-pointer">
+                                    Tier A Pricing
+                                </Label>
+                            </div>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -1099,6 +1180,100 @@ export default function SimpleQuoteBuilder({
                             </Button>
                         </div>
                     </div>
+
+                    {/* Tier A Pricing Section - shown when enabled */}
+                    {tierAEnabled && (
+                        <Card className="border-amber-500/50 bg-amber-500/5">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-base flex items-center gap-2">
+                                    <DollarSign className="w-4 h-4 text-amber-500" />
+                                    Tier A Pricing Override
+                                </CardTitle>
+                                <CardDescription>
+                                    Formula: (Scanning + Modeling) × Margin Multiplier
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {/* Scanning Cost */}
+                                <div className="space-y-2">
+                                    <Label>Scanning Cost</Label>
+                                    <Select value={tierAScanningCost} onValueChange={setTierAScanningCost}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select scanning cost..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {Object.entries(TIER_A_SCANNING_COSTS).map(([key, value]) => (
+                                                <SelectItem key={key} value={key}>
+                                                    ${value.toLocaleString()}
+                                                </SelectItem>
+                                            ))}
+                                            <SelectItem value="other">Other (custom)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    {tierAScanningCost === "other" && (
+                                        <Input
+                                            type="number"
+                                            placeholder="Enter custom scanning cost..."
+                                            value={tierAScanningCostOther}
+                                            onChange={(e) => setTierAScanningCostOther(e.target.value)}
+                                        />
+                                    )}
+                                </div>
+
+                                {/* Modeling Cost */}
+                                <div className="space-y-2">
+                                    <Label>Modeling Cost</Label>
+                                    <Input
+                                        type="number"
+                                        placeholder="Enter modeling cost..."
+                                        value={tierAModelingCost}
+                                        onChange={(e) => setTierAModelingCost(e.target.value)}
+                                    />
+                                </div>
+
+                                {/* Margin Multiplier */}
+                                <div className="space-y-2">
+                                    <Label>Margin Multiplier</Label>
+                                    <Select value={tierAMargin} onValueChange={setTierAMargin}>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {Object.entries(TIER_A_MARGINS).map(([key, { label }]) => (
+                                                <SelectItem key={key} value={key}>
+                                                    {label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                {/* Tier A Price Breakdown */}
+                                {(tierAScanningCost || tierAModelingCost) && (
+                                    <div className="pt-3 border-t space-y-1 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Scanning Cost:</span>
+                                            <span>${(tierAScanningCost === "other" ? parseFloat(tierAScanningCostOther) || 0 : parseFloat(tierAScanningCost) || 0).toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Modeling Cost:</span>
+                                            <span>${(parseFloat(tierAModelingCost) || 0).toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Subtotal:</span>
+                                            <span>${((tierAScanningCost === "other" ? parseFloat(tierAScanningCostOther) || 0 : parseFloat(tierAScanningCost) || 0) + (parseFloat(tierAModelingCost) || 0)).toLocaleString()}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">× {TIER_A_MARGINS[tierAMargin]?.label || "2.352X"}:</span>
+                                            <span className="font-semibold text-primary">
+                                                ${(((tierAScanningCost === "other" ? parseFloat(tierAScanningCostOther) || 0 : parseFloat(tierAScanningCost) || 0) + (parseFloat(tierAModelingCost) || 0)) * (TIER_A_MARGINS[tierAMargin]?.value || 2.352)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
 
                     {/* Areas Section */}
                     <Collapsible open={expandedSections.areas} onOpenChange={() => toggleSection("areas")}>
