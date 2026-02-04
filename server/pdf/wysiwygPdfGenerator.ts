@@ -55,31 +55,35 @@ const COLORS = {
 const PAGE = {
   width: 612,
   height: 792,
-  margin: 64, // p-16 = 64px
-  contentWidth: 484, // 612 - 64*2
+  margin: 38, // Consistent with About page
+  contentWidth: 536, // 612 - 38*2
 };
 
-// Typography settings matching example proposals
+// Typography settings matching About page design
 const TYPOGRAPHY = {
   // Font sizes
-  pageTitle: 28,        // "About Scan2Plan", "The Project", etc.
-  sectionHeading: 18,   // "Overview", "Scope of Work", etc.
+  pageTitle: 23,        // "About Scan2Plan", "The Project", etc.
+  sectionHeading: 16,   // "Overview", "Scope of Work", etc.
   subtitle: 20,         // "Laser Scanning & Building Documentation"
-  bodyText: 11,         // Regular paragraph text
-  bulletText: 11,       // Bullet list items
+  bodyText: 12,         // Regular paragraph text
+  bulletText: 12,       // Bullet list items
   smallText: 10,        // Contact info, footer
   tableHeader: 9,       // Table column headers
 
   // Line spacing
-  bodyLineGap: 5,       // Space between lines in paragraphs
-  bulletLineGap: 4,     // Space between lines within a bullet item
+  bodyLineGap: 3,       // Space between lines in paragraphs
+  bulletLineGap: 3,     // Space between lines within a bullet item
 
   // Vertical spacing
-  afterPageTitle: 40,   // Space after main page title
-  afterSectionHeading: 24, // Space after section headings
-  betweenParagraphs: 18,   // Space between paragraphs
-  betweenBullets: 10,      // Space between bullet items
-  beforeSection: 24,       // Space before new section
+  afterPageTitle: 25,   // Space after main page title
+  afterSectionHeading: 25, // Space after section headings
+  betweenParagraphs: 16,   // Space between paragraphs
+  betweenBullets: 2,       // Space between bullet items
+  beforeSection: 20,       // Space before new section
+
+  // Bullet styling
+  bulletIndent: 20,        // Space from bullet to text
+  bulletColor: "#666666",  // Gray bullet color
 };
 
 // Client signature data for signed PDFs
@@ -259,245 +263,271 @@ function drawLine(
  * Uses lineBreak: false to prevent PDFKit from auto-creating pages
  */
 function renderFooter(doc: PDFKit.PDFDocument): void {
-  // Position footer well within page bounds - PAGE.height is 792, margin is 64
-  // Safe zone ends at 728 (792 - 64), so we place footer at 700 to be safe
-  const footerY = 700;
+  // Position footer at fixed position near bottom
+  const footerY = 768;
 
-  doc
-    .font("Roboto")
-    .fontSize(8)
-    .fillColor(COLORS.textMuted)
-    .text(
-      "Scan2Plan, Inc • 188 1st St, Troy NY, 12180 • (518) 362-2403 • admin@scan2plan.io • scan2plan.io",
-      PAGE.margin,
-      footerY,
-      { width: PAGE.contentWidth, align: "center", lineBreak: false }
-    );
+  const footerMainText = "Scan2Plan, Inc • 188 1st St, Troy NY, 12180 • (518) 362-2403 • admin@scan2plan.io • ";
+  const footerLinkText = "scan2plan.io";
+
+  doc.font("Roboto").fontSize(9);
+
+  // Calculate positions for centered footer with link
+  const mainTextWidth = doc.widthOfString(footerMainText);
+  const footerLinkWidth = doc.widthOfString(footerLinkText);
+  const footerTotalWidth = mainTextWidth + footerLinkWidth;
+  const footerStartX = (PAGE.width - footerTotalWidth) / 2;
+  const footerLinkX = footerStartX + mainTextWidth;
+
+  // Render main footer text (gray)
+  doc.fillColor(COLORS.textMuted);
+  doc.text(footerMainText, footerStartX, footerY, { lineBreak: false, continued: false });
+
+  // Render link text (blue)
+  doc.fillColor(COLORS.primary);
+  doc.text(footerLinkText, footerLinkX, footerY, { lineBreak: false, continued: false });
+
+  // Draw underline manually
+  doc.moveTo(footerLinkX, footerY + 10).lineTo(footerLinkX + footerLinkWidth, footerY + 10).strokeColor(COLORS.primary).lineWidth(0.5).stroke();
+
+  // Add clickable link annotation
+  doc.link(footerLinkX, footerY - 2, footerLinkWidth, 14, "https://www.scan2plan.io");
 }
 
 /**
  * Page 1: Cover Page
- * Matches ProposalCoverPage.tsx exactly
+ * Fixed positions for footer and legal; adaptive spacing for content above
  */
 function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalCoverData): void {
-  // WYSIWYG uses: flex flex-col justify-between min-h-[11in] p-16
-  // This distributes 3 sections: top (logo+contact), middle (title), bottom (legal+footer)
+  // =====================
+  // COVER PAGE SPECIFIC LAYOUT
+  // =====================
+  const coverMargin = 45;
+  const coverContentWidth = PAGE.width - (coverMargin * 2);
 
-  // Calculate section positions to match flexbox justify-between
-  const topSectionY = PAGE.margin;
-  const footerY = PAGE.height - PAGE.margin - 20; // Footer at bottom
-  const legalY = footerY - 70; // Legal text above footer
+  // Fixed positions (from bottom up) - match standard footer position
+  const footerY = 768;  // Same as renderFooter
+  const legalY = footerY - 80;  // Legal text 80px above footer
+
+  // Font sizes
+  const serviceTitleFontSize = 26;
+  const legalFontSize = 12;
+
+  // Logo settings
+  const logoWidth = 248;
+  const logoHeight = logoWidth;
+  const logoTopOffset = 38;
+
+  // Calculate content heights for adaptive spacing
+  doc.font("Roboto").fontSize(serviceTitleFontSize);
+  const serviceTitle = data.serviceTitle || "Laser Scanning & Building Documentation";
+  const lineSpacing = 4;  // Tighter spacing between project info lines
+
+  const serviceTitleHeight = doc.heightOfString(serviceTitle, { width: coverContentWidth, lineGap: lineSpacing });
+  const projectTitleHeight = doc.heightOfString(data.projectTitle || "", { width: coverContentWidth, lineGap: lineSpacing });
+  const addressHeight = data.projectAddress ? doc.heightOfString(data.projectAddress, { width: coverContentWidth, lineGap: lineSpacing }) : 0;
+  const servicesLineHeight = doc.heightOfString(data.servicesLine || "", { width: coverContentWidth, lineGap: lineSpacing });
+
+  // Proposal title height
+  const proposalHeight = 38;
+
+  // Project block height with internal line spacing
+  const projectBlockHeight = serviceTitleHeight + projectTitleHeight + addressHeight + servicesLineHeight + (lineSpacing * 3);
+
+  // Content that needs to fit between logo and legal text
+  const middleContentHeight = proposalHeight + projectBlockHeight;
+
+  // Available space for middle content (between logo bottom and legal top)
+  const logoBottom = coverMargin + logoTopOffset + logoHeight;
+  const availableMiddleSpace = legalY - logoBottom;
+
+  // Calculate gaps (3 gaps: after logo, after proposal, after project block)
+  // Use half the available space to keep text tighter
+  const evenGap = Math.max(10, (availableMiddleSpace - middleContentHeight) / 6);
 
   // =====================
-  // TOP SECTION: Logo Header (includes logo + contact info)
+  // RENDER LOGO
   // =====================
-  let y = topSectionY;
+  let y = coverMargin + logoTopOffset;
 
-  // Use the combined logo-cover-header.jpg which includes logo, tagline, and contact info
   const logoPath = path.join(process.cwd(), "client", "public", "logo-cover-header.jpg");
-  const logoWidth = 207; // Width for the header image (15% larger)
   if (fs.existsSync(logoPath)) {
-    // Logo header is roughly square, aligned to left
-    const logoHeight = logoWidth; // Maintain aspect ratio
-    doc.image(logoPath, PAGE.margin, y, { width: logoWidth });
-    y += logoHeight + 24; // margin below logo header
+    doc.image(logoPath, coverMargin, y, { width: logoWidth });
+    y += logoHeight;
   } else {
-    // Fallback to old logo if header not found
     const fallbackLogoPath = path.join(process.cwd(), "client", "public", "logo-cover.png");
     if (fs.existsSync(fallbackLogoPath)) {
-      doc.image(fallbackLogoPath, PAGE.margin, y, { width: 120 });
-      y += 136;
-    } else {
-      y += 40;
+      doc.image(fallbackLogoPath, coverMargin, y, { width: 120 });
+      y += 120;
     }
   }
 
-  const topSectionEnd = y;
+  y += evenGap;
 
   // =====================
-  // MIDDLE SECTION: Proposal Title & Project Info
-  // WYSIWYG uses: flex-1 flex flex-col justify-center space-y-8
-  // This section is vertically centered in the remaining space
+  // RENDER PROPOSAL TITLE
   // =====================
-
-  // Calculate the middle content to center it
-  const middleContentHeight = 200; // Approximate height of middle content
-  const availableMiddleSpace = legalY - topSectionEnd - 40; // Space between top and legal
-  const middleSectionStart = topSectionEnd + (availableMiddleSpace - middleContentHeight) / 2;
-
-  y = middleSectionStart;
-
-  // "- PROPOSAL -" title (smaller than before to match reference, minimal letter spacing)
-  doc.font("Roboto-Bold").fontSize(28).fillColor(COLORS.text);
-  doc.text("- PROPOSAL -", PAGE.margin, y, {
-    width: PAGE.contentWidth,
+  doc.font("Roboto-Bold").fontSize(31).fillColor(COLORS.text);
+  doc.text("- PROPOSAL -", coverMargin, y, {
+    width: coverContentWidth,
     align: "center",
     characterSpacing: 0.5,
   });
-  y += 50; // space after proposal title
+  y += proposalHeight + evenGap;
 
-  // Subtitle: service title - regular weight, larger font
-  const serviceTitleFontSize = 24;
+  // =====================
+  // RENDER PROJECT INFO BLOCK
+  // =====================
   doc.font("Roboto").fontSize(serviceTitleFontSize).fillColor(COLORS.text);
-  doc.text(data.serviceTitle || "Laser Scanning & Building Documentation", PAGE.margin, y, {
-    width: PAGE.contentWidth,
+  doc.text(serviceTitle, coverMargin, y, {
+    width: coverContentWidth,
     align: "center",
+    lineGap: lineSpacing,
   });
-  y += 32; // space after service title
+  y += serviceTitleHeight + lineSpacing;
 
-  // Project Title (same font size, regular weight)
-  doc.font("Roboto").fontSize(serviceTitleFontSize).fillColor(COLORS.text);
-  doc.text(data.projectTitle || "", PAGE.margin, y, {
-    width: PAGE.contentWidth,
+  doc.text(data.projectTitle || "", coverMargin, y, {
+    width: coverContentWidth,
     align: "center",
+    lineGap: lineSpacing,
   });
-  const titleHeight = doc.heightOfString(data.projectTitle || "", { width: PAGE.contentWidth });
-  y += titleHeight + 4;
+  y += projectTitleHeight + lineSpacing;
 
-  // Project Address - same font size, regular weight
   if (data.projectAddress) {
-    doc.font("Roboto").fontSize(serviceTitleFontSize).fillColor(COLORS.text);
-    doc.text(data.projectAddress, PAGE.margin, y, {
-      width: PAGE.contentWidth,
+    doc.text(data.projectAddress, coverMargin, y, {
+      width: coverContentWidth,
       align: "center",
+      lineGap: lineSpacing,
     });
-    const addressHeight = doc.heightOfString(data.projectAddress, { width: PAGE.contentWidth });
-    y += addressHeight + 8;
-  } else {
-    y += 8;
+    y += addressHeight + lineSpacing;
   }
 
-  // Services Line or Area Scope Lines - same font size, regular weight
   const areaScopeLines = (data as any).areaScopeLines as string[] | undefined;
   if (areaScopeLines && areaScopeLines.length > 1) {
-    // Multiple areas - space-y-1 = 4px between lines
-    doc.font("Roboto").fontSize(serviceTitleFontSize).fillColor(COLORS.text);
     areaScopeLines.forEach((line) => {
-      doc.text(line, PAGE.margin, y, { width: PAGE.contentWidth, align: "center" });
-      y += 24;
+      doc.text(line, coverMargin, y, { width: coverContentWidth, align: "center", lineGap: lineSpacing });
+      y += doc.heightOfString(line, { width: coverContentWidth, lineGap: lineSpacing }) + lineSpacing;
     });
   } else {
-    // Single service line - same font size
-    doc.font("Roboto").fontSize(serviceTitleFontSize).fillColor(COLORS.text);
-    doc.text(data.servicesLine || "", PAGE.margin, y, {
-      width: PAGE.contentWidth,
+    doc.text(data.servicesLine || "", coverMargin, y, {
+      width: coverContentWidth,
       align: "center",
+      lineGap: lineSpacing,
     });
   }
 
   // =====================
-  // BOTTOM SECTION: Legal Text + Footer
+  // RENDER LEGAL TEXT (fixed position above footer)
   // =====================
-
-  // Legal paragraph with bold client name and date
-  // Format: "Scan2Plan, Inc., a Delaware corporation ("S2P") hereby proposes the following engagement to
-  // **CLIENT NAME**. Use of the services offered by S2P ("the services") constitutes
-  // acceptance of this proposal dated **DATE**"
   const clientName = data.clientName || "[Client Name]";
   const proposalDate = data.date || new Date().toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" }).replace(/\//g, "/");
 
-  doc.font("Roboto").fontSize(10).fillColor(COLORS.text);
+  // Render legal text as simple lines to prevent overflow
+  doc.font("Roboto").fontSize(legalFontSize).fillColor(COLORS.text);
 
-  // First line
-  const line1 = `Scan2Plan, Inc., a Delaware corporation ("S2P") hereby proposes the following engagement to`;
-  doc.text(line1, PAGE.margin, legalY, {
-    width: PAGE.contentWidth,
-    align: "left",
-  });
+  const legalLine1 = `Scan2Plan, Inc., a Delaware corporation ("S2P") hereby proposes the following engagement to`;
+  doc.text(legalLine1, coverMargin, legalY, { width: coverContentWidth, lineBreak: false });
 
-  // Second line with bold client name
-  let legalY2 = legalY + doc.heightOfString(line1, { width: PAGE.contentWidth }) + 2;
-  doc.font("Roboto-Bold").text(clientName.toUpperCase() + ".", PAGE.margin, legalY2, {
-    width: PAGE.contentWidth,
-    align: "left",
-    continued: true,
-  });
-  doc.font("Roboto").text(` Use of the services offered by S2P ("the services") constitutes`, {
-    continued: false,
-  });
+  doc.font("Roboto-Bold");
+  doc.text(`${clientName.toUpperCase()}.`, coverMargin, legalY + 16, { continued: true, lineBreak: false });
+  doc.font("Roboto");
+  doc.text(` Use of the services offered by S2P ("the services") constitutes`, { lineBreak: false });
 
-  // Third line with bold date
-  const line2Height = doc.heightOfString(clientName.toUpperCase() + `. Use of the services offered by S2P ("the services") constitutes`, { width: PAGE.contentWidth });
-  let legalY3 = legalY2 + line2Height + 2;
-  doc.font("Roboto").text(`acceptance of this proposal dated  `, PAGE.margin, legalY3, {
-    width: PAGE.contentWidth,
-    align: "left",
-    continued: true,
-  });
-  doc.font("Roboto-Bold").text(proposalDate, { continued: false });
+  doc.text(`acceptance of this proposal dated `, coverMargin, legalY + 32, { continued: true, lineBreak: false });
+  doc.font("Roboto-Bold").text(proposalDate, { lineBreak: false });
 
-  // Footer text - no horizontal rule, black link color
-  doc
-    .font("Roboto")
-    .fontSize(9)
-    .fillColor(COLORS.textMuted)
-    .text(
-      "Scan2Plan, Inc • 188 1st St, Troy NY, 12180 • (518) 362-2403 • admin@scan2plan.io • scan2plan.io",
-      PAGE.margin,
-      footerY,
-      { width: PAGE.contentWidth, align: "center" }
-    );
+  // =====================
+  // RENDER FOOTER (fixed position at bottom)
+  // =====================
+  const footerMainText = "Scan2Plan, Inc • 188 1st St, Troy NY, 12180 • (518) 362-2403 • admin@scan2plan.io • ";
+  const footerLinkText = "scan2plan.io";
+
+  doc.font("Roboto").fontSize(9);
+
+  // Calculate positions for centered footer with link
+  const mainTextWidth = doc.widthOfString(footerMainText);
+  const footerLinkWidth = doc.widthOfString(footerLinkText);
+  const footerTotalWidth = mainTextWidth + footerLinkWidth;
+  const footerStartX = (PAGE.width - footerTotalWidth) / 2;
+  const footerLinkX = footerStartX + mainTextWidth;
+
+  // Render main footer text (gray)
+  doc.fillColor(COLORS.textMuted);
+  doc.text(footerMainText, footerStartX, footerY, { lineBreak: false, continued: false });
+
+  // Render link text (blue, underlined) - draw underline manually
+  doc.fillColor(COLORS.primary);
+  doc.text(footerLinkText, footerLinkX, footerY, { lineBreak: false, continued: false });
+
+  // Draw underline manually
+  doc.moveTo(footerLinkX, footerY + 10).lineTo(footerLinkX + footerLinkWidth, footerY + 10).strokeColor(COLORS.primary).lineWidth(0.5).stroke();
+
+  // Add clickable link annotation
+  doc.link(footerLinkX, footerY - 2, footerLinkWidth, 14, "https://www.scan2plan.io");
 }
 
 /**
  * Page 2: About Page
- * Matches ProposalAboutPage.tsx exactly
+ * Matches reference layout
  */
 function renderAboutPage(doc: PDFKit.PDFDocument): void {
-  let y = PAGE.margin;
+  // Page-specific margins
+  const aboutMargin = 38;
+  const aboutContentWidth = PAGE.width - (aboutMargin * 2);
+  const topPadding = 56;  // Top padding
 
-  // Title with trademark symbol
-  doc
-    .font("Roboto-Bold")
-    .fontSize(TYPOGRAPHY.pageTitle)
-    .fillColor(COLORS.primary)
-    .text("About Scan2Plan", PAGE.margin, y, { continued: true });
-  doc.font("Roboto").fontSize(14).text("\u00AE", { continued: false });
-  y += TYPOGRAPHY.afterPageTitle;
+  let y = topPadding;
 
-  // About paragraphs matching example proposals
-  doc.font("Roboto").fontSize(TYPOGRAPHY.bodyText).fillColor(COLORS.text);
+  // Layout settings matching reference
+  const headerFontSize = 23;
+  const bodyFontSize = 12;
+  const consistentSpacing = 25;  // Spacing between headers and text
 
-  doc.text("We began in 2018 with a simple goal of helping firms ", PAGE.margin, y, {
-    width: PAGE.contentWidth,
-    lineGap: TYPOGRAPHY.bodyLineGap,
+  // Title: "About Scan2Plan®"
+  doc.font("Roboto-Bold").fontSize(headerFontSize).fillColor(COLORS.primary);
+  doc.text("About Scan2Plan", aboutMargin, y, { continued: true });
+  doc.font("Roboto").fontSize(10).text("®", { continued: false });
+  y += headerFontSize + consistentSpacing;
+
+  // Paragraph 1: "We began in 2018..."
+  doc.font("Roboto").fontSize(bodyFontSize).fillColor("#000000");  // Black text
+  doc.text("We began in 2018 with a simple goal of helping firms ", aboutMargin, y, {
+    width: aboutContentWidth,
+    lineGap: 3,
     continued: true
   });
-  doc.font("Roboto-Bold").text("focus on design", {
-    continued: true,
-    underline: true
+  doc.font("Roboto-Bold").fillColor(COLORS.primary).text("focus on design", {
+    continued: true
   });
-  doc.font("Roboto").text(".", { continued: false, underline: false });
-  y += 32;
+  doc.font("Roboto").fillColor("#000000").text(".", { continued: false, underline: false });
+  y += 16 + consistentSpacing;
 
+  // Paragraph 2
   const para2 = "We're an on-demand LiDAR to BIM/CAD team that can model any building in weeks. This can be done within any scope, budget or schedule. We've scanned over 1,000 buildings (~10M sqft).";
-  doc.font("Roboto").text(para2, PAGE.margin, y, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap });
-  y += doc.heightOfString(para2, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap }) + TYPOGRAPHY.betweenParagraphs;
+  doc.font("Roboto").fontSize(bodyFontSize).text(para2, aboutMargin, y, { width: aboutContentWidth, lineGap: 3 });
+  y += doc.heightOfString(para2, { width: aboutContentWidth, lineGap: 3 }) + consistentSpacing;
 
+  // Paragraph 3
   const para3 = "We use LiDAR scanners for 3D mapping with extreme accuracy. We deliver professionally drafted 3D BIM and 2D CAD for comprehensive existing conditions documentation. Our Point Cloud datasets serve as a verifiable single-source-of-truth for coordination and risk-mitigation across projects.";
-  doc.text(para3, PAGE.margin, y, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap });
-  y += doc.heightOfString(para3, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap }) + 24;
+  doc.text(para3, aboutMargin, y, { width: aboutContentWidth, lineGap: 3 });
+  y += doc.heightOfString(para3, { width: aboutContentWidth, lineGap: 3 }) + consistentSpacing;
 
-  // Point Cloud Image
+  // Point Cloud Image - centered
   const imagePath = path.join(process.cwd(), "client", "public", "point-cloud-building.jpg");
   if (fs.existsSync(imagePath)) {
-    const imageWidth = 400;
+    const imageWidth = 420;
     const imageX = (PAGE.width - imageWidth) / 2;
-    doc.image(imagePath, imageX, y, { width: imageWidth, height: 160 });
-    y += 180;
+    doc.image(imagePath, imageX, y, { width: imageWidth });
+    y += 168;
   } else {
     y += 20;
   }
 
-  // Why Scan2Plan section
-  doc
-    .font("Roboto-Bold")
-    .fontSize(TYPOGRAPHY.pageTitle)
-    .fillColor(COLORS.primary)
-    .text("Why Scan2Plan?", PAGE.margin, y);
-  y += TYPOGRAPHY.afterPageTitle;
+  // "Why Scan2Plan?" header
+  doc.font("Roboto-Bold").fontSize(headerFontSize).fillColor(COLORS.primary);
+  doc.text("Why Scan2Plan?", aboutMargin, y);
+  y += headerFontSize + consistentSpacing;
 
-  // Two column bullet list matching example proposals
+  // Two column bullet list
   const leftItems = [
     "Experienced, dedicated team of field techs, drafters (AutoCAD and Revit) and licensed engineers.",
     "We take the time to scope each project to suit your priorities.",
@@ -512,24 +542,40 @@ function renderAboutPage(doc: PDFKit.PDFDocument): void {
     "We work on a wide range of projects from single family homes to large-scale commercial, industrial and infrastructure.",
   ];
 
-  const colWidth = (PAGE.contentWidth - 30) / 2;
-  const leftX = PAGE.margin;
-  const rightX = PAGE.margin + colWidth + 30;
+  const colGap = 30;
+  const colWidth = (aboutContentWidth - colGap) / 2;
+  const leftX = aboutMargin;
+  const rightX = aboutMargin + colWidth + colGap;
+  const bulletSpacing = 2;  // Space between bullet items
+  const bulletIndent = 20;  // Space from bullet to text
 
-  doc.font("Roboto").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
+  doc.font("Roboto").fontSize(bodyFontSize).fillColor("#000000");  // Black text
 
-  // Render both columns with proper spacing
+  // Helper to render bullet with proper indentation
+  const renderBulletItem = (item: string, x: number, yPos: number): number => {
+    // Draw small bullet (using middle dot for lighter appearance)
+    doc.fillColor("#666666");  // Gray bullet
+    doc.text("•", x, yPos + 1, { lineBreak: false });
+
+    // Draw text with indent so it wraps under itself
+    doc.fillColor("#000000");
+    const textX = x + bulletIndent;
+    const textWidth = colWidth - bulletIndent;
+    doc.text(item, textX, yPos, { width: textWidth, lineGap: 3 });
+
+    return doc.heightOfString(item, { width: textWidth, lineGap: 3 }) + bulletSpacing;
+  };
+
+  // Render left column
   let leftY = y;
-  let rightY = y;
-
   leftItems.forEach((item) => {
-    doc.text(`\u2022  ${item}`, leftX, leftY, { width: colWidth, lineGap: TYPOGRAPHY.bulletLineGap });
-    leftY += doc.heightOfString(`\u2022  ${item}`, { width: colWidth, lineGap: TYPOGRAPHY.bulletLineGap }) + TYPOGRAPHY.betweenBullets;
+    leftY += renderBulletItem(item, leftX, leftY);
   });
 
+  // Render right column
+  let rightY = y;
   rightItems.forEach((item) => {
-    doc.text(`\u2022  ${item}`, rightX, rightY, { width: colWidth, lineGap: TYPOGRAPHY.bulletLineGap });
-    rightY += doc.heightOfString(`\u2022  ${item}`, { width: colWidth, lineGap: TYPOGRAPHY.bulletLineGap }) + TYPOGRAPHY.betweenBullets;
+    rightY += renderBulletItem(item, rightX, rightY);
   });
 
   renderFooter(doc);
@@ -540,7 +586,35 @@ function renderAboutPage(doc: PDFKit.PDFDocument): void {
  * Matches ProposalProjectPage.tsx
  */
 function renderProjectPage(doc: PDFKit.PDFDocument, data: ProposalProjectData): void {
-  let y = PAGE.margin;
+  const topPadding = 56;
+  let y = topPadding;
+
+  // Page-specific spacing
+  const afterMainTitle = 22;       // Space after "The Project"
+  const beforeSubHeader = 22;      // Space ABOVE each sub-header
+  const afterSubHeader = 22;       // Space BELOW each sub-header (before content)
+  const bulletIndentFromMargin = 17;  // Indent bullets from margin
+
+  // Helper to render bullet with proper indentation
+  const renderBullet = (item: string, yPos: number): number => {
+    doc.font("Roboto").fontSize(TYPOGRAPHY.bulletText).fillColor(TYPOGRAPHY.bulletColor);
+    doc.text("•", PAGE.margin + bulletIndentFromMargin, yPos + 1, { lineBreak: false });
+
+    doc.fillColor("#000000");
+    const textX = PAGE.margin + bulletIndentFromMargin + TYPOGRAPHY.bulletIndent;
+    const textWidth = PAGE.contentWidth - bulletIndentFromMargin - TYPOGRAPHY.bulletIndent;
+    doc.text(item, textX, yPos, { width: textWidth, lineGap: TYPOGRAPHY.bulletLineGap });
+
+    return doc.heightOfString(item, { width: textWidth, lineGap: TYPOGRAPHY.bulletLineGap }) + TYPOGRAPHY.betweenBullets;
+  };
+
+  // Helper to render sub-header and return new Y position
+  const renderSubHeader = (text: string, yPos: number): number => {
+    doc.font("Roboto-Bold").fontSize(TYPOGRAPHY.sectionHeading).fillColor(COLORS.primary);
+    doc.text(text, PAGE.margin, yPos);
+    const headerHeight = doc.heightOfString(text, { width: PAGE.contentWidth });
+    return yPos + headerHeight + afterSubHeader;
+  };
 
   // Title
   doc
@@ -548,82 +622,65 @@ function renderProjectPage(doc: PDFKit.PDFDocument, data: ProposalProjectData): 
     .fontSize(TYPOGRAPHY.pageTitle)
     .fillColor(COLORS.primary)
     .text("The Project", PAGE.margin, y);
-  y += TYPOGRAPHY.afterPageTitle;
+  y += doc.heightOfString("The Project", { width: PAGE.contentWidth }) + afterMainTitle;
 
   // Overview
-  doc
-    .font("Roboto-Bold")
-    .fontSize(TYPOGRAPHY.sectionHeading)
-    .fillColor(COLORS.primary)
-    .text("Overview", PAGE.margin, y);
-  y += TYPOGRAPHY.afterSectionHeading;
+  y = renderSubHeader("Overview", y);
 
   // Use overviewLine if set, otherwise fall back to legacy format
   const overviewText = data.overviewLine || `Service for ${data.overview || ""}`;
-  doc
-    .font("Roboto")
-    .fontSize(TYPOGRAPHY.bodyText)
-    .fillColor(COLORS.text)
-    .text(overviewText, PAGE.margin, y, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap });
-  y += doc.heightOfString(overviewText, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap }) + TYPOGRAPHY.beforeSection;
+
+  // Check if text starts with "Commercial Service" to make it bold
+  if (overviewText.startsWith("Commercial Service")) {
+    doc.font("Roboto-Bold").fontSize(TYPOGRAPHY.bodyText).fillColor("#000000");
+    doc.text("Commercial Service", PAGE.margin, y, { continued: true });
+    doc.font("Roboto");
+    doc.text(overviewText.substring("Commercial Service".length), { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap });
+  } else {
+    doc
+      .font("Roboto")
+      .fontSize(TYPOGRAPHY.bodyText)
+      .fillColor("#000000")
+      .text(overviewText, PAGE.margin, y, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap });
+  }
+  y += doc.heightOfString(overviewText, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap }) + beforeSubHeader;
 
   // Scope of Work
   if (data.scopeItems && data.scopeItems.length > 0) {
-    doc
-      .font("Roboto-Bold")
-      .fontSize(TYPOGRAPHY.sectionHeading)
-      .fillColor(COLORS.primary)
-      .text("Scope of Work", PAGE.margin, y);
-    y += TYPOGRAPHY.afterSectionHeading;
+    y = renderSubHeader("Scope of Work", y);
 
-    doc.font("Roboto").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
     data.scopeItems.forEach((item) => {
-      doc.text(`\u2022  ${item}`, PAGE.margin + 10, y, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap });
-      y += doc.heightOfString(`\u2022  ${item}`, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap }) + TYPOGRAPHY.betweenBullets;
+      y += renderBullet(item, y);
     });
-    y += TYPOGRAPHY.beforeSection - TYPOGRAPHY.betweenBullets;
+    y += beforeSubHeader - TYPOGRAPHY.betweenBullets;
   }
 
   // Deliverables
   if (data.deliverables && data.deliverables.length > 0) {
-    doc
-      .font("Roboto-Bold")
-      .fontSize(TYPOGRAPHY.sectionHeading)
-      .fillColor(COLORS.primary)
-      .text("Deliverables", PAGE.margin, y);
-    y += TYPOGRAPHY.afterSectionHeading;
+    y = renderSubHeader("Deliverables", y);
 
-    doc.font("Roboto").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
     data.deliverables.forEach((item) => {
-      doc.text(`\u2022  ${item}`, PAGE.margin + 10, y, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap });
-      y += doc.heightOfString(`\u2022  ${item}`, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap }) + TYPOGRAPHY.betweenBullets;
+      y += renderBullet(item, y);
     });
-    y += TYPOGRAPHY.beforeSection - TYPOGRAPHY.betweenBullets;
+    y += beforeSubHeader - TYPOGRAPHY.betweenBullets;
   }
 
   // Timeline
   if (data.timelineIntro || (data.milestones && data.milestones.length > 0)) {
-    doc
-      .font("Roboto-Bold")
-      .fontSize(TYPOGRAPHY.sectionHeading)
-      .fillColor(COLORS.primary)
-      .text("Timeline", PAGE.margin, y);
-    y += TYPOGRAPHY.afterSectionHeading;
+    y = renderSubHeader("Timeline", y);
 
     if (data.timelineIntro) {
       doc
         .font("Roboto")
         .fontSize(TYPOGRAPHY.bodyText)
-        .fillColor(COLORS.text)
+        .fillColor("#000000")
         .text(data.timelineIntro, PAGE.margin, y, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap });
-      y += doc.heightOfString(data.timelineIntro, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap }) + TYPOGRAPHY.betweenParagraphs;
+      y += doc.heightOfString(data.timelineIntro, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap }) + 22;
     }
 
     if (data.milestones && data.milestones.length > 0) {
-      doc.font("Roboto").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
       data.milestones.forEach((item) => {
-        doc.text(`\u2022  ${item}`, PAGE.margin + 10, y, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap });
-        y += doc.heightOfString(`\u2022  ${item}`, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap }) + TYPOGRAPHY.betweenBullets;
+        y += renderBullet(item, y);
       });
     }
   }
@@ -858,52 +915,71 @@ function renderPaymentPage(
   signatureData?: SignatureData,
   senderSignatureData?: SenderSignatureData
 ): void {
-  let y = PAGE.margin;
+  const topPadding = 53;  // 5% reduced from 56
+  let y = topPadding;
 
-  // Title - "Payment Terms" instead of just "Payment"
+  // Helper to render bullet with proper indentation
+  const bulletIndentFromMargin = 17;  // Indent bullets from margin
+  const bodyTextSize = TYPOGRAPHY.bodyText - 1;  // 1px smaller body text for this page
+  const renderBullet = (item: string, yPos: number): number => {
+    doc.font("Roboto").fontSize(bodyTextSize).fillColor(TYPOGRAPHY.bulletColor);
+    doc.text("•", PAGE.margin + bulletIndentFromMargin, yPos + 1, { lineBreak: false });
+
+    doc.fillColor("#000000");
+    const textX = PAGE.margin + bulletIndentFromMargin + TYPOGRAPHY.bulletIndent;
+    const textWidth = PAGE.contentWidth - bulletIndentFromMargin - TYPOGRAPHY.bulletIndent;
+    doc.text(item, textX, yPos, { width: textWidth, lineGap: TYPOGRAPHY.bulletLineGap });
+
+    return doc.heightOfString(item, { width: textWidth, lineGap: TYPOGRAPHY.bulletLineGap }) + TYPOGRAPHY.betweenBullets;
+  };
+
+  // Title - "Payment Terms" (3px smaller than page title)
   doc
     .font("Roboto-Bold")
-    .fontSize(TYPOGRAPHY.pageTitle)
+    .fontSize(TYPOGRAPHY.pageTitle - 3)
     .fillColor(COLORS.primary)
     .text("Payment Terms", PAGE.margin, y);
-  y += TYPOGRAPHY.afterPageTitle;
+  y += doc.heightOfString("Payment Terms") + 24;  // 24px spacing to bullets
 
   // Payment Terms bullets
   if (data.terms && data.terms.length > 0) {
-    doc.font("Roboto").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
     data.terms.forEach((term) => {
-      const bulletText = `\u2022  ${term}`;
-      doc.text(bulletText, PAGE.margin + 10, y, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap });
-      y += doc.heightOfString(bulletText, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap }) + TYPOGRAPHY.betweenBullets;
+      y += renderBullet(term, y);
     });
   }
-  y += TYPOGRAPHY.beforeSection - TYPOGRAPHY.betweenBullets;
+  y += 22 - TYPOGRAPHY.betweenBullets;  // 22px spacing above Accepted Forms
 
-  // Accepted Forms of Payment
+  // Accepted Forms of Payment (3px smaller than section heading - up 1px from before)
   doc
     .font("Roboto-Bold")
-    .fontSize(TYPOGRAPHY.sectionHeading)
+    .fontSize(TYPOGRAPHY.sectionHeading - 3)
     .fillColor(COLORS.primary)
     .text("Accepted Forms of Payment:", PAGE.margin, y);
-  y += TYPOGRAPHY.afterSectionHeading;
+  y += doc.heightOfString("Accepted Forms of Payment:") + 7;  // ~1/3 of 22px spacing to items
 
+  // Numbered items with half line spacing
   if (data.paymentMethods && data.paymentMethods.length > 0) {
-    doc.font("Roboto").fontSize(TYPOGRAPHY.bulletText).fillColor(COLORS.text);
     data.paymentMethods.forEach((method, index) => {
-      const numberedText = `${index + 1}. ${method}`;
-      doc.text(numberedText, PAGE.margin + 10, y, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap });
-      y += doc.heightOfString(numberedText, { width: PAGE.contentWidth - 20, lineGap: TYPOGRAPHY.bulletLineGap }) + TYPOGRAPHY.betweenBullets;
+      doc.font("Roboto").fontSize(bodyTextSize).fillColor(TYPOGRAPHY.bulletColor);
+      doc.text(`${index + 1}.`, PAGE.margin + bulletIndentFromMargin, y, { lineBreak: false });
+
+      doc.fillColor("#000000");
+      const textX = PAGE.margin + bulletIndentFromMargin + TYPOGRAPHY.bulletIndent;
+      const textWidth = PAGE.contentWidth - bulletIndentFromMargin - TYPOGRAPHY.bulletIndent;
+      doc.text(method, textX, y, { width: textWidth, lineGap: TYPOGRAPHY.bulletLineGap });
+
+      y += doc.heightOfString(method, { width: textWidth, lineGap: TYPOGRAPHY.bulletLineGap }) + 1;  // Half spacing (1px)
     });
   }
-  y += TYPOGRAPHY.beforeSection;
+  y += 24 - 1;  // 24px spacing to Acknowledgement
 
-  // Acknowledgement section
+  // Acknowledgement section (2px smaller than section heading)
   doc
     .font("Roboto-Bold")
-    .fontSize(TYPOGRAPHY.sectionHeading)
+    .fontSize(TYPOGRAPHY.sectionHeading - 2)
     .fillColor(COLORS.primary)
     .text("Acknowledgement:", PAGE.margin, y);
-  y += TYPOGRAPHY.afterSectionHeading;
+  y += doc.heightOfString("Acknowledgement:") + 7;  // ~1/3 of top spacing
 
   // Acknowledgement text with T&C link reference
   const ackDate = signatureData?.signedAt
@@ -912,8 +988,8 @@ function renderPaymentPage(
 
   doc
     .font("Roboto")
-    .fontSize(TYPOGRAPHY.bodyText)
-    .fillColor(COLORS.text)
+    .fontSize(bodyTextSize)
+    .fillColor("#000000")
     .text("Client acknowledges receipt of and agrees to be bound by S2P's ", PAGE.margin, y, {
       width: PAGE.contentWidth,
       continued: true,
@@ -927,101 +1003,52 @@ function renderPaymentPage(
       link: "https://www.scan2plan.io/scan2plan-terms-conditions",
     });
   doc
-    .fillColor(COLORS.text)
+    .fillColor("#000000")
     .text(` dated `, { continued: true, underline: false });
   doc
     .font("Roboto-Bold")
-    .text(ackDate, { continued: false });
+    .text(ackDate, { continued: true });
+  doc
+    .font("Roboto")
+    .text(" which are incorporated herein by reference.", { continued: false });
 
-  y += 32;
+  // Calculate height of the acknowledgement text block and add 24px spacing
+  const ackText = "Client acknowledges receipt of and agrees to be bound by S2P's General Terms and Conditions dated " + ackDate + " which are incorporated herein by reference.";
+  y += doc.heightOfString(ackText, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap }) + 24;
 
   doc
     .font("Roboto")
-    .fontSize(TYPOGRAPHY.bodyText)
-    .fillColor(COLORS.text)
-    .text(
-      "which are incorporated herein by reference.",
-      PAGE.margin,
-      y,
-      { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap }
-    );
-  y += TYPOGRAPHY.betweenParagraphs;
-
-  doc
-    .font("Roboto")
-    .fontSize(TYPOGRAPHY.bodyText)
-    .fillColor(COLORS.text)
+    .fontSize(bodyTextSize)
+    .fillColor("#000000")
     .text(
       "In witness whereof the parties hereto have caused this agreement to be executed as of the date(s) written below.",
       PAGE.margin,
       y,
       { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap }
     );
-  y += 50;
+  y += 60;
 
-  // ===== DUAL SIGNATURE SECTION =====
-  // Two columns: Client on LEFT, Scan2Plan on RIGHT
-  // Layout matches the reference image exactly
+  // ===== NAME/COMPANY FIELDS =====
+  // Two columns: Client fields on LEFT, Scan2Plan info on RIGHT
   const colWidth = 220;
-  const colGap = 60;
+  const colGap = 80;
   const leftX = PAGE.margin;
   const rightX = PAGE.margin + colWidth + colGap;
-
-  // ----- CLIENT SIGNATURE (Left Column) -----
-  // Signature image
-  if (signatureData?.signatureImage) {
-    try {
-      const base64Data = signatureData.signatureImage.replace(/^data:image\/\w+;base64,/, "");
-      const signatureBuffer = Buffer.from(base64Data, "base64");
-      doc.image(signatureBuffer, leftX, y, { width: 180, height: 50 });
-    } catch (error) {
-      console.warn("[WYSIWYG PDF] Could not embed client signature image:", error);
-    }
-  }
-
-  // ----- SENDER SIGNATURE (Right Column) -----
-  // Signature image
-  if (senderSignatureData?.signatureImage) {
-    try {
-      const base64Data = senderSignatureData.signatureImage.replace(/^data:image\/\w+;base64,/, "");
-      const signatureBuffer = Buffer.from(base64Data, "base64");
-      doc.image(signatureBuffer, rightX, y, { width: 180, height: 50 });
-    } catch (error) {
-      console.warn("[WYSIWYG PDF] Could not embed sender signature image:", error);
-    }
-  }
-
-  y += 55;
+  const fieldSpacing = 28;
 
   // ----- NAME ROW -----
-  if (signatureData?.signerName) {
-    doc.font("Roboto").fontSize(11).fillColor(COLORS.text).text(signatureData.signerName, leftX, y);
-  }
-  if (senderSignatureData?.signerName) {
-    doc.font("Roboto").fontSize(11).fillColor(COLORS.text).text(senderSignatureData.signerName, rightX, y);
-  }
-  y += 20;
+  // Left: "Name" label for client (empty field)
+  doc.font("Roboto").fontSize(bodyTextSize).fillColor("#000000").text("Name", leftX, y);
+  // Right: "Vishwanath Bush" for Scan2Plan
+  doc.font("Roboto").fontSize(bodyTextSize).fillColor("#000000").text("Vishwanath Bush", rightX, y);
+
+  y += fieldSpacing;
 
   // ----- COMPANY ROW -----
-  // Left: Client company (from signerTitle field)
-  if (signatureData?.signerTitle) {
-    doc.font("Roboto").fontSize(11).fillColor(COLORS.text).text(signatureData.signerTitle, leftX, y);
-  }
-  // Right: Always "Scan2Plan, Inc." for sender
-  if (senderSignatureData?.signerName) {
-    doc.font("Roboto").fontSize(11).fillColor(COLORS.text).text("Scan2Plan, Inc.", rightX, y);
-  }
-  y += 20;
-
-  // ----- DATE ROW -----
-  if (signatureData?.signedAt) {
-    const clientDate = new Date(signatureData.signedAt).toLocaleDateString("en-CA"); // YYYY-MM-DD format
-    doc.font("Roboto").fontSize(11).fillColor(COLORS.text).text(clientDate, leftX, y);
-  }
-  if (senderSignatureData?.signedAt) {
-    const senderDate = new Date(senderSignatureData.signedAt).toLocaleDateString("en-CA"); // YYYY-MM-DD format
-    doc.font("Roboto").fontSize(11).fillColor(COLORS.text).text(senderDate, rightX, y);
-  }
+  // Left: "Company" label for client (empty field)
+  doc.font("Roboto").fontSize(bodyTextSize).fillColor("#000000").text("Company", leftX, y);
+  // Right: "Scan2Plan, Inc." for Scan2Plan
+  doc.font("Roboto").fontSize(bodyTextSize).fillColor("#000000").text("Scan2Plan, Inc.", rightX, y);
 
   renderFooter(doc);
 }
@@ -1031,71 +1058,92 @@ function renderPaymentPage(
  * Matches ProposalCapabilitiesPage.tsx exactly
  */
 function renderCapabilitiesPage(doc: PDFKit.PDFDocument): void {
-  let y = PAGE.margin;
+  const topPadding = 56;
+  let y = topPadding;
 
-  // Spacing constants matching WYSIWYG Tailwind classes exactly
+  // Spacing constants (tightened by half)
   const SPACING = {
-    sectionGap: 24,      // space-y-6 = 24px
-    bulletGap: 8,        // space-y-1.5 = 6px + line height compensation
-    nestedBulletGap: 6,  // space-y-1 = 4px + line height compensation
-    afterHeader: 10,     // mb-2 = 8px + some breathing room
-    bulletIndent: 16,    // ml-4 = 16px
-    nestedIndent: 24,    // ml-6 = 24px
+    sectionGap: 10,      // space between sections (halved from 20)
+    bulletGap: 1,        // space between bullets (halved from 2)
+    nestedBulletGap: 1,  // space between nested bullets (halved from 2)
+    afterHeader: 4,      // space after section header (halved from 8)
+    bulletIndent: 20,    // space from bullet to text (matching About page)
+    nestedIndent: 40,    // nested bullet indent from margin
   };
 
-  // Title - text-3xl (30px) font-bold
-  doc
-    .font("Roboto-Bold")
-    .fontSize(24)
-    .fillColor(COLORS.primary)
-    .text("Scan2Plan Capabilities", PAGE.margin, y);
-  y += 32;
-
-  // Target Audience paragraph - matching WYSIWYG exactly
-  doc
-    .font("Roboto")
-    .fontSize(10)
-    .fillColor(COLORS.primary)
-    .text("Scan2Plan is for: ", PAGE.margin, y, { continued: true });
-  doc
-    .font("Roboto-Bold")
-    .text("Architects, Structural Engineers, MEP Engineers, Interior Designers, Property Managers, Owner/Operators, Landscape Architects, Civil Engineers.", { continued: false });
-  y += 40;
-
-  // Two column layout - matching grid grid-cols-2 gap-x-12
-  const colGap = 48;  // gap-x-12 = 48px
+  // Two column layout
+  const colGap = 30;
   const colWidth = (PAGE.contentWidth - colGap) / 2;
   const leftX = PAGE.margin;
   const rightX = PAGE.margin + colWidth + colGap;
+
+  // Title (3pts smaller than standard page title)
+  doc
+    .font("Roboto-Bold")
+    .fontSize(TYPOGRAPHY.pageTitle - 3)
+    .fillColor(COLORS.primary)
+    .text("Scan2Plan Capabilities", PAGE.margin, y);
+  y += TYPOGRAPHY.afterPageTitle + 15;  // More spacing after main title
+
+  // Target Audience paragraph - "Scan2Plan is for:" in black, professions in bold blue
+  const introFontSize = TYPOGRAPHY.bodyText;
+  doc
+    .font("Roboto")
+    .fontSize(introFontSize)
+    .fillColor("#000000")
+    .text("Scan2Plan is for: ", PAGE.margin, y, { continued: true });
+  doc
+    .font("Roboto-Bold")
+    .fillColor(COLORS.primary)
+    .text("Architects, Structural Engineers, MEP Engineers, Interior Designers, Property Managers, Owner/Operators, Landscape Architects, Civil Engineers.", { continued: false });
+  y += 85;  // 15% reduced from 100
+
   let leftY = y;
   let rightY = y;
 
-  // Helper to render bullet - text-sm (14px) but smaller for PDF density
+  // Helper to render bullet with proper indentation
+  const bulletFontSize = TYPOGRAPHY.bulletText - 1;  // 1px smaller than standard (11px)
   const renderBullet = (text: string, x: number, yPos: number, isNested: boolean = false): number => {
-    const indent = isNested ? SPACING.nestedIndent : SPACING.bulletIndent;
-    const fontSize = isNested ? 9 : 10;
+    const bulletX = isNested ? x + 20 : x;  // Nested bullets indented 20px from parent
+    const indent = SPACING.bulletIndent;
     const gap = isNested ? SPACING.nestedBulletGap : SPACING.bulletGap;
 
-    doc.font("Roboto").fontSize(fontSize).fillColor(COLORS.textLight);
-    const bulletX = x + indent;
-    const bulletText = `•  ${text}`;
-    doc.text(bulletText, bulletX, yPos, { width: colWidth - indent, lineGap: 1 });
-    return yPos + doc.heightOfString(bulletText, { width: colWidth - indent, lineGap: 1 }) + gap;
+    doc.font("Roboto").fontSize(bulletFontSize).fillColor(TYPOGRAPHY.bulletColor);
+    doc.text("•", bulletX, yPos + 1, { lineBreak: false });
+
+    doc.fillColor("#000000");
+    const textX = bulletX + indent;
+    const textWidth = colWidth - (isNested ? 20 : 0) - indent;
+    doc.text(text, textX, yPos, { width: textWidth, lineGap: 2 });
+    return yPos + doc.heightOfString(text, { width: textWidth, lineGap: 2 }) + gap;
   };
 
-  // Helper to render linked bullet
-  const renderLinkedBullet = (text: string, url: string, x: number, yPos: number): number => {
-    const indent = SPACING.nestedIndent;
-    doc.font("Roboto").fontSize(9).fillColor(COLORS.primary);
-    const bulletX = x + indent;
-    const bulletText = `•  ${text}`;
-    doc.text(bulletText, bulletX, yPos, { width: colWidth - indent, link: url, underline: true, lineGap: 1 });
-    return yPos + doc.heightOfString(bulletText, { width: colWidth - indent, lineGap: 1 }) + SPACING.nestedBulletGap;
+  // Helper to render linked bullet (for LoD items)
+  const renderLinkedBullet = (linkText: string, descText: string, url: string, x: number, yPos: number): number => {
+    const bulletX = x + 20;  // Nested indent
+    const indent = SPACING.bulletIndent;
+
+    doc.font("Roboto").fontSize(bulletFontSize).fillColor(TYPOGRAPHY.bulletColor);
+    doc.text("•", bulletX, yPos + 1, { lineBreak: false });
+
+    const textX = bulletX + indent;
+    const textWidth = colWidth - 20 - indent;
+
+    // Blue underlined link text
+    doc.fillColor(COLORS.primary);
+    doc.text(linkText, textX, yPos, { continued: true, link: url, underline: true });
+    // Black description text
+    doc.fillColor("#000000");
+    doc.text(descText, { continued: false, underline: false, width: textWidth, lineGap: 2 });
+
+    return yPos + doc.heightOfString(linkText + descText, { width: textWidth, lineGap: 2 }) + SPACING.nestedBulletGap;
   };
 
-  // Helper to render section header - text-lg (18px) font-semibold
+  // Helper to render section header (bold blue, no underline, 3pts smaller)
+  const sectionHeaderSize = TYPOGRAPHY.sectionHeading - 3;
   const renderSectionHeader = (text: string, x: number, yPos: number): number => {
-    doc.font("Roboto-Bold").fontSize(14).fillColor(COLORS.text).text(text, x, yPos, { width: colWidth });
+    doc.font("Roboto-Bold").fontSize(sectionHeaderSize).fillColor(COLORS.primary);
+    doc.text(text, x, yPos, { width: colWidth });
     return yPos + doc.heightOfString(text, { width: colWidth }) + SPACING.afterHeader;
   };
 
@@ -1107,9 +1155,9 @@ function renderCapabilitiesPage(doc: PDFKit.PDFDocument): void {
   leftY = renderBullet("Colorized Point Cloud", leftX, leftY, true);
   leftY = renderBullet("360 Photo documentation", leftX, leftY, true);
   leftY = renderBullet("Standard Options:", leftX, leftY);
-  leftY = renderLinkedBullet("LoD 200 (Approximate Geometry)", "https://www.scan2plan.io/lod-200", leftX, leftY);
-  leftY = renderLinkedBullet("LoD 300 (Accurate Geometry)", "https://www.scan2plan.io/lod-300", leftX, leftY);
-  leftY = renderLinkedBullet("LoD 350 (Precise Geometry)", "https://www.scan2plan.io/lod-350", leftX, leftY);
+  leftY = renderLinkedBullet("LoD 200", " (Approximate Geometry)", "https://www.scan2plan.io/lod-200", leftX, leftY);
+  leftY = renderLinkedBullet("LoD 300", " (Accurate Geometry)", "https://www.scan2plan.io/lod-300", leftX, leftY);
+  leftY = renderLinkedBullet("LoD 350", " (Precise Geometry)", "https://www.scan2plan.io/lod-350", leftX, leftY);
   leftY = renderBullet("Level of Accuracy:", leftX, leftY);
   leftY = renderBullet('Point Cloud - 0" to 1/8"', leftX, leftY, true);
   leftY = renderBullet('Model - 0" to 1/2"', leftX, leftY, true);
@@ -1149,11 +1197,11 @@ function renderCapabilitiesPage(doc: PDFKit.PDFDocument): void {
   rightY = renderSectionHeader("Model Only / Point Cloud Only", rightX, rightY);
   rightY = renderBullet("You work with our point cloud or we'll model from yours.", rightX, rightY);
 
-  // Software Support at bottom
+  // Software Support at bottom (same size as intro line)
   const softwareY = Math.max(leftY, rightY) + 24;
-  doc.font("Roboto").fontSize(10).fillColor(COLORS.text).text("We support: ", PAGE.margin, softwareY, { continued: true });
+  doc.font("Roboto").fontSize(introFontSize).fillColor("#000000").text("We support: ", PAGE.margin, softwareY, { continued: true });
   doc.font("Roboto-Bold").fillColor(COLORS.primary).text("Revit, AutoCAD, Sketchup, Rhino, Vectorworks, Solidworks, Chief Architect, ArchiCAD, Civil 3D", { continued: true });
-  doc.font("Roboto").fillColor(COLORS.text).text(", and others....", { continued: false });
+  doc.font("Roboto").fillColor("#000000").text(", and others....", { continued: false });
 
   renderFooter(doc);
 }
@@ -1163,28 +1211,31 @@ function renderCapabilitiesPage(doc: PDFKit.PDFDocument): void {
  * Matches ProposalDifferencePage.tsx exactly
  */
 function renderDifferencePage(doc: PDFKit.PDFDocument): void {
-  let y = PAGE.margin;
+  const topPadding = 56;
+  let y = topPadding;
+  const standardSpacing = 21;  // 21px spacing for first three elements (reduced by 3px)
+  const columnSpacing = 34;    // 34px spacing before columns (increased by 10px)
 
-  // Title - matches WYSIWYG text-3xl
+  // Title
   doc
     .font("Roboto-Bold")
     .fontSize(TYPOGRAPHY.pageTitle)
     .fillColor(COLORS.primary)
     .text("The Scan2Plan Difference", PAGE.margin, y);
-  y += 34;
+  y += doc.heightOfString("The Scan2Plan Difference") + standardSpacing;
 
-  // Subtitle - matches WYSIWYG text-xl
+  // Subtitle (1px smaller)
   doc
     .font("Roboto-Bold")
-    .fontSize(TYPOGRAPHY.sectionHeading)
+    .fontSize(TYPOGRAPHY.sectionHeading - 1)
     .fillColor(COLORS.primary)
     .text("What to look for in a Scan-to-BIM partner.", PAGE.margin, y);
-  y += TYPOGRAPHY.afterSectionHeading;
+  y += doc.heightOfString("What to look for in a Scan-to-BIM partner.") + standardSpacing;
 
-  // Intro paragraph - matches WYSIWYG text-sm
+  // Intro paragraph (2px smaller)
   const intro = "In the evolving landscape of scanning and modeling, it's important to consider your options to find a service that aligns with your specific needs. Scan2Plan is committed to delivering quality and precision in this field. Here's a closer look at what sets us apart:";
-  doc.font("Roboto").fontSize(TYPOGRAPHY.bodyText).fillColor(COLORS.text).text(intro, PAGE.margin, y, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap });
-  y += doc.heightOfString(intro, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap }) + TYPOGRAPHY.betweenParagraphs;
+  doc.font("Roboto").fontSize(TYPOGRAPHY.bodyText - 2).fillColor("#000000").text(intro, PAGE.margin, y, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap });
+  y += doc.heightOfString(intro, { width: PAGE.contentWidth, lineGap: TYPOGRAPHY.bodyLineGap }) + columnSpacing;
 
   // Full descriptions matching WYSIWYG exactly
   const differencePoints = [
@@ -1226,28 +1277,33 @@ function renderDifferencePage(doc: PDFKit.PDFDocument): void {
     },
   ];
 
-  // Two column layout - 5 left, 4 right (matching WYSIWYG)
-  const colWidth = (PAGE.contentWidth - 30) / 2;
+  // Two column layout - 4 left, 5 right (Rigorous Quality Control moves to right)
+  const colGap = 30;
+  const colWidth = (PAGE.contentWidth - colGap) / 2;
   const leftX = PAGE.margin;
-  const rightX = PAGE.margin + colWidth + 30;
+  const rightX = PAGE.margin + colWidth + colGap;
 
-  const leftItems = differencePoints.slice(0, 5);
-  const rightItems = differencePoints.slice(5);
+  const leftItems = differencePoints.slice(0, 4);
+  const rightItems = differencePoints.slice(4);
 
-  // Render function for a single point - matches WYSIWYG styling
+  // Render function for a single point
   const renderPoint = (point: { title: string; description: string }, x: number, currentY: number): number => {
-    // Title with bullet - matches WYSIWYG text-sm font-semibold text-gray-900
-    doc.font("Roboto-Bold").fontSize(9).fillColor(COLORS.text);
-    const titleText = `• ${point.title}`;
-    doc.text(titleText, x, currentY, { width: colWidth });
-    const titleHeight = doc.heightOfString(titleText, { width: colWidth }) + 2;
+    const bulletIndent = 12;  // Space after bullet for inline title
+    const titleWidth = colWidth - bulletIndent;
 
-    // Description - matches WYSIWYG text-xs text-gray-600 pl-3
-    doc.font("Roboto").fontSize(8).fillColor(COLORS.textLight);
-    doc.text(point.description, x + 8, currentY + titleHeight, { width: colWidth - 8, lineGap: 1 });
-    const descHeight = doc.heightOfString(point.description, { width: colWidth - 8, lineGap: 1 });
+    // Bullet and Title inline (bullet + space + bold blue title)
+    doc.font("Roboto").fontSize(10).fillColor(TYPOGRAPHY.bulletColor);
+    doc.text("• ", x, currentY, { continued: true });
+    doc.font("Roboto-Bold").fontSize(10).fillColor(COLORS.primary);
+    doc.text(point.title, { width: titleWidth, continued: false });
+    const titleHeight = doc.heightOfString("• " + point.title, { width: colWidth }) + 2;
 
-    return titleHeight + descHeight + 10; // spacing between items
+    // Description (regular, black) - no indent, starts at x
+    doc.font("Roboto").fontSize(9).fillColor("#000000");
+    doc.text(point.description, x, currentY + titleHeight, { width: colWidth, lineGap: 2 });
+    const descHeight = doc.heightOfString(point.description, { width: colWidth, lineGap: 2 });
+
+    return titleHeight + descHeight + 8; // spacing between items
   };
 
   // Render left column
