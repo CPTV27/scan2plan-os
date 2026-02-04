@@ -1057,7 +1057,7 @@ export default function SimpleQuoteBuilder({
             <ScrollArea className="h-full">
                 <div className="space-y-4 p-4">
                     {/* Header */}
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-2">
                             <Calculator className="w-5 h-5 text-primary" />
                             <h3 className="text-lg font-semibold">CPQ Quote Editor</h3>
@@ -1073,19 +1073,16 @@ export default function SimpleQuoteBuilder({
 
                         <div className="flex items-center gap-3">
                             {/* Tier A Toggle */}
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border bg-muted/50">
                                 <Switch
                                     id="tier-a-toggle"
                                     checked={tierAEnabled}
                                     onCheckedChange={setTierAEnabled}
                                 />
-                                <Label htmlFor="tier-a-toggle" className="text-xs cursor-pointer">
-                                    Tier A Pricing
+                                <Label htmlFor="tier-a-toggle" className="text-xs cursor-pointer font-medium">
+                                    Tier A
                                 </Label>
                             </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
                             <Button
                                 variant="outline"
                                 size="sm"
