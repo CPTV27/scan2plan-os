@@ -8,6 +8,11 @@
 import PDFDocument from "pdfkit";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
+
+// Get __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Font paths - Using Roboto to match Google Docs style proposals
 // Font paths - try multiple locations for deployment compatibility
@@ -34,14 +39,14 @@ import type {
   ProposalLineItem,
 } from "@shared/schema/types";
 
-// Colors matching WYSIWYG exactly
+// Colors extracted from example PDF proposals
 const COLORS = {
-  primary: "#123da7",
-  headerBg: "#e8f0fe",  // Light blue table header
-  text: "#1f2937",       // gray-800
-  textLight: "#4b5563",  // gray-600
-  textMuted: "#6b7280",  // gray-500
-  border: "#d1d5db",     // gray-300
+  primary: "#123ea8",     // rgb(18,62,168) - Primary blue for headers/links
+  headerBg: "#e8f0fe",    // Light blue table header
+  text: "#49494b",        // rgb(73,73,75) - Dark gray body text
+  textLight: "#434343",   // rgb(67,67,67) - Secondary text
+  textMuted: "#616161",   // rgb(97,97,97) - Muted gray for footer
+  border: "#d1d5db",      // gray-300
   borderLight: "#e5e7eb", // gray-200
   white: "#ffffff",
 };
@@ -257,7 +262,6 @@ function renderFooter(doc: PDFKit.PDFDocument): void {
   // Position footer well within page bounds - PAGE.height is 792, margin is 64
   // Safe zone ends at 728 (792 - 64), so we place footer at 700 to be safe
   const footerY = 700;
-  drawLine(doc, PAGE.margin, footerY - 12, PAGE.width - PAGE.margin, footerY - 12, COLORS.borderLight);
 
   doc
     .font("Roboto")
@@ -285,33 +289,30 @@ function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalCoverData): void
   const legalY = footerY - 70; // Legal text above footer
 
   // =====================
-  // TOP SECTION: Logo + Company Info
+  // TOP SECTION: Logo Header (includes logo + contact info)
   // =====================
   let y = topSectionY;
 
-  // Logo (w-48 = 192px, centered, mb-6 = 24px margin-bottom)
-  const logoPath = path.join(process.cwd(), "client", "public", "logo-cover.png");
-  const logoWidth = 120; // Smaller logo to fit better
+  // Use the combined logo-cover-header.jpg which includes logo, tagline, and contact info
+  const logoPath = path.join(process.cwd(), "client", "public", "logo-cover-header.jpg");
+  const logoWidth = 207; // Width for the header image (15% larger)
   if (fs.existsSync(logoPath)) {
-    // Logo is square (1050x1050), so height = width when rendered
-    const logoHeight = logoWidth;
-    doc.image(logoPath, (PAGE.width - logoWidth) / 2, y, { width: logoWidth });
-    y += logoHeight + 16; // margin below logo
+    // Logo header is roughly square, aligned to left
+    const logoHeight = logoWidth; // Maintain aspect ratio
+    doc.image(logoPath, PAGE.margin, y, { width: logoWidth });
+    y += logoHeight + 24; // margin below logo header
   } else {
-    y += 40;
+    // Fallback to old logo if header not found
+    const fallbackLogoPath = path.join(process.cwd(), "client", "public", "logo-cover.png");
+    if (fs.existsSync(fallbackLogoPath)) {
+      doc.image(fallbackLogoPath, PAGE.margin, y, { width: 120 });
+      y += 136;
+    } else {
+      y += 40;
+    }
   }
 
-  // Company contact info (text-sm = 14px, space-y-0.5 = 2px between lines)
-  const contactFontSize = 11;
-  const contactLineHeight = contactFontSize + 4; // space-y-0.5
-  doc.font("Roboto").fontSize(contactFontSize).fillColor(COLORS.textLight);
-  doc.text("188 1st St, Troy, NY 12180", PAGE.margin, y, { width: PAGE.contentWidth, align: "center" });
-  y += contactLineHeight;
-  doc.text("(518) 362-2403 / admin@scan2plan.io", PAGE.margin, y, { width: PAGE.contentWidth, align: "center" });
-  y += contactLineHeight;
-  doc.text("www.scan2plan.io", PAGE.margin, y, { width: PAGE.contentWidth, align: "center" });
-
-  const topSectionEnd = y + contactFontSize;
+  const topSectionEnd = y;
 
   // =====================
   // MIDDLE SECTION: Proposal Title & Project Info
@@ -326,50 +327,58 @@ function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalCoverData): void
 
   y = middleSectionStart;
 
-  // "- PROPOSAL -" title (text-5xl = 48px, tracking-wider, font-bold)
-  doc.font("Roboto-Bold").fontSize(42).fillColor(COLORS.text);
+  // "- PROPOSAL -" title (smaller than before to match reference, minimal letter spacing)
+  doc.font("Roboto-Bold").fontSize(28).fillColor(COLORS.text);
   doc.text("- PROPOSAL -", PAGE.margin, y, {
     width: PAGE.contentWidth,
     align: "center",
-    characterSpacing: 4,
+    characterSpacing: 0.5,
   });
-  y += 70; // space-y-8 = 32px, but account for large font
+  y += 50; // space after proposal title
 
-  // Subtitle: service title (text-2xl = 24px, font-semibold)
-  doc.font("Roboto").fontSize(20).fillColor(COLORS.text);
+  // Subtitle: service title - regular weight, larger font
+  const serviceTitleFontSize = 24;
+  doc.font("Roboto").fontSize(serviceTitleFontSize).fillColor(COLORS.text);
   doc.text(data.serviceTitle || "Laser Scanning & Building Documentation", PAGE.margin, y, {
     width: PAGE.contentWidth,
     align: "center",
   });
-  y += 40; // space-y-4 = 16px between items in space-y-4 div
+  y += 32; // space after service title
 
-  // Project Address (text-xl = 20px, font-bold)
-  const fullAddress = data.projectAddress
-    ? `${data.projectTitle}, ${data.projectAddress}`
-    : data.projectTitle;
-  doc.font("Roboto-Bold").fontSize(16).fillColor(COLORS.text);
-  doc.text(fullAddress || "", PAGE.margin, y, {
+  // Project Title (same font size, regular weight)
+  doc.font("Roboto").fontSize(serviceTitleFontSize).fillColor(COLORS.text);
+  doc.text(data.projectTitle || "", PAGE.margin, y, {
     width: PAGE.contentWidth,
     align: "center",
-    lineGap: 4,
   });
+  const titleHeight = doc.heightOfString(data.projectTitle || "", { width: PAGE.contentWidth });
+  y += titleHeight + 4;
 
-  // Calculate height of address text for positioning next element
-  const addressHeight = doc.heightOfString(fullAddress || "", { width: PAGE.contentWidth, lineGap: 4 });
-  y += addressHeight + 16; // space-y-4
+  // Project Address - same font size, regular weight
+  if (data.projectAddress) {
+    doc.font("Roboto").fontSize(serviceTitleFontSize).fillColor(COLORS.text);
+    doc.text(data.projectAddress, PAGE.margin, y, {
+      width: PAGE.contentWidth,
+      align: "center",
+    });
+    const addressHeight = doc.heightOfString(data.projectAddress, { width: PAGE.contentWidth });
+    y += addressHeight + 8;
+  } else {
+    y += 8;
+  }
 
-  // Services Line or Area Scope Lines (text-lg/text-base = 18px/16px, font-semibold)
+  // Services Line or Area Scope Lines - same font size, regular weight
   const areaScopeLines = (data as any).areaScopeLines as string[] | undefined;
   if (areaScopeLines && areaScopeLines.length > 1) {
     // Multiple areas - space-y-1 = 4px between lines
-    doc.font("Roboto-Bold").fontSize(14).fillColor(COLORS.text);
+    doc.font("Roboto").fontSize(serviceTitleFontSize).fillColor(COLORS.text);
     areaScopeLines.forEach((line) => {
       doc.text(line, PAGE.margin, y, { width: PAGE.contentWidth, align: "center" });
-      y += 20;
+      y += 24;
     });
   } else {
-    // Single service line (text-lg = 18px)
-    doc.font("Roboto-Bold").fontSize(15).fillColor(COLORS.text);
+    // Single service line - same font size
+    doc.font("Roboto").fontSize(serviceTitleFontSize).fillColor(COLORS.text);
     doc.text(data.servicesLine || "", PAGE.margin, y, {
       width: PAGE.contentWidth,
       align: "center",
@@ -380,25 +389,54 @@ function renderCoverPage(doc: PDFKit.PDFDocument, data: ProposalCoverData): void
   // BOTTOM SECTION: Legal Text + Footer
   // =====================
 
-  // Legal paragraph (text-sm = 14px, leading-relaxed)
-  const legalText = `Scan2Plan, Inc., a Delaware corporation ("S2P") hereby proposes to provide the services set forth below to ${data.clientName || "[Client Name]"}. Use of the services or the project deliverables described herein constitutes acceptance by the client. This Proposal is dated ${data.date || new Date().toLocaleDateString()}.`;
+  // Legal paragraph with bold client name and date
+  // Format: "Scan2Plan, Inc., a Delaware corporation ("S2P") hereby proposes the following engagement to
+  // **CLIENT NAME**. Use of the services offered by S2P ("the services") constitutes
+  // acceptance of this proposal dated **DATE**"
+  const clientName = data.clientName || "[Client Name]";
+  const proposalDate = data.date || new Date().toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" }).replace(/\//g, "/");
 
   doc.font("Roboto").fontSize(10).fillColor(COLORS.text);
-  doc.text(legalText, PAGE.margin, legalY, {
+
+  // First line
+  const line1 = `Scan2Plan, Inc., a Delaware corporation ("S2P") hereby proposes the following engagement to`;
+  doc.text(line1, PAGE.margin, legalY, {
     width: PAGE.contentWidth,
-    align: "center",
-    lineGap: 4,
+    align: "left",
   });
 
-  // Footer (border-t border-gray-300 pt-3, text-xs text-gray-500)
-  drawLine(doc, PAGE.margin, footerY - 12, PAGE.width - PAGE.margin, footerY - 12, COLORS.border);
-  doc.font("Roboto").fontSize(9).fillColor(COLORS.textMuted);
-  doc.text(
-    "Scan2Plan, Inc • 188 1st St, Troy NY, 12180 • (518) 362-2403 • admin@scan2plan.io • scan2plan.io",
-    PAGE.margin,
-    footerY,
-    { width: PAGE.contentWidth, align: "center" }
-  );
+  // Second line with bold client name
+  let legalY2 = legalY + doc.heightOfString(line1, { width: PAGE.contentWidth }) + 2;
+  doc.font("Roboto-Bold").text(clientName.toUpperCase() + ".", PAGE.margin, legalY2, {
+    width: PAGE.contentWidth,
+    align: "left",
+    continued: true,
+  });
+  doc.font("Roboto").text(` Use of the services offered by S2P ("the services") constitutes`, {
+    continued: false,
+  });
+
+  // Third line with bold date
+  const line2Height = doc.heightOfString(clientName.toUpperCase() + `. Use of the services offered by S2P ("the services") constitutes`, { width: PAGE.contentWidth });
+  let legalY3 = legalY2 + line2Height + 2;
+  doc.font("Roboto").text(`acceptance of this proposal dated  `, PAGE.margin, legalY3, {
+    width: PAGE.contentWidth,
+    align: "left",
+    continued: true,
+  });
+  doc.font("Roboto-Bold").text(proposalDate, { continued: false });
+
+  // Footer text - no horizontal rule, black link color
+  doc
+    .font("Roboto")
+    .fontSize(9)
+    .fillColor(COLORS.textMuted)
+    .text(
+      "Scan2Plan, Inc • 188 1st St, Troy NY, 12180 • (518) 362-2403 • admin@scan2plan.io • scan2plan.io",
+      PAGE.margin,
+      footerY,
+      { width: PAGE.contentWidth, align: "center" }
+    );
 }
 
 /**
