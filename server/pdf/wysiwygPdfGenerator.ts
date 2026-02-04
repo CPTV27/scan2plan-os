@@ -8,19 +8,16 @@
 import PDFDocument from "pdfkit";
 import path from "path";
 import fs from "fs";
-import { fileURLToPath } from "url";
-
-// Get __dirname equivalent for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // Font paths - Using Roboto to match Google Docs style proposals
-// Font paths - try multiple locations for deployment compatibility
+// Use process.cwd() for compatibility with both ESM and CJS bundled builds
 const getFontPath = (filename: string): string => {
   const possiblePaths = [
     path.join(process.cwd(), "server", "fonts", filename),
-    path.join(__dirname, "fonts", filename),
-    path.join(__dirname, "..", "fonts", filename),
+    path.join(process.cwd(), "fonts", filename),
+    // Production paths
+    path.join("/app", "server", "fonts", filename),
+    path.join("/app", "fonts", filename),
   ];
   for (const p of possiblePaths) {
     if (fs.existsSync(p)) return p;
