@@ -81,10 +81,14 @@ interface Area {
   aboveCeilingSqft: string;
   includeBelowFloor: boolean;
   belowFloorSqft: string;
+  // Sub-section pricing tier inheritance
+  isSubSection?: boolean;
+  parentAreaId?: string;
 }
 
 interface AreaInputProps {
   area: Area;
+  areas: Area[];  // All areas for sub-section parent selection
   index: number;
   onChange: (id: string, field: keyof Area, value: string | boolean | number | Facade[] | CustomLineItem[]) => void;
   onDisciplineChange: (areaId: string, disciplineId: string, checked: boolean) => void;
@@ -93,9 +97,17 @@ interface AreaInputProps {
   canRemove: boolean;
 }
 
-export default function AreaInput({ area, index, onChange, onDisciplineChange, onLodChange, onRemove, canRemove }: AreaInputProps) {
+export default function AreaInput({ area, areas, index, onChange, onDisciplineChange, onLodChange, onRemove, canRemove }: AreaInputProps) {
   const isLandscape = area.buildingType === "14" || area.buildingType === "15";
   const isSimplifiedUI = isLandscape;
+
+  // Get available parent areas (non-landscape, non-self, non-sub-section)
+  const availableParentAreas = areas.filter(a =>
+    a.id !== area.id &&
+    a.buildingType !== "14" &&
+    a.buildingType !== "15" &&
+    !a.isSubSection
+  );
   
   return (
     <Card className="p-4">
@@ -161,6 +173,74 @@ export default function AreaInput({ area, index, onChange, onDisciplineChange, o
             />
           </div>
         </div>
+
+        {/* Sub-section pricing tier inheritance */}
+        {!isLandscape && availableParentAreas.length > 0 && (
+          <div className="space-y-2 p-3 bg-muted/50 rounded-md">
+            <div
+              className="flex items-start gap-3 cursor-pointer"
+              onClick={() => {
+                if (area.isSubSection) {
+                  onChange(area.id, 'isSubSection', false);
+                  onChange(area.id, 'parentAreaId', '');
+                } else {
+                  onChange(area.id, 'isSubSection', true);
+                }
+              }}
+            >
+              <Checkbox
+                id={`${area.id}-subsection`}
+                checked={area.isSubSection || false}
+                onCheckedChange={(checked) => {
+                  onChange(area.id, 'isSubSection', checked as boolean);
+                  if (!checked) {
+                    onChange(area.id, 'parentAreaId', '');
+                  }
+                }}
+                data-testid={`checkbox-area-${index}-subsection`}
+              />
+              <div className="flex-1">
+                <Label
+                  htmlFor={`${area.id}-subsection`}
+                  className="text-sm font-medium cursor-pointer"
+                >
+                  Sub-section (Inherit Parent Tier Pricing)
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Uses parent area's sqft for volume tier discount, but bills for this area's sqft
+                </p>
+              </div>
+            </div>
+
+            {area.isSubSection && (
+              <div className="pl-6 pt-2">
+                <Label htmlFor={`parent-area-${area.id}`} className="text-sm font-medium">
+                  Parent Area
+                </Label>
+                <Select
+                  value={area.parentAreaId || ""}
+                  onValueChange={(value) => onChange(area.id, 'parentAreaId', value)}
+                >
+                  <SelectTrigger id={`parent-area-${area.id}`} data-testid={`select-parent-area-${index}`}>
+                    <SelectValue placeholder="Select parent area" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableParentAreas.map((parentArea) => (
+                      <SelectItem key={parentArea.id} value={parentArea.id}>
+                        {parentArea.name || `Area ${areas.indexOf(parentArea) + 1}`} ({parseInt(parentArea.squareFeet || "0").toLocaleString()} sqft)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {area.parentAreaId && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Tier pricing based on {parseInt(availableParentAreas.find(a => a.id === area.parentAreaId)?.squareFeet || "0").toLocaleString()} sqft
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {!isSimplifiedUI && (
           <div className="space-y-2">

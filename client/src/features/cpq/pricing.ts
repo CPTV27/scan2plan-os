@@ -92,6 +92,10 @@ export interface Area {
   boundaryImageUrl?: string; // Static map image of the boundary for proposals
   // Legacy kind field - deprecated, infer from buildingType (14-15 = landscape)
   kind?: "standard" | "landscape";
+  // Sub-section pricing tier inheritance
+  // When true, uses parent area's sqft for tier pricing calculation
+  isSubSection?: boolean;
+  parentAreaId?: string;
 }
 
 // Facade type options
@@ -391,32 +395,36 @@ export function getAreaTier(sqft: number): { tier: string; multiplier: number } 
 
 /**
  * Calculates the per-square-foot rate for a specific discipline and configuration.
- * 
+ *
  * Rate is determined by:
  * 1. Building type (e.g., office, retail, industrial) - base rates vary by complexity
  * 2. Discipline (architecture, mepf, structure, site) - each has different pricing
  * 3. Level of Detail (LOD 100-400) - higher detail = higher multiplier
  * 4. Area tier discount - larger projects get volume discounts
- * 
+ *
  * @param buildingTypeId - Building type ID (1-16)
  * @param sqft - Project square footage (for tier discount calculation)
  * @param discipline - BIM discipline ("architecture", "mepf", "structure", "site")
  * @param lod - Level of Detail ("100", "200", "250", "300", "350", "400")
+ * @param tierSqft - Optional override sqft for tier calculation (for sub-sections inheriting parent tier)
  * @returns Per-square-foot rate in dollars
- * 
+ *
  * @example
  * getPricingRate("1", 50000, "architecture", "200") // Office, 50k sqft, Arch LOD 200
+ * getPricingRate("1", 18000, "structure", "300", 36000) // Sub-section: 18k sqft uses 36k tier
  */
 export function getPricingRate(
   buildingTypeId: string,
   sqft: number,
   discipline: string,
-  lod: string
+  lod: string,
+  tierSqft?: number
 ): number {
   const buildingRates = BASE_RATES[buildingTypeId] || BASE_RATES["1"];
   const baseRate = buildingRates[discipline] || 0.25;
   const lodMultiplier = LOD_MULTIPLIERS[lod] || 1.0;
-  const { multiplier: tierMultiplier } = getAreaTier(sqft);
+  // Use tierSqft for tier calculation if provided (sub-section inheriting parent tier)
+  const { multiplier: tierMultiplier } = getAreaTier(tierSqft ?? sqft);
 
   return baseRate * lodMultiplier * tierMultiplier;
 }
@@ -644,6 +652,15 @@ export function calculatePricing(
       ? parseFloat(area.squareFeet) || 0
       : parseInt(area.squareFeet) || 0;
 
+    // Sub-section tier inheritance: look up parent's sqft for tier calculation
+    let tierSqft: number | undefined = undefined;
+    if (area.isSubSection && area.parentAreaId) {
+      const parentArea = areas.find((a) => a.id === area.parentAreaId);
+      if (parentArea && !isLandscapeBuildingType(parentArea.buildingType)) {
+        tierSqft = parseInt(parentArea.squareFeet) || 0;
+      }
+    }
+
     const scope = area.scope || "full";
     const disciplines = isLandscape
       ? ["site"]
@@ -682,8 +699,9 @@ export function calculatePricing(
           const interiorLod = hasInteriorLod || lod;
           const exteriorLod = hasExteriorLod || lod;
 
-          const interiorRate = getPricingRate(area.buildingType, sqft, discipline, interiorLod);
-          const exteriorRate = getPricingRate(area.buildingType, sqft, discipline, exteriorLod);
+          // Pass tierSqft for sub-section tier inheritance
+          const interiorRate = getPricingRate(area.buildingType, sqft, discipline, interiorLod, tierSqft);
+          const exteriorRate = getPricingRate(area.buildingType, sqft, discipline, exteriorLod, tierSqft);
 
           const interiorCost = sqft * interiorRate * scopeMultiplier.interior;
           const exteriorCost = sqft * exteriorRate * scopeMultiplier.exterior;
@@ -692,11 +710,13 @@ export function calculatePricing(
 
           // Calculate effective per-sqft rate for display
           const effectiveRate = lineTotal / sqft;
-          areaLabel = `${sqft.toLocaleString()} sqft @ $${effectiveRate.toFixed(3)}/sqft (Int ${interiorLod}/Ext ${exteriorLod})`;
+          const tierLabel = tierSqft ? ` [${getAreaTier(tierSqft).tier} tier]` : "";
+          areaLabel = `${sqft.toLocaleString()} sqft @ $${effectiveRate.toFixed(3)}/sqft (Int ${interiorLod}/Ext ${exteriorLod})${tierLabel}`;
           upteamLineCost = lineTotal * UPTEAM_MULTIPLIER;
         } else {
           // Single LOD: Use standard calculation
-          const ratePerSqft = getPricingRate(area.buildingType, sqft, discipline, lod);
+          // Pass tierSqft for sub-section tier inheritance
+          const ratePerSqft = getPricingRate(area.buildingType, sqft, discipline, lod, tierSqft);
 
           // For interior-only scope: MEPF and Structure are full price (no discount)
           // Only Architecture and Site get the interior-only reduction
@@ -706,7 +726,8 @@ export function calculatePricing(
           }
 
           lineTotal = sqft * ratePerSqft * effectiveMultiplier;
-          areaLabel = `${sqft.toLocaleString()} sqft`;
+          const tierLabel = tierSqft ? ` [${getAreaTier(tierSqft).tier} tier]` : "";
+          areaLabel = `${sqft.toLocaleString()} sqft${tierLabel}`;
           upteamLineCost = lineTotal * UPTEAM_MULTIPLIER;
         }
       }

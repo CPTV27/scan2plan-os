@@ -71,6 +71,9 @@ interface Area {
   aboveCeilingSqft: string;
   includeBelowFloor: boolean;
   belowFloorSqft: string;
+  // Sub-section pricing tier inheritance
+  isSubSection?: boolean;
+  parentAreaId?: string;
 }
 
 interface PricingLineItem {
@@ -2423,6 +2426,7 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
                   <AreaInput
                     key={area.id}
                     area={area}
+                    areas={areas}
                     index={index}
                     onChange={handleAreaChange}
                     onDisciplineChange={handleAreaDisciplineChange}

@@ -1397,6 +1397,58 @@ Thanks!`.trim();
                               </div>
                             </div>
 
+                            {/* Sub-section pricing tier inheritance */}
+                            {(() => {
+                              const availableParentAreas = standardAreas.filter(a =>
+                                a.id !== area.id && !a.isSubSection
+                              );
+                              if (availableParentAreas.length === 0) return null;
+                              return (
+                                <div className="p-3 rounded-md bg-muted/50 space-y-2">
+                                  <div className="flex items-start gap-2">
+                                    <Checkbox
+                                      id={`subsection-${area.id}`}
+                                      checked={area.isSubSection || false}
+                                      onCheckedChange={(checked) => {
+                                        updateArea(area.id, "isSubSection", checked as boolean);
+                                        if (!checked) {
+                                          updateArea(area.id, "parentAreaId", "");
+                                        }
+                                      }}
+                                      data-testid={`checkbox-subsection-${kindIndex}`}
+                                    />
+                                    <div className="flex-1">
+                                      <Label htmlFor={`subsection-${area.id}`} className="text-sm cursor-pointer">
+                                        Sub-section (Inherit Parent Tier Pricing)
+                                      </Label>
+                                      <p className="text-xs text-muted-foreground">
+                                        Uses parent area's sqft for volume tier discount
+                                      </p>
+                                    </div>
+                                  </div>
+                                  {area.isSubSection && (
+                                    <div className="pl-6 pt-1">
+                                      <Select
+                                        value={area.parentAreaId || ""}
+                                        onValueChange={(v) => updateArea(area.id, "parentAreaId", v)}
+                                      >
+                                        <SelectTrigger data-testid={`select-parent-${kindIndex}`}>
+                                          <SelectValue placeholder="Select parent area" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {availableParentAreas.map((parentArea, idx) => (
+                                            <SelectItem key={parentArea.id} value={parentArea.id}>
+                                              {parentArea.name || `Area ${idx + 1}`} ({parseInt(parentArea.squareFeet || "0").toLocaleString()} sqft)
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
+
                             <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-2">
                                 <Label>Level of Detail</Label>
