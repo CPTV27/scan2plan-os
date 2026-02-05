@@ -629,6 +629,11 @@ export function generateLineItems(quote: CpqQuote | null, lead: Lead): LineItem[
     return false;
   };
 
+  // Strip "Tier A " prefix from labels for proposals (internal pricing detail, not client-facing)
+  const cleanTierALabel = (label: string): string => {
+    return label.replace(/^Tier A\s+/i, "");
+  };
+
   const addDraft = (params: {
     label: string;
     amount: number;
@@ -675,7 +680,8 @@ export function generateLineItems(quote: CpqQuote | null, lead: Lead): LineItem[
 
   if (pricingBreakdown && !Array.isArray(pricingBreakdown) && Array.isArray(pricingBreakdown.items)) {
     pricingBreakdown.items.forEach((item) => {
-      const label = String(item.label || "").trim();
+      const rawLabel = String(item.label || "").trim();
+      const label = cleanTierALabel(rawLabel); // Strip "Tier A " for proposals
       const amount = Number(item.value) || 0;
       if (!label || Math.abs(amount) < 0.001) return;
 
@@ -707,7 +713,8 @@ export function generateLineItems(quote: CpqQuote | null, lead: Lead): LineItem[
     });
   } else if (Array.isArray(pricingBreakdown)) {
     pricingBreakdown.forEach((item) => {
-      const label = String(item.label || item.name || "Service").trim();
+      const rawLabel = String(item.label || item.name || "Service").trim();
+      const label = cleanTierALabel(rawLabel); // Strip "Tier A " for proposals
       const amount = Number(item.value ?? item.totalPrice ?? item.amount ?? 0);
       if (!label || Math.abs(amount) < 0.001) return;
 

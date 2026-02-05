@@ -2305,7 +2305,7 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
 
   const basePricingData = calculatePricing();
 
-  // Apply Tier A pricing override when enabled
+  // Apply Tier A pricing override when enabled - only replaces Architecture, keeps other disciplines
   const pricingData = (() => {
     if (!tierAEnabled) return basePricingData;
 
@@ -2315,18 +2315,66 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
     const modelingCost = parseFloat(scopingData.tierAModelingCost) || 0;
     const margin = parseFloat(scopingData.tierAMargin) || 2.352;
 
-    const upteamCost = scanningCost + modelingCost;
-    const clientTotal = upteamCost * margin;
+    const tierAUpteamCost = scanningCost + modelingCost;
+    const tierAClientPrice = tierAUpteamCost * margin;
 
-    // Create Tier A specific line items
-    const marginAmount = clientTotal - upteamCost;
+    // Filter out Architecture line items and Grand Total/Effective Price
+    // Keep: other disciplines (MEPF, Structure, Site), travel, services, risk premiums on non-arch
+    const nonArchItems = basePricingData.items.filter(item => {
+      const label = item.label.toLowerCase();
+      // Remove architecture line items
+      if (label.includes('architecture')) return false;
+      // Remove totals (we'll recalculate)
+      if (item.isTotal) return false;
+      if (label.includes('effective price')) return false;
+      // Remove risk premiums on architecture (will be included in Tier A price)
+      if (label.includes('risk premium')) return false;
+      // Remove base subtotal
+      if (label.includes('base subtotal')) return false;
+      return true;
+    });
+
+    // Calculate total of non-architecture items
+    const nonArchTotal = nonArchItems.reduce((sum, item) => sum + item.value, 0);
+    const nonArchUpteam = nonArchItems.reduce((sum, item) => sum + (item.upteamCost || 0), 0);
+
+    // Get total sqft for Tier A Architecture label
+    const totalSqft = areas.reduce((sum, area) => {
+      const isLandscape = area.buildingType === "14" || area.buildingType === "15";
+      if (isLandscape) return sum;
+      return sum + (parseInt(area.squareFeet) || 0);
+    }, 0);
+
+    // Build new items array with Tier A Architecture first
     const items: PricingLineItem[] = [
-      { label: `Tier A - Scanning Cost`, value: scanningCost, editable: false, upteamCost: scanningCost },
-      { label: `Tier A - Modeling Cost`, value: modelingCost, editable: false, upteamCost: modelingCost },
-      { label: `Tier A - Upteam Total`, value: upteamCost, editable: false, upteamCost: upteamCost },
-      { label: `Markup (${margin}X = +${Math.round((margin - 1) * 100)}%)`, value: marginAmount, editable: false },
-      { label: 'Grand Total', value: clientTotal, editable: true, isTotal: true },
+      {
+        label: `Tier A Architecture (${totalSqft.toLocaleString()} sqft)`,
+        value: tierAClientPrice,
+        editable: false,
+        upteamCost: tierAUpteamCost
+      },
+      ...nonArchItems,
     ];
+
+    const clientTotal = tierAClientPrice + nonArchTotal;
+    const upteamCost = tierAUpteamCost + nonArchUpteam;
+
+    // Add Grand Total
+    items.push({
+      label: 'Grand Total',
+      value: clientTotal,
+      editable: true,
+      isTotal: true,
+    });
+
+    // Add effective price per sqft if we have sqft
+    if (totalSqft > 0) {
+      items.push({
+        label: `Effective Price per Sq Ft (${totalSqft.toLocaleString()} sqft)`,
+        value: clientTotal / totalSqft,
+        editable: false,
+      });
+    }
 
     return { items, clientTotal, upteamCost };
   })();
