@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { ExternalLink } from "lucide-react";
 
 interface CRMFieldsProps {
@@ -16,9 +17,11 @@ interface CRMFieldsProps {
     tierAMargin: string;
   };
   onChange: (field: string, value: any) => void;
+  tierAEnabled?: boolean;
+  onTierAEnabledChange?: (enabled: boolean) => void;
 }
 
-export default function CRMFields({ data, onChange }: CRMFieldsProps) {
+export default function CRMFields({ data, onChange, tierAEnabled = false, onTierAEnabledChange }: CRMFieldsProps) {
   return (
     <div className="space-y-6">
       {/* Internal Notes */}
@@ -53,9 +56,21 @@ export default function CRMFields({ data, onChange }: CRMFieldsProps) {
       </Card>
 
       {/* Tier A Pricing */}
-      <Card className="p-4">
-        <h3 className="text-lg font-semibold mb-4">Tier A Pricing (Internal)</h3>
-        <div className="space-y-4">
+      <Card className={`p-4 ${tierAEnabled ? 'border-amber-500/50 bg-amber-500/5' : ''}`}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">Tier A Pricing (Internal)</h3>
+          <div className="flex items-center gap-2">
+            <Switch
+              id="tier-a-enabled"
+              checked={tierAEnabled}
+              onCheckedChange={onTierAEnabledChange}
+            />
+            <Label htmlFor="tier-a-enabled" className="text-sm cursor-pointer font-medium">
+              {tierAEnabled ? 'Enabled' : 'Disabled'}
+            </Label>
+          </div>
+        </div>
+        {tierAEnabled && <div className="space-y-4">
           <div className="space-y-2">
             <Label className="text-sm font-medium">
               Tier A - Scanning Cost
@@ -134,7 +149,7 @@ export default function CRMFields({ data, onChange }: CRMFieldsProps) {
               </SelectContent>
             </Select>
           </div>
-        </div>
+        </div>}
       </Card>
 
     </div>

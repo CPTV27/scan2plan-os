@@ -2303,7 +2303,32 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
     return { items, clientTotal: runningTotal, upteamCost };
   };
 
-  const pricingData = calculatePricing();
+  const basePricingData = calculatePricing();
+
+  // Apply Tier A pricing override when enabled
+  const pricingData = (() => {
+    if (!tierAEnabled) return basePricingData;
+
+    const scanningCost = scopingData.tierAScanningCost === 'other'
+      ? parseFloat(scopingData.tierAScanningCostOther) || 0
+      : parseFloat(scopingData.tierAScanningCost) || 0;
+    const modelingCost = parseFloat(scopingData.tierAModelingCost) || 0;
+    const margin = parseFloat(scopingData.tierAMargin) || 2.352;
+
+    const upteamCost = scanningCost + modelingCost;
+    const clientTotal = upteamCost * margin;
+
+    // Create Tier A specific line items
+    const items: PricingLineItem[] = [
+      { label: 'Tier A - Scanning Cost', value: scanningCost, editable: false, upteamCost: scanningCost },
+      { label: 'Tier A - Modeling Cost', value: modelingCost, editable: false, upteamCost: modelingCost },
+      { label: `Tier A - Margin (${margin}X)`, value: clientTotal - upteamCost, editable: false },
+      { label: 'Grand Total', value: clientTotal, editable: true, isTotal: true },
+    ];
+
+    return { items, clientTotal, upteamCost };
+  })();
+
   const pricingItems = pricingData.items;
 
   // Autosave hook - getQuoteData callback to access current state
@@ -2373,33 +2398,20 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
                 Build a comprehensive pricing quote for your Scan-to-BIM project
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              {/* Tier A Toggle */}
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border bg-muted/50">
-                <Switch
-                  id="tier-a-toggle"
-                  checked={tierAEnabled}
-                  onCheckedChange={setTierAEnabled}
+            {isEmbedded && (
+              <div className="flex items-center gap-3">
+                <AutosaveStatus
+                  status={autosave.status}
+                  error={autosave.error}
+                  onRetry={autosave.retry}
                 />
-                <Label htmlFor="tier-a-toggle" className="text-sm cursor-pointer font-medium">
-                  Tier A
-                </Label>
+                {autosave.lastSavedAt && (
+                  <span className="text-xs text-muted-foreground">
+                    Last saved {autosave.lastSavedAt.toLocaleTimeString()}
+                  </span>
+                )}
               </div>
-              {isEmbedded && (
-                <>
-                  <AutosaveStatus
-                    status={autosave.status}
-                    error={autosave.error}
-                    onRetry={autosave.retry}
-                  />
-                  {autosave.lastSavedAt && (
-                    <span className="text-xs text-muted-foreground">
-                      Last saved {autosave.lastSavedAt.toLocaleTimeString()}
-                    </span>
-                  )}
-                </>
-              )}
-            </div>
+            )}
           </div>
         </div>
 
@@ -2479,7 +2491,12 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
             <div className="rounded-lg bg-amber-50/30 dark:bg-amber-950/10 p-5 space-y-5">
               <h2 className="text-xl font-bold text-amber-900 dark:text-amber-100">Internal Pricing</h2>
 
-              <CRMFields data={scopingData} onChange={handleScopingDataChange} />
+              <CRMFields
+                data={scopingData}
+                onChange={handleScopingDataChange}
+                tierAEnabled={tierAEnabled}
+                onTierAEnabledChange={setTierAEnabled}
+              />
             </div>
 
             {/* Export buttons hidden - will be re-enabled later */}
