@@ -2319,10 +2319,12 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
     const clientTotal = upteamCost * margin;
 
     // Create Tier A specific line items
+    const marginAmount = clientTotal - upteamCost;
     const items: PricingLineItem[] = [
-      { label: 'Tier A - Scanning Cost', value: scanningCost, editable: false, upteamCost: scanningCost },
-      { label: 'Tier A - Modeling Cost', value: modelingCost, editable: false, upteamCost: modelingCost },
-      { label: `Tier A - Margin (${margin}X)`, value: clientTotal - upteamCost, editable: false },
+      { label: `Tier A - Scanning Cost`, value: scanningCost, editable: false, upteamCost: scanningCost },
+      { label: `Tier A - Modeling Cost`, value: modelingCost, editable: false, upteamCost: modelingCost },
+      { label: `Tier A - Upteam Total`, value: upteamCost, editable: false, upteamCost: upteamCost },
+      { label: `Markup (${margin}X = +${Math.round((margin - 1) * 100)}%)`, value: marginAmount, editable: false },
       { label: 'Grand Total', value: clientTotal, editable: true, isTotal: true },
     ];
 
