@@ -217,8 +217,8 @@ export function ProposalEstimateTable({
     <div className="proposal-page min-h-[11in] p-16 bg-white relative">
       {/* Header with company info */}
       <div className="flex justify-between items-start mb-6 pb-4 border-b">
-        <div className="text-sm text-gray-600">
-          <div className="font-bold text-lg text-black mb-1">SCAN2PLAN</div>
+        <div className="text-sm text-[#616161]">
+          <div className="font-bold text-lg text-[#49494b] mb-1">SCAN2PLAN</div>
           <div>188 1st St</div>
           <div>Troy, NY 12180 US</div>
           <div>admin@scan2plan.io</div>
@@ -233,22 +233,22 @@ export function ProposalEstimateTable({
       </div>
 
       {/* Estimate title and metadata */}
-      <h2 className="text-2xl font-semibold text-[#123da7] mb-4">Estimate</h2>
+      <h2 className="text-2xl font-semibold text-[#123ea8] mb-4">Estimate</h2>
 
       <div className="flex justify-between mb-6">
         <div className="text-sm">
-          <div className="text-gray-500 text-xs uppercase tracking-wide">ADDRESS</div>
-          <div className="font-medium text-gray-900">{projectAddress}</div>
+          <div className="text-[#616161] text-xs uppercase tracking-wide">ADDRESS</div>
+          <div className="font-medium text-[#49494b]">{projectAddress}</div>
         </div>
         <div className="text-sm text-right">
           <div className="flex gap-8">
             <div>
-              <div className="text-gray-500 text-xs uppercase tracking-wide">ESTIMATE</div>
-              <div className="text-gray-900">{estimateNumber}</div>
+              <div className="text-[#616161] text-xs uppercase tracking-wide">ESTIMATE</div>
+              <div className="text-[#49494b]">{estimateNumber}</div>
             </div>
             <div>
-              <div className="text-gray-500 text-xs uppercase tracking-wide">DATE</div>
-              <div className="text-gray-900">{estimateDate}</div>
+              <div className="text-[#616161] text-xs uppercase tracking-wide">DATE</div>
+              <div className="text-[#49494b]">{estimateDate}</div>
             </div>
           </div>
         </div>
@@ -257,7 +257,7 @@ export function ProposalEstimateTable({
       {/* Table */}
       <table className="w-full border-collapse">
         <thead>
-          <tr className="bg-[#123da7]">
+          <tr className="bg-[#123ea8]">
             {!disabled && <th className="w-8 p-3"></th>}
             <th className="text-left p-3 text-white text-sm font-semibold tracking-wide" style={{ width: '55%' }}>
               ITEM
@@ -280,7 +280,7 @@ export function ProposalEstimateTable({
               key={item.id}
               className={cn(
                 "border-b border-gray-200 group",
-                index % 2 === 1 && "bg-gray-50/50"
+                index % 2 === 1 && "bg-[#f9fafb]"
               )}
             >
               {!disabled && (
@@ -294,11 +294,11 @@ export function ProposalEstimateTable({
                   value={item.itemName}
                   onChange={(v) => updateItem(item.id, 'itemName', v)}
                   cellId={`${item.id}-name`}
-                  className="font-bold text-gray-900 text-sm"
+                  className="font-bold text-[#49494b] text-sm"
                 />
                 {/* Description with proper formatting */}
                 {item.description && (
-                  <div className="mt-2 text-xs text-gray-600 leading-relaxed">
+                  <div className="mt-2 text-xs text-[#434343] leading-relaxed">
                     <EditableCell
                       value={item.description}
                       onChange={(v) => updateItem(item.id, 'description', v)}
@@ -316,7 +316,7 @@ export function ProposalEstimateTable({
                   type="number"
                   align="right"
                   cellId={`${item.id}-qty`}
-                  className="text-gray-900 text-sm"
+                  className="text-[#49494b] text-sm"
                 />
               </td>
               <td className="p-3 align-top">
@@ -326,10 +326,10 @@ export function ProposalEstimateTable({
                   type="currency"
                   align="right"
                   cellId={`${item.id}-rate`}
-                  className="text-gray-900 text-sm"
+                  className="text-[#49494b] text-sm"
                 />
               </td>
-              <td className="p-3 align-top text-right font-semibold text-gray-900 text-sm">
+              <td className="p-3 align-top text-right font-semibold text-[#49494b] text-sm">
                 {formatCurrency(item.amount)}
               </td>
               {!disabled && (
@@ -366,11 +366,11 @@ export function ProposalEstimateTable({
             </tr>
           )}
           {/* Total row */}
-          <tr className="bg-gray-100">
-            <td colSpan={disabled ? 3 : 4} className="p-3 text-right font-semibold text-gray-700">
+          <tr className="bg-[#f3f4f6]">
+            <td colSpan={disabled ? 3 : 4} className="p-3 text-right font-semibold text-[#434343]">
               TOTAL
             </td>
-            <td className="p-3 text-right text-xl font-bold text-[#123da7]">
+            <td className="p-3 text-right text-xl font-bold text-[#123ea8]">
               {formatCurrency(total)}
             </td>
             {!disabled && <td></td>}
@@ -382,14 +382,14 @@ export function ProposalEstimateTable({
       <div className="mt-12 space-y-4">
         <div className="flex gap-4">
           <div className="flex-1">
-            <div className="text-sm text-gray-500 mb-1">Accepted By</div>
-            <div className="border-b border-gray-300 h-8"></div>
+            <div className="text-sm text-[#616161] mb-1">Accepted By</div>
+            <div className="border-b border-[#d1d5db] h-8"></div>
           </div>
         </div>
         <div className="flex gap-4">
           <div className="flex-1">
-            <div className="text-sm text-gray-500 mb-1">Accepted Date</div>
-            <div className="border-b border-gray-300 h-8"></div>
+            <div className="text-sm text-[#616161] mb-1">Accepted Date</div>
+            <div className="border-b border-[#d1d5db] h-8"></div>
           </div>
         </div>
       </div>

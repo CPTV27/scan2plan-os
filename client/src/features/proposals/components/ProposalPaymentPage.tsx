@@ -24,11 +24,11 @@ export function ProposalPaymentPage({
   return (
     <div className="proposal-page min-h-[11in] p-16 bg-white relative">
       {/* Section Title */}
-      <h1 className="text-3xl font-bold text-[#123da7] mb-8">Payment</h1>
+      <h1 className="text-3xl font-bold text-[#123ea8] mb-8">Payment</h1>
 
       {/* Payment Terms */}
       <div className="mb-8">
-        <h2 className="text-xl font-semibold text-[#123da7] mb-4">
+        <h2 className="text-xl font-semibold text-[#123ea8] mb-4">
           Payment Terms
         </h2>
         <EditableList
@@ -37,13 +37,13 @@ export function ProposalPaymentPage({
           onBlur={onBlur}
           placeholder="Payment term..."
           disabled={disabled}
-          itemClassName="text-gray-700"
+          itemClassName="text-[#49494b]"
         />
       </div>
 
       {/* Payment Methods */}
       <div className="mb-8">
-        <h2 className="text-xl font-semibold text-[#123da7] mb-4">
+        <h2 className="text-xl font-semibold text-[#123ea8] mb-4">
           Accepted Payment Methods
         </h2>
         <EditableList
@@ -52,28 +52,28 @@ export function ProposalPaymentPage({
           onBlur={onBlur}
           placeholder="Payment method..."
           disabled={disabled}
-          itemClassName="text-gray-700"
+          itemClassName="text-[#49494b]"
         />
       </div>
 
       {/* Acknowledgement Section */}
       <div className="mt-12 border-t border-gray-200 pt-8">
-        <h2 className="text-xl font-semibold text-[#123da7] mb-4">
+        <h2 className="text-xl font-semibold text-[#123ea8] mb-4">
           Acknowledgement
         </h2>
-        <p className="text-gray-700 mb-6 leading-relaxed">
+        <p className="text-[#49494b] mb-6 leading-relaxed">
           Client acknowledges receipt of and agrees to be bound by S2P's{" "}
           <a
             href="https://www.scan2plan.io/scan2plan-terms-conditions"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#123da7] underline hover:text-[#0f2d7a]"
+            className="text-[#123ea8] underline hover:text-[#0f2d7a]"
           >
             General Terms and Conditions
           </a>{" "}
           which are incorporated herein by reference.
         </p>
-        <p className="text-gray-700 mb-6 leading-relaxed">
+        <p className="text-[#49494b] mb-6 leading-relaxed">
           In witness whereof the parties hereto have caused this agreement to be
           executed as of the date(s) written below.
         </p>
@@ -103,9 +103,9 @@ export function ProposalPaymentPage({
       </div>
 
       {/* Page Footer */}
-      <div className="absolute bottom-8 left-16 right-16 border-t border-gray-300 pt-3 text-center text-xs text-gray-500">
+      <div className="absolute bottom-8 left-16 right-16 border-t border-[#d1d5db] pt-3 text-center text-xs text-[#616161]">
         Scan2Plan, Inc • 188 1st St, Troy NY, 12180 • (518) 362-2403 •
-        admin@scan2plan.io • scan2plan.io
+        admin@scan2plan.io • <span className="text-[#123ea8] underline">scan2plan.io</span>
       </div>
     </div>
   );

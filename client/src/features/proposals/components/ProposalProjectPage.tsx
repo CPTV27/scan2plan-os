@@ -36,16 +36,16 @@ export function ProposalProjectPage({
   return (
     <div className="proposal-page min-h-[11in] p-16 bg-white relative">
       {/* Section Title */}
-      <h1 className="text-3xl font-bold text-[#123da7] mb-8">The Project</h1>
+      <h1 className="text-3xl font-bold text-[#123ea8] mb-8">The Project</h1>
 
       {/* Overview */}
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-[#123da7] mb-3">Overview</h2>
+        <h2 className="text-xl font-semibold text-[#123ea8] mb-3">Overview</h2>
         <EditableText
           value={data.overviewLine || `Service for ${data.overview || "Project Name, Address"}`}
           onChange={(v) => onChange("overviewLine", v)}
           onBlur={onBlur}
-          className="text-gray-700 leading-relaxed"
+          className="text-[#49494b] leading-relaxed"
           placeholder="Service for Project Name, Address..."
           disabled={disabled}
         />
@@ -53,7 +53,7 @@ export function ProposalProjectPage({
 
       {/* Scope of Work */}
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-[#123da7] mb-3">
+        <h2 className="text-xl font-semibold text-[#123ea8] mb-3">
           Scope of Work
         </h2>
         <EditableList
@@ -62,20 +62,20 @@ export function ProposalProjectPage({
           onBlur={onBlur}
           placeholder="Scope item..."
           disabled={disabled}
-          itemClassName="text-gray-700"
+          itemClassName="text-[#49494b]"
         />
         {/* Show Matterport item if enabled and not already in list */}
         {hasMatterport && !hasMatterportInScope && (
           <div className="flex items-start gap-2 mt-2">
-            <span className="text-gray-700">•</span>
-            <span className="text-gray-700">{matterportText}</span>
+            <span className="text-[#49494b]">•</span>
+            <span className="text-[#49494b]">{matterportText}</span>
           </div>
         )}
       </div>
 
       {/* Deliverables */}
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-[#123da7] mb-3">
+        <h2 className="text-xl font-semibold text-[#123ea8] mb-3">
           Deliverables
         </h2>
         <EditableList
@@ -84,18 +84,18 @@ export function ProposalProjectPage({
           onBlur={onBlur}
           placeholder="Deliverable item..."
           disabled={disabled}
-          itemClassName="text-gray-700"
+          itemClassName="text-[#49494b]"
         />
       </div>
 
       {/* Timeline */}
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-[#123da7] mb-3">Timeline</h2>
+        <h2 className="text-xl font-semibold text-[#123ea8] mb-3">Timeline</h2>
         <EditableText
           value={data.timelineIntro}
           onChange={(v) => onChange("timelineIntro", v)}
           onBlur={onBlur}
-          className="text-gray-700 mb-3"
+          className="text-[#49494b] mb-3"
           placeholder="Timeline introduction..."
           disabled={disabled}
         />
@@ -105,14 +105,14 @@ export function ProposalProjectPage({
           onBlur={onBlur}
           placeholder="Milestone..."
           disabled={disabled}
-          itemClassName="text-gray-700"
+          itemClassName="text-[#49494b]"
         />
       </div>
 
       {/* Page Footer */}
-      <div className="absolute bottom-8 left-16 right-16 border-t border-gray-300 pt-3 text-center text-xs text-gray-500">
+      <div className="absolute bottom-8 left-16 right-16 border-t border-[#d1d5db] pt-3 text-center text-xs text-[#616161]">
         Scan2Plan, Inc • 188 1st St, Troy NY, 12180 • (518) 362-2403 •
-        admin@scan2plan.io • scan2plan.io
+        admin@scan2plan.io • <span className="text-[#123ea8] underline">scan2plan.io</span>
       </div>
     </div>
   );

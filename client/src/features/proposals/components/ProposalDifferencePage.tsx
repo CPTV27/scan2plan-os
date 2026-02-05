@@ -67,17 +67,17 @@ export function ProposalDifferencePage({
   return (
     <div className="proposal-page min-h-[11in] p-16 bg-white relative">
       {/* Section Title */}
-      <h1 className="text-3xl font-bold text-[#123da7] mb-2">
+      <h1 className="text-3xl font-bold text-[#123ea8] mb-2">
         The Scan2Plan Difference
       </h1>
 
       {/* Subtitle */}
-      <h2 className="text-xl font-semibold text-[#123da7] mb-4">
+      <h2 className="text-xl font-semibold text-[#123ea8] mb-4">
         What to look for in a Scan-to-BIM partner.
       </h2>
 
       {/* Intro Paragraph */}
-      <p className="text-sm text-gray-700 mb-6 leading-relaxed">
+      <p className="text-sm text-[#49494b] mb-6 leading-relaxed">
         In the evolving landscape of scanning and modeling, it's important to consider your options to find a service that aligns with your specific needs. Scan2Plan is committed to delivering quality and precision in this field. Here's a closer look at what sets us apart:
       </p>
 
@@ -87,10 +87,10 @@ export function ProposalDifferencePage({
         <div className="space-y-4">
           {leftColumn.map((point, index) => (
             <div key={index}>
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">
+              <h3 className="text-sm font-semibold text-[#49494b] mb-1">
                 • {point.title}
               </h3>
-              <p className="text-xs text-gray-600 leading-relaxed pl-3">
+              <p className="text-xs text-[#434343] leading-relaxed pl-3">
                 {point.description}
               </p>
             </div>
@@ -101,10 +101,10 @@ export function ProposalDifferencePage({
         <div className="space-y-4">
           {rightColumn.map((point, index) => (
             <div key={index}>
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">
+              <h3 className="text-sm font-semibold text-[#49494b] mb-1">
                 • {point.title}
               </h3>
-              <p className="text-xs text-gray-600 leading-relaxed pl-3">
+              <p className="text-xs text-[#434343] leading-relaxed pl-3">
                 {point.description}
               </p>
             </div>
@@ -113,9 +113,9 @@ export function ProposalDifferencePage({
       </div>
 
       {/* Page Footer */}
-      <div className="absolute bottom-8 left-16 right-16 border-t border-gray-300 pt-3 text-center text-xs text-gray-500">
+      <div className="absolute bottom-8 left-16 right-16 border-t border-[#d1d5db] pt-3 text-center text-xs text-[#616161]">
         Scan2Plan, Inc • 188 1st St, Troy NY, 12180 • (518) 362-2403 •
-        admin@scan2plan.io • scan2plan.io
+        admin@scan2plan.io • <span className="text-[#123ea8] underline">scan2plan.io</span>
       </div>
     </div>
   );
