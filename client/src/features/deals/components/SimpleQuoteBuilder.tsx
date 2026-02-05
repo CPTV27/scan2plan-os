@@ -1,6 +1,15 @@
 /**
- * SimpleQuoteBuilder - CPQ Quote Configuration Editor
- * 
+ * @deprecated This component is DEPRECATED and should not be used or updated.
+ *
+ * Use the Calculator component instead: client/src/cpq/pages/Calculator.tsx
+ * The Calculator is rendered via QuoteBuilderTab in the Deal Workspace.
+ *
+ * This file is kept for reference only and may be removed in a future release.
+ *
+ * ---
+ *
+ * SimpleQuoteBuilder - CPQ Quote Configuration Editor (DEPRECATED)
+ *
  * Full CPQ configuration support including:
  * - Areas with disciplines, LOD, and scope
  * - Travel configuration (standard/Brooklyn dispatch)

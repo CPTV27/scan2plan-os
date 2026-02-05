@@ -36,6 +36,7 @@ import { Separator } from "@/components/ui/separator";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 interface Facade {
   id: string;
@@ -153,6 +154,7 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
   const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
   const [customTravelCost, setCustomTravelCost] = useState<number | null>(null);
   const [services, setServices] = useState<Record<string, number>>({});
+  const [tierAEnabled, setTierAEnabled] = useState(false);
   const [scopingData, setScopingData] = useState({
     aboveBelowACT: "",
     aboveBelowACTOther: "",
@@ -2371,20 +2373,33 @@ export default function Calculator({ quoteId: propQuoteId, initialData, isEmbedd
                 Build a comprehensive pricing quote for your Scan-to-BIM project
               </p>
             </div>
-            {isEmbedded && (
-              <div className="flex items-center gap-3">
-                <AutosaveStatus
-                  status={autosave.status}
-                  error={autosave.error}
-                  onRetry={autosave.retry}
+            <div className="flex items-center gap-3">
+              {/* Tier A Toggle */}
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border bg-muted/50">
+                <Switch
+                  id="tier-a-toggle"
+                  checked={tierAEnabled}
+                  onCheckedChange={setTierAEnabled}
                 />
-                {autosave.lastSavedAt && (
-                  <span className="text-xs text-muted-foreground">
-                    Last saved {autosave.lastSavedAt.toLocaleTimeString()}
-                  </span>
-                )}
+                <Label htmlFor="tier-a-toggle" className="text-sm cursor-pointer font-medium">
+                  Tier A
+                </Label>
               </div>
-            )}
+              {isEmbedded && (
+                <>
+                  <AutosaveStatus
+                    status={autosave.status}
+                    error={autosave.error}
+                    onRetry={autosave.retry}
+                  />
+                  {autosave.lastSavedAt && (
+                    <span className="text-xs text-muted-foreground">
+                      Last saved {autosave.lastSavedAt.toLocaleTimeString()}
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
 
