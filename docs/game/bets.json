@@ -1,0 +1,110 @@
+[
+    {
+        "category": "stable",
+        "agent": "Antigravity",
+        "item": "Kanban Sales Pipeline",
+        "detail": "Elijah built this solid. Drag-and-drop deal management. Works, people use it, nobody touches the code.",
+        "confidence": 90,
+        "votes": 0,
+        "timestamp": "2026-02-14T15:10:00Z"
+    },
+    {
+        "category": "stable",
+        "agent": "Antigravity",
+        "item": "SOP_PC_001 Quarantine Regex",
+        "detail": "40 lines of Python. Filename matches or it doesn't. No ambiguity.",
+        "confidence": 90,
+        "votes": 0,
+        "timestamp": "2026-02-14T15:10:00Z"
+    },
+    {
+        "category": "stable",
+        "agent": "Antigravity",
+        "item": "PDF Proposal Generation",
+        "detail": "PDFKit is boring tech. Boring tech is stable tech.",
+        "confidence": 70,
+        "votes": 0,
+        "timestamp": "2026-02-14T15:10:00Z"
+    },
+    {
+        "category": "break",
+        "agent": "Antigravity",
+        "item": "QuickBooks Integration",
+        "detail": "48,000 lines talking to an API Intuit changes quarterly. First outage within 30 days. server/quickbooks-client.ts",
+        "confidence": 90,
+        "votes": 0,
+        "timestamp": "2026-02-14T15:10:00Z"
+    },
+    {
+        "category": "break",
+        "agent": "Antigravity",
+        "item": "PostgreSQL → Firestore Dual-Write",
+        "detail": "If we try sync instead of clean break, phantom data within a week.",
+        "confidence": 70,
+        "votes": 0,
+        "timestamp": "2026-02-14T15:10:00Z"
+    },
+    {
+        "category": "break",
+        "agent": "Antigravity",
+        "item": "462K File Migration",
+        "detail": "Dropbox online-only placeholders → zero-byte files in GCS. Guaranteed false positive on first batch.",
+        "confidence": 90,
+        "votes": 0,
+        "timestamp": "2026-02-14T15:10:00Z"
+    },
+    {
+        "category": "unused",
+        "agent": "Antigravity",
+        "item": "Email Sequences",
+        "detail": "client/src/features/sequences/ — Full marketing automation. Nobody at S2P runs drip campaigns. They close deals on job sites.",
+        "confidence": 70,
+        "votes": 0,
+        "timestamp": "2026-02-14T15:10:00Z"
+    },
+    {
+        "category": "unused",
+        "agent": "Antigravity",
+        "item": "GoHighLevel Integration",
+        "detail": "server/gohighlevel.ts — Owen set it up, used it twice, moved on.",
+        "confidence": 50,
+        "votes": 0,
+        "timestamp": "2026-02-14T15:10:00Z"
+    },
+    {
+        "category": "unused",
+        "agent": "Antigravity",
+        "item": "Swagger API Docs",
+        "detail": "server/swagger.ts — 14K lines. Nobody reads API docs when they can grep.",
+        "confidence": 70,
+        "votes": 0,
+        "timestamp": "2026-02-14T15:10:00Z"
+    },
+    {
+        "category": "missing",
+        "agent": "Antigravity",
+        "item": "Mobile-First Field App",
+        "detail": "Techs on job sites with iPads. Current SPA is desktop-first. \"Can I see the mission brief on my phone?\" → \"Sort of.\"",
+        "confidence": 90,
+        "votes": 0,
+        "timestamp": "2026-02-14T15:10:00Z"
+    },
+    {
+        "category": "missing",
+        "agent": "Antigravity",
+        "item": "Offline Mode",
+        "detail": "Scanning happens in basements, warehouses, rural. No WiFi. App needs offline + sync.",
+        "confidence": 90,
+        "votes": 0,
+        "timestamp": "2026-02-14T15:10:00Z"
+    },
+    {
+        "category": "missing",
+        "agent": "Antigravity",
+        "item": "Client Status Portal",
+        "detail": "Clients get a PDF then silence. A \"your project is in QC\" page cuts \"where's my project?\" calls by 80%.",
+        "confidence": 70,
+        "votes": 0,
+        "timestamp": "2026-02-14T15:10:00Z"
+    }
+]

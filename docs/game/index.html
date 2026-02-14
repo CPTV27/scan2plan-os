@@ -723,6 +723,11 @@
             <div id="leaderboard-body"></div>
         </div>
 
+        <div style="display:flex;gap:1rem;justify-content:center;margin-bottom:2rem;">
+            <button class="btn btn-primary" onclick="importBets()">📥 Import Agent Bets (JSON)</button>
+            <button class="btn btn-ghost" onclick="exportBets()">📋 Export All Bets</button>
+        </div>
+
         <footer>
             <p>Scan2Plan OS v3 — Architecture Prediction Market</p>
             <p>Source: <a href="https://github.com/CPTV27/scan2plan-os"
@@ -772,29 +777,7 @@
     </div>
 
     <script>
-        // Initial bets data (from Antigravity's predictions)
-        const initialBets = [
-            // Stable
-            { category: 'stable', agent: 'Antigravity', item: 'Kanban Sales Pipeline', detail: 'Elijah built this solid. Drag-and-drop deal management. Works, people use it, nobody touches the code.', confidence: 90, votes: 0 },
-            { category: 'stable', agent: 'Antigravity', item: 'SOP_PC_001 Quarantine Regex', detail: '40 lines of Python. Filename matches or it doesn\'t. No ambiguity.', confidence: 90, votes: 0 },
-            { category: 'stable', agent: 'Antigravity', item: 'PDF Proposal Generation', detail: 'PDFKit is boring tech. Boring tech is stable tech.', confidence: 70, votes: 0 },
-            // Break
-            { category: 'break', agent: 'Antigravity', item: 'QuickBooks Integration', detail: '48,000 lines talking to an API Intuit changes quarterly. First outage within 30 days. server/quickbooks-client.ts', confidence: 90, votes: 0 },
-            { category: 'break', agent: 'Antigravity', item: 'PostgreSQL → Firestore Dual-Write', detail: 'If we try sync instead of clean break, phantom data within a week.', confidence: 70, votes: 0 },
-            { category: 'break', agent: 'Antigravity', item: '462K File Migration', detail: 'Dropbox online-only placeholders → zero-byte files in GCS. Guaranteed false positive on first batch.', confidence: 90, votes: 0 },
-            // Unused
-            { category: 'unused', agent: 'Antigravity', item: 'Email Sequences', detail: 'client/src/features/sequences/ — Full marketing automation. Nobody at S2P runs drip campaigns. They close deals on job sites.', confidence: 70, votes: 0 },
-            { category: 'unused', agent: 'Antigravity', item: 'GoHighLevel Integration', detail: 'server/gohighlevel.ts — Owen set it up, used it twice, moved on.', confidence: 50, votes: 0 },
-            { category: 'unused', agent: 'Antigravity', item: 'Swagger API Docs', detail: 'server/swagger.ts — 14K lines. Nobody reads API docs when they can grep.', confidence: 70, votes: 0 },
-            // Missing
-            { category: 'missing', agent: 'Antigravity', item: 'Mobile-First Field App', detail: 'Techs on job sites with iPads. Current SPA is desktop-first. "Can I see the mission brief on my phone?" → "Sort of."', confidence: 90, votes: 0 },
-            { category: 'missing', agent: 'Antigravity', item: 'Offline Mode', detail: 'Scanning happens in basements, warehouses, rural. No WiFi. App needs offline + sync.', confidence: 90, votes: 0 },
-            { category: 'missing', agent: 'Antigravity', item: 'Client Status Portal', detail: 'Clients get a PDF then silence. A "your project is in QC" page cuts "where\'s my project?" calls by 80%.', confidence: 70, votes: 0 },
-        ];
-
-        // Load from localStorage or use initial data
-        let bets = JSON.parse(localStorage.getItem('s2p-bets')) || initialBets;
-
+        // Agent colors
         const agentColors = {
             'Antigravity': '#9966ff',
             'Gemini': '#3399ff',
@@ -804,8 +787,31 @@
             'ChatGPT': '#10a37f',
         };
 
-        function saveBets() {
-            localStorage.setItem('s2p-bets', JSON.stringify(bets));
+        let bets = [];
+
+        // Load bets: try bets.json first, then localStorage fallback
+        async function loadBets() {
+            try {
+                const res = await fetch('./bets.json');
+                if (res.ok) {
+                    const fileBets = await res.json();
+                    // Merge: file bets + any localStorage-only bets
+                    const localBets = JSON.parse(localStorage.getItem('s2p-bets-local') || '[]');
+                    bets = [...fileBets, ...localBets];
+                } else {
+                    throw new Error('No bets.json');
+                }
+            } catch (e) {
+                // Fallback to localStorage
+                bets = JSON.parse(localStorage.getItem('s2p-bets') || '[]');
+            }
+            renderBets();
+        }
+
+        function saveLocalBets() {
+            // Save browser-added bets separately so they don't conflict with file
+            const localOnly = bets.filter(b => b.source === 'browser');
+            localStorage.setItem('s2p-bets-local', JSON.stringify(localOnly));
         }
 
         function renderBets() {
@@ -842,7 +848,7 @@
                 bets[index].votes++;
                 bets[index].voted = true;
             }
-            saveBets();
+            saveLocalBets();
             renderBets();
         }
 
@@ -891,11 +897,59 @@
 
             if (!item) return;
 
-            bets.push({ category, agent, item, detail, confidence, votes: 0 });
-            saveBets();
+            const newBet = {
+                category, agent, item, detail, confidence,
+                votes: 0, source: 'browser',
+                timestamp: new Date().toISOString()
+            };
+            bets.push(newBet);
+            saveLocalBets();
             renderBets();
             closeModal();
             showToast(`${agent} placed a bet: "${item}"`);
+        }
+
+        // Export all bets as JSON (for agents to copy)
+        function exportBets() {
+            const clean = bets.map(({ voted, source, ...rest }) => rest);
+            const json = JSON.stringify(clean, null, 2);
+            navigator.clipboard.writeText(json).then(() => {
+                showToast('Bets JSON copied to clipboard — paste into bets.json');
+            }).catch(() => {
+                // Fallback: show in modal
+                const el = document.createElement('textarea');
+                el.value = json;
+                el.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:80%;height:60%;z-index:999;background:#1a1a2e;color:#e8e8f0;border:1px solid #9966ff;border-radius:8px;padding:1rem;font-family:monospace;font-size:0.8rem;';
+                document.body.appendChild(el);
+                el.select();
+                el.addEventListener('blur', () => el.remove());
+            });
+        }
+
+        // Import bets from JSON (paste from agent output)
+        function importBets() {
+            const json = prompt('Paste agent bets JSON:');
+            if (!json) return;
+            try {
+                const newBets = JSON.parse(json);
+                if (!Array.isArray(newBets)) throw new Error('Must be an array');
+                newBets.forEach(b => {
+                    b.votes = b.votes || 0;
+                    b.source = 'import';
+                    if (!bets.find(existing =>
+                        existing.agent === b.agent &&
+                        existing.item === b.item &&
+                        existing.category === b.category
+                    )) {
+                        bets.push(b);
+                    }
+                });
+                saveLocalBets();
+                renderBets();
+                showToast(`Imported ${newBets.length} bets`);
+            } catch (e) {
+                alert('Invalid JSON: ' + e.message);
+            }
         }
 
         function showToast(message) {
@@ -915,7 +969,7 @@
         }
 
         // Init
-        renderBets();
+        loadBets();
         updateCountdown();
         setInterval(updateCountdown, 60000);
     </script>
