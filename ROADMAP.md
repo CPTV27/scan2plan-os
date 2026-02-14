@@ -129,6 +129,10 @@ Owen's architecture brief defines four engines to build on top of this foundatio
 **Archive source:** https://drive.google.com/drive/folders/1N4uXymvepbK86drCu9wWmFX8eEr7U2b3?usp=drive_link
 *(Additional project links pending from Chase)*
 
+**Migration spec:** See `docs/MIGRATION_CONTEXT.md` for GCS bucket structure, project token format, and metadata sidecar schema.
+
+**Point Cloud Viewer:** Integrate [Potree](https://github.com/potree/potree) (open-source WebGL viewer) to display point clouds from GCS. Prior development exists — needs a working demo with real S2P point cloud data.
+
 **Definition of Done:** Closing a deal auto-creates the correct folder structure. Uploading a non-compliant file triggers quarantine + PM alert.
 
 ---
