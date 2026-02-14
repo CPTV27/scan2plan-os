@@ -133,6 +133,8 @@ Owen's architecture brief defines four engines to build on top of this foundatio
 
 **Point Cloud Viewer:** Integrate [Potree](https://github.com/potree/potree) (open-source WebGL viewer) to display point clouds from GCS. Prior development exists — needs a working demo with real S2P point cloud data.
 
+**360 Virtual Tours:** Build a web-based 360° tour viewer for panoramic images captured by the Trimble X7 scanner. **Floor-plan-anchored navigation** — use the generated 2D floor plan as an interactive map, click scan positions to open the corresponding 360° panorama (Matterport-style UX). Open-source options: [Marzipano](https://www.marzipano.net/) or [Pannellum](https://pannellum.org/). Load from GCS `assets/` folder. Client deliverable + marketing asset.
+
 **Definition of Done:** Closing a deal auto-creates the correct folder structure. Uploading a non-compliant file triggers quarantine + PM alert.
 
 ---
