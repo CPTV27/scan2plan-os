@@ -14,6 +14,33 @@
 | **Elijah** | Lead Developer | Active — built the original S2P-S&P v2 |
 | **Owen** | Strategy / Operations | Provided architecture brief (source docs via OpenAI/NotebookLM) |
 
+## Cross-Agent Communication Protocol
+
+Multiple AI agents contribute to this project. The repo is the shared brain.
+
+### How to read context
+- **Start here:** `.agent/CONTEXT.md` (this file) for project overview
+- **Build plan:** `ROADMAP.md` for phased development plan
+- **Specs:** `docs/*.md` for detailed feature specs
+- **Code context:** `CLAUDE.md` for codebase architecture
+
+### How to write context
+- **New feature specs:** Create `docs/YOUR_FEATURE_NAME.md`
+- **Code:** Create a feature branch (`agent-name/feature-name`), commit, push
+- **Updates to existing specs:** Edit the relevant `docs/*.md` file directly
+- **Chase will paste cross-agent messages here** — file them in the appropriate `docs/*.md`
+
+### File conventions
+| File | Purpose |
+|---|---|
+| `.agent/CONTEXT.md` | Shared project context (read first) |
+| `ROADMAP.md` | Phased build plan with task tracking |
+| `docs/MIGRATION_CONTEXT.md` | Drive → GCS migration spec |
+| `docs/GCS_QUARANTINE_AND_METADATA.md` | File enforcement + metadata extraction |
+| `docs/SITE_AUDIT_AND_COMMS_GATE.md` | Vertex AI site audit + Chat provisioning |
+| `cloud-functions/quarantine/main.py` | Deployable GCS quarantine function |
+| `CLAUDE.md` | Original codebase architecture (Elijah's) |
+
 ## Production Environment
 
 | Environment | URL | Platform |
