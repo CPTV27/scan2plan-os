@@ -6,6 +6,26 @@
 
 ---
 
+## ⚠️ SCOPE BOUNDARY — READ THIS FIRST
+
+**QuickBooks is a "Thin Export" utility.** It is NOT part of the 462K-file migration or point cloud metadata pipeline.
+
+| What QB Does | What QB Does NOT Do |
+|---|---|
+| Export paid receipts + invoice metadata | Process the 462K file manifest |
+| Push/pull Client, Amount, Date | Handle point cloud metadata |
+| Standard OAuth2 transactional sync | Rebuild margin data from raw files |
+| Query Firestore `projects` for "Paid" status | Touch GCS buckets or E57 headers |
+
+**BigQuery** handles massive data for margin analysis. **QuickBooks** is a lightweight financial endpoint for accounting. These are completely separate concerns.
+
+### For Developers/Agents:
+1. **Ignore the 462K manifest** for all QuickBooks work — it is irrelevant to accounting
+2. **Focus on Firestore** `client_comms` / `contract` subcollections for paid triggers
+3. **Implement standard OAuth2** with QB API to push receipt data on `status → Paid`
+
+---
+
 ## Context
 
 The 462K file manifest lacks financial metadata. QuickBooks (QB) holds the ground truth for:
