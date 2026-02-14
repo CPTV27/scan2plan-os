@@ -74,3 +74,35 @@ We are currently generating a **Migration Manifest** (`Complete_Migration_Manife
 * **Do not** build logic that relies on the old Google Drive API file IDs. They will become obsolete.
 * **Do** build logic that expects a `project_token` as the primary key for file retrieval.
 * **Prepare** the backend to read `project_summary.json` from the GCS bucket to "discover" projects, rather than scanning folders recursively.
+
+---
+
+## 6. Migration Manifest Status
+
+* **Inventory:** 462,116 files cataloged from `/Users/chasethis` root directory.
+* **Master Data:** `Complete_Migration_Manifest.csv` (112 MB).
+* **Field Schema:** `File Name`, `Path`, `Size (KB)`, `Last Modified`, `Action Required`, `Status`.
+* **Key Obstacle:** High volume of "online-only" (dataless) Dropbox files caused initial scan failures; script uses `try/except` blocks to skip these.
+* **Migration Google Sheet:** https://docs.google.com/spreadsheets/d/1tlYLMyIny24_6WREKxfiPF_9_9kzFfwbmsAl_JGRVWk/edit?usp=sharing
+* **Slicer Needed:** Ingest files >10MB from manifest to populate the Sheet (full 112MB CSV is too large for Google Sheets).
+
+## 7. Firestore SSOT Structure
+
+Metadata from validated files writes to:
+```
+/projects/{projectId}/file_registry/{fileId}
+```
+
+### Parameters Extracted
+* Point Density (points per mm/sqft)
+* Sensor/Scanner Metadata
+* Coordinate System integrity
+
+### Variance Analysis
+File registry links to **BigQuery variance oracle** — compares actual technical complexity delivered against original estimate.
+
+## 8. Integration Checklist for Developers
+
+1. **Slicer:** Ingest sliced manifest (files >10MB) into the Migration Google Sheet.
+2. **Eventarc:** Configure to listen for GCS `object.finalize` events to start metadata extraction.
+3. **RAG Engine:** Management software must query **Vertex AI RAG Engine** (containing 2025 LOD Spec) to validate if extracted metadata meets contracted standards.
