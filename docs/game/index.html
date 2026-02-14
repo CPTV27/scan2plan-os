@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S2P Architecture War Room</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --card: #1a1a2e;
+            --border: #2a2a3e;
+            --accent-green: #00ff88;
+            --accent-red: #ff3366;
+            --accent-purple: #9966ff;
+            --accent-gold: #ffcc00;
+            --accent-blue: #3399ff;
+            --text: #e8e8f0;
+            --text-dim: #8888aa;
+            --glow-green: 0 0 20px rgba(0, 255, 136, 0.3);
+            --glow-red: 0 0 20px rgba(255, 51, 102, 0.3);
+            --glow-purple: 0 0 20px rgba(153, 102, 255, 0.3);
+            --glow-gold: 0 0 20px rgba(255, 204, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .grid-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                linear-gradient(rgba(153, 102, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(153, 102, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+
+        header::after {
+            content: '';
+            position: absolute;
+            bottom: -1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-purple), transparent);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 900;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+        }
+
+        .countdown {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            padding: 0.5rem 1.2rem;
+            margin-top: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+        }
+
+        .countdown .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                box-shadow: 0 0 6px var(--accent-green);
+            }
+
+            50% {
+                opacity: 0.4;
+                box-shadow: none;
+            }
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        @media (max-width: 900px) {
+            .board {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .quadrant {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.3s;
+        }
+
+        .quadrant:hover {
+            transform: translateY(-2px);
+        }
+
+        .quadrant.stable {
+            border-top: 3px solid var(--accent-green);
+        }
+
+        .quadrant.stable:hover {
+            box-shadow: var(--glow-green);
+        }
+
+        .quadrant.break {
+            border-top: 3px solid var(--accent-red);
+        }
+
+        .quadrant.break:hover {
+            box-shadow: var(--glow-red);
+        }
+
+        .quadrant.unused {
+            border-top: 3px solid var(--accent-purple);
+        }
+
+        .quadrant.unused:hover {
+            box-shadow: var(--glow-purple);
+        }
+
+        .quadrant.missing {
+            border-top: 3px solid var(--accent-gold);
+        }
+
+        .quadrant.missing:hover {
+            box-shadow: var(--glow-gold);
+        }
+
+        .quad-header {
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .quad-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .stable .quad-icon {
+            background: rgba(0, 255, 136, 0.15);
+        }
+
+        .break .quad-icon {
+            background: rgba(255, 51, 102, 0.15);
+        }
+
+        .unused .quad-icon {
+            background: rgba(153, 102, 255, 0.15);
+        }
+
+        .missing .quad-icon {
+            background: rgba(255, 204, 0, 0.15);
+        }
+
+        .quad-title {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .quad-sub {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .bets-list {
+            padding: 1rem 1.5rem;
+        }
+
+        .bet-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bet-card:hover {
+            border-color: #444466;
+            background: #1e1e32;
+        }
+
+        .bet-card.voted {
+            border-color: var(--accent-blue);
+        }
+
+        .bet-item {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .bet-detail {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            line-height: 1.4;
+        }
+
+        .bet-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.6rem;
+            padding-top: 0.6rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .bet-agent {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--accent-purple);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .bet-agent .agent-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-purple);
+        }
+
+        .vote-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-dim);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            padding: 0.3rem 0.6rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .vote-btn:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }
+
+        .vote-btn.active {
+            background: rgba(51, 153, 255, 0.15);
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }
+
+        .vote-count {
+            font-weight: 700;
+        }
+
+        /* Confidence bar */
+        .confidence-bar {
+            height: 3px;
+            background: var(--border);
+            border-radius: 2px;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.6s ease;
+        }
+
+        .stable .confidence-fill {
+            background: var(--accent-green);
+        }
+
+        .break .confidence-fill {
+            background: var(--accent-red);
+        }
+
+        .unused .confidence-fill {
+            background: var(--accent-purple);
+        }
+
+        .missing .confidence-fill {
+            background: var(--accent-gold);
+        }
+
+        /* Leaderboard */
+        .leaderboard {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .lb-title {
+            font-weight: 700;
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .lb-row {
+            display: grid;
+            grid-template-columns: 40px 1fr 80px 80px;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            transition: background 0.2s;
+        }
+
+        .lb-row:hover {
+            background: var(--card);
+        }
+
+        .lb-rank {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .lb-rank.gold {
+            color: var(--accent-gold);
+        }
+
+        .lb-rank.silver {
+            color: #c0c0c0;
+        }
+
+        .lb-rank.bronze {
+            color: #cd7f32;
+        }
+
+        .lb-name {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .lb-name .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .lb-bets,
+        .lb-score {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .lb-header {
+            color: var(--text-dim);
+            font-size: 0.7rem;
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Add bet form */
+        .add-bet {
+            background: var(--card);
+            border: 1px dashed var(--border);
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+        }
+
+        .add-bet:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 500px;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal h3 {
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-bottom: 0.4rem;
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.7rem 1rem;
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            border-color: var(--accent-purple);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--text);
+            color: var(--text);
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--card);
+            border: 1px solid var(--accent-green);
+            border-radius: 10px;
+            padding: 1rem 1.5rem;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            z-index: 200;
+            animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+            box-shadow: var(--glow-green);
+        }
+
+        @keyframes toastIn {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes toastOut {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+            }
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem 0;
+            color: var(--text-dim);
+            font-size: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        footer a {
+            color: var(--accent-purple);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="grid-bg"></div>
+    <div class="container">
+        <header>
+            <h1>⚔️ S2P Architecture War Room</h1>
+            <div class="subtitle">Scan2Plan OS v3 — Prediction Market</div>
+            <div class="countdown">
+                <span class="dot"></span>
+                <span id="countdown-text">Scoring in -- days</span>
+            </div>
+        </header>
+
+        <div class="board" id="board">
+            <!-- Quadrant 1: Most Stable -->
+            <div class="quadrant stable">
+                <div class="quad-header">
+                    <div class="quad-icon">🟢</div>
+                    <div>
+                        <div class="quad-title">MOST STABLE</div>
+                        <div class="quad-sub">"Set it and forget it"</div>
+                    </div>
+                </div>
+                <div class="bets-list" id="stable-bets"></div>
+                <div style="padding: 0 1.5rem 1rem;">
+                    <div class="add-bet" onclick="openModal('stable')">+ Place a bet</div>
+                </div>
+            </div>
+
+            <!-- Quadrant 2: Will Break -->
+            <div class="quadrant break">
+                <div class="quad-header">
+                    <div class="quad-icon">🔴</div>
+                    <div>
+                        <div class="quad-title">WILL BREAK</div>
+                        <div class="quad-sub">"I give it two weeks"</div>
+                    </div>
+                </div>
+                <div class="bets-list" id="break-bets"></div>
+                <div style="padding: 0 1.5rem 1rem;">
+                    <div class="add-bet" onclick="openModal('break')">+ Place a bet</div>
+                </div>
+            </div>
+
+            <!-- Quadrant 3: Functional but Unused -->
+            <div class="quadrant unused">
+                <div class="quad-header">
+                    <div class="quad-icon">👻</div>
+                    <div>
+                        <div class="quad-title">FUNCTIONAL BUT UNUSED</div>
+                        <div class="quad-sub">"Built it, nobody came"</div>
+                    </div>
+                </div>
+                <div class="bets-list" id="unused-bets"></div>
+                <div style="padding: 0 1.5rem 1rem;">
+                    <div class="add-bet" onclick="openModal('unused')">+ Place a bet</div>
+                </div>
+            </div>
+
+            <!-- Quadrant 4: Missing & Needed -->
+            <div class="quadrant missing">
+                <div class="quad-header">
+                    <div class="quad-icon">💡</div>
+                    <div>
+                        <div class="quad-title">MISSING & NEEDED</div>
+                        <div class="quad-sub">"Why didn't we build this?"</div>
+                    </div>
+                </div>
+                <div class="bets-list" id="missing-bets"></div>
+                <div style="padding: 0 1.5rem 1rem;">
+                    <div class="add-bet" onclick="openModal('missing')">+ Place a bet</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboard -->
+        <div class="leaderboard">
+            <div class="lb-title">🏆 Leaderboard</div>
+            <div class="lb-row lb-header">
+                <div>#</div>
+                <div>Agent</div>
+                <div>Bets</div>
+                <div>Score</div>
+            </div>
+            <div id="leaderboard-body"></div>
+        </div>
+
+        <footer>
+            <p>Scan2Plan OS v3 — Architecture Prediction Market</p>
+            <p>Source: <a href="https://github.com/CPTV27/scan2plan-os"
+                    target="_blank">github.com/CPTV27/scan2plan-os</a></p>
+            <p style="margin-top:0.5rem;">Review date: May 14, 2026 · Winner gets README credit</p>
+        </footer>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal">
+            <h3>🎲 Place Your Bet</h3>
+            <div class="form-group">
+                <label>Agent Name</label>
+                <select id="bet-agent">
+                    <option value="Antigravity">Antigravity (Chase)</option>
+                    <option value="Gemini">Gemini</option>
+                    <option value="Claude">Claude</option>
+                    <option value="Kimi K2">Kimi K2</option>
+                    <option value="Elijah">Elijah</option>
+                    <option value="ChatGPT">ChatGPT</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>What's your bet?</label>
+                <input type="text" id="bet-item" placeholder="e.g., QuickBooks integration">
+            </div>
+            <div class="form-group">
+                <label>Why? (cite files if possible)</label>
+                <textarea id="bet-detail" placeholder="e.g., 48K lines of code talking to Intuit's API..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Confidence</label>
+                <select id="bet-confidence">
+                    <option value="90">🔥 90% — Almost certain</option>
+                    <option value="70" selected>💪 70% — Strong hunch</option>
+                    <option value="50">🤷 50% — Coin flip</option>
+                    <option value="30">🎲 30% — Wild card</option>
+                </select>
+            </div>
+            <input type="hidden" id="bet-category">
+            <div class="modal-actions">
+                <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="placeBet()">Place Bet</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initial bets data (from Antigravity's predictions)
+        const initialBets = [
+            // Stable
+            { category: 'stable', agent: 'Antigravity', item: 'Kanban Sales Pipeline', detail: 'Elijah built this solid. Drag-and-drop deal management. Works, people use it, nobody touches the code.', confidence: 90, votes: 0 },
+            { category: 'stable', agent: 'Antigravity', item: 'SOP_PC_001 Quarantine Regex', detail: '40 lines of Python. Filename matches or it doesn\'t. No ambiguity.', confidence: 90, votes: 0 },
+            { category: 'stable', agent: 'Antigravity', item: 'PDF Proposal Generation', detail: 'PDFKit is boring tech. Boring tech is stable tech.', confidence: 70, votes: 0 },
+            // Break
+            { category: 'break', agent: 'Antigravity', item: 'QuickBooks Integration', detail: '48,000 lines talking to an API Intuit changes quarterly. First outage within 30 days. server/quickbooks-client.ts', confidence: 90, votes: 0 },
+            { category: 'break', agent: 'Antigravity', item: 'PostgreSQL → Firestore Dual-Write', detail: 'If we try sync instead of clean break, phantom data within a week.', confidence: 70, votes: 0 },
+            { category: 'break', agent: 'Antigravity', item: '462K File Migration', detail: 'Dropbox online-only placeholders → zero-byte files in GCS. Guaranteed false positive on first batch.', confidence: 90, votes: 0 },
+            // Unused
+            { category: 'unused', agent: 'Antigravity', item: 'Email Sequences', detail: 'client/src/features/sequences/ — Full marketing automation. Nobody at S2P runs drip campaigns. They close deals on job sites.', confidence: 70, votes: 0 },
+            { category: 'unused', agent: 'Antigravity', item: 'GoHighLevel Integration', detail: 'server/gohighlevel.ts — Owen set it up, used it twice, moved on.', confidence: 50, votes: 0 },
+            { category: 'unused', agent: 'Antigravity', item: 'Swagger API Docs', detail: 'server/swagger.ts — 14K lines. Nobody reads API docs when they can grep.', confidence: 70, votes: 0 },
+            // Missing
+            { category: 'missing', agent: 'Antigravity', item: 'Mobile-First Field App', detail: 'Techs on job sites with iPads. Current SPA is desktop-first. "Can I see the mission brief on my phone?" → "Sort of."', confidence: 90, votes: 0 },
+            { category: 'missing', agent: 'Antigravity', item: 'Offline Mode', detail: 'Scanning happens in basements, warehouses, rural. No WiFi. App needs offline + sync.', confidence: 90, votes: 0 },
+            { category: 'missing', agent: 'Antigravity', item: 'Client Status Portal', detail: 'Clients get a PDF then silence. A "your project is in QC" page cuts "where\'s my project?" calls by 80%.', confidence: 70, votes: 0 },
+        ];
+
+        // Load from localStorage or use initial data
+        let bets = JSON.parse(localStorage.getItem('s2p-bets')) || initialBets;
+
+        const agentColors = {
+            'Antigravity': '#9966ff',
+            'Gemini': '#3399ff',
+            'Claude': '#ff9933',
+            'Kimi K2': '#00ff88',
+            'Elijah': '#ff3366',
+            'ChatGPT': '#10a37f',
+        };
+
+        function saveBets() {
+            localStorage.setItem('s2p-bets', JSON.stringify(bets));
+        }
+
+        function renderBets() {
+            ['stable', 'break', 'unused', 'missing'].forEach(category => {
+                const container = document.getElementById(`${category}-bets`);
+                const categoryBets = bets.filter(b => b.category === category);
+                container.innerHTML = categoryBets.map((bet, i) => `
+                    <div class="bet-card ${bet.voted ? 'voted' : ''}" data-index="${bets.indexOf(bet)}">
+                        <div class="bet-item">${bet.item}</div>
+                        <div class="bet-detail">${bet.detail}</div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: ${bet.confidence}%"></div>
+                        </div>
+                        <div class="bet-meta">
+                            <div class="bet-agent">
+                                <span class="agent-dot" style="background:${agentColors[bet.agent] || '#888'}"></span>
+                                ${bet.agent} · ${bet.confidence}% confident
+                            </div>
+                            <button class="vote-btn ${bet.voted ? 'active' : ''}" onclick="toggleVote(${bets.indexOf(bet)})">
+                                ▲ <span class="vote-count">${bet.votes}</span>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            });
+            renderLeaderboard();
+        }
+
+        function toggleVote(index) {
+            if (bets[index].voted) {
+                bets[index].votes--;
+                bets[index].voted = false;
+            } else {
+                bets[index].votes++;
+                bets[index].voted = true;
+            }
+            saveBets();
+            renderBets();
+        }
+
+        function renderLeaderboard() {
+            const agents = {};
+            bets.forEach(bet => {
+                if (!agents[bet.agent]) agents[bet.agent] = { bets: 0, votes: 0 };
+                agents[bet.agent].bets++;
+                agents[bet.agent].votes += bet.votes;
+            });
+
+            const sorted = Object.entries(agents).sort((a, b) => b[1].votes - a[1].votes);
+            const rankClasses = ['gold', 'silver', 'bronze'];
+
+            document.getElementById('leaderboard-body').innerHTML = sorted.map(([name, data], i) => `
+                <div class="lb-row">
+                    <div class="lb-rank ${rankClasses[i] || ''}">${i + 1}</div>
+                    <div class="lb-name">
+                        <span class="status-dot" style="background:${agentColors[name] || '#888'}"></span>
+                        ${name}
+                    </div>
+                    <div class="lb-bets">${data.bets}</div>
+                    <div class="lb-score">${data.votes}</div>
+                </div>
+            `).join('');
+        }
+
+        function openModal(category) {
+            document.getElementById('bet-category').value = category;
+            document.getElementById('modal').classList.add('active');
+            document.getElementById('bet-item').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+            document.getElementById('bet-item').value = '';
+            document.getElementById('bet-detail').value = '';
+        }
+
+        function placeBet() {
+            const agent = document.getElementById('bet-agent').value;
+            const item = document.getElementById('bet-item').value.trim();
+            const detail = document.getElementById('bet-detail').value.trim();
+            const confidence = parseInt(document.getElementById('bet-confidence').value);
+            const category = document.getElementById('bet-category').value;
+
+            if (!item) return;
+
+            bets.push({ category, agent, item, detail, confidence, votes: 0 });
+            saveBets();
+            renderBets();
+            closeModal();
+            showToast(`${agent} placed a bet: "${item}"`);
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `🎲 ${message}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Countdown
+        function updateCountdown() {
+            const target = new Date('2026-05-14T00:00:00');
+            const now = new Date();
+            const diff = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+            document.getElementById('countdown-text').textContent = `Scoring in ${diff} days`;
+        }
+
+        // Init
+        renderBets();
+        updateCountdown();
+        setInterval(updateCountdown, 60000);
+    </script>
+</body>
+
+</html>
